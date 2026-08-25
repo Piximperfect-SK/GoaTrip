@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Goa Run — The Ticket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#0F2622;
+    --teal-900:#0B3D3A;
+    --teal-800:#123F3C;
+    --teal-700:#1A544F;
+    --sand:#EFE6D6;
+    --sand-2:#E4D8C2;
+    --paper:#FBF6EC;
+    --mango:#FF7A45;
+    --mango-2:#E85D2A;
+    --azulejo:#1E6091;
+    --azulejo-2:#3B82C4;
+    --palm:#3E7C59;
+    --line: rgba(15,38,34,0.14);
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{scroll-behavior:smooth; overscroll-behavior-y:none;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:none;
+    -webkit-touch-callout:none;
+  }
+  button, .btn-primary, .btn-ghost, .navlink, #walletFab{ touch-action:manipulation; }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    letter-spacing:-0.01em;
+  }
+  .mono{ font-family:'Space Mono', monospace; }
+  ::selection{ background: var(--mango); color:white; }
+
+  /* ---------- Perforation / ticket edges ---------- */
+  .stub-edge{
+    position:relative;
+  }
+  .stub-edge::before, .stub-edge::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:14px;
+    background-image: radial-gradient(circle at 14px 50%, transparent 7px, var(--paper) 7.5px);
+    background-size: 28px 28px;
+    background-repeat: repeat-x;
+  }
+  .stub-edge::before{ top:-7px; }
+  .stub-edge::after{ bottom:-7px; transform:rotate(180deg); }
+
+  /* ---------- Nav ---------- */
+  #topnav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(11,61,58,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    transition: transform .4s ease;
+    padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar);
+  }
+  #topnav.hide{ transform: translateY(-100%); }
+  .navlink{
+    color:#DCE9E4; opacity:.75; font-size:13px; letter-spacing:.04em;
+    text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent;
+    transition:.2s;
+  }
+  .navlink:hover, .navlink.active{ opacity:1; border-color:var(--mango); color:white; }
+  .navlink-wallet{ opacity:1; color:var(--mango); font-weight:600; }
+
+  /* ---------- Mobile menu: app-like slide-down sheet + backdrop ---------- */
+  #menuBackdrop{
+    position:fixed; inset:0; z-index:49; background:rgba(15,38,34,.45); backdrop-filter:blur(2px);
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  #menuBackdrop.show{ opacity:1; pointer-events:auto; }
+  #mobilemenu{
+    position:fixed; left:0; right:0; top:0; z-index:50; background:#0B3D3A;
+    padding:calc(64px + var(--sat)) calc(20px + var(--sar)) 24px calc(20px + var(--sal));
+    transform:translateY(-100%); transition:transform .3s cubic-bezier(.22,1,.36,1);
+    display:flex; flex-direction:column; gap:2px;
+  }
+  #mobilemenu.open{ transform:translateY(0); }
+  #mobilemenu .navlink{ padding:14px 4px; font-size:15px; border-bottom:1px solid rgba(255,255,255,.08); }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    min-height:100svh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(255,122,69,0.28), transparent 60%),
+      radial-gradient(900px 500px at 90% 10%, rgba(59,130,196,0.25), transparent 55%),
+      linear-gradient(180deg, var(--teal-900), var(--teal-800) 60%, var(--teal-700));
+    color:var(--sand);
+    position:relative;
+    overflow:hidden;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .tile-motif{
+    position:absolute; inset:0; opacity:.10; pointer-events:none;
+    background-image:
+      linear-gradient(45deg, var(--azulejo-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--azulejo-2) 25%, transparent 25%);
+    background-size: 46px 46px;
+  }
+  .stamp{
+    border:2px solid currentColor; border-radius:9999px;
+    display:inline-flex; align-items:center; justify-content:center;
+    transform:rotate(-8deg);
+  }
+  .grain{position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  /* ---------- Journey / parallax route ---------- */
+  .journey{
+    background:var(--sand);
+    position:relative;
+  }
+  #route-svg{ width:100%; height:auto; display:block; }
+  .route-path{
+    fill:none; stroke:var(--teal-900); stroke-width:3; stroke-dasharray:10 10;
+    opacity:.35;
+  }
+  .route-progress{
+    fill:none; stroke:var(--mango); stroke-width:3;
+  }
+  .leg-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 10px 30px -18px rgba(15,38,34,0.35);
+    opacity:0; transform:translateY(24px);
+    transition:opacity .7s ease, transform .7s ease;
+  }
+  .leg-card.in{ opacity:1; transform:translateY(0); }
+  .mover{ transition: offset-distance .05s linear; }
+
+  /* ---------- Itinerary ---------- */
+  .day-card{
+    border:1px solid var(--line); border-radius:16px; background:var(--paper);
+    position:relative; overflow:hidden;
+  }
+  .day-card .tag{
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em;
+  }
+  .rail-dot{ width:11px; height:11px; border-radius:9999px; background:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,.18); }
+
+  /* ---------- Boarding pass ---------- */
+  .pass{
+    background:var(--teal-900); color:var(--sand);
+    border-radius:18px; position:relative; overflow:hidden;
+    box-shadow:0 25px 60px -25px rgba(0,0,0,.5);
+  }
+  .pass .notch{
+    position:absolute; top:50%; width:26px; height:26px; background:var(--sand-2);
+    border-radius:9999px; transform:translateY(-50%);
+  }
+  .barcode{
+    background: repeating-linear-gradient(90deg, var(--sand) 0 2px, transparent 2px 5px, var(--sand) 5px 7px, transparent 7px 11px);
+    height:42px; border-radius:3px; opacity:.9;
+  }
+
+  /* ---------- IR navy accent (used by the Boarding Pass CTA card) ---------- */
+  :root{
+    --ir-navy:#16305C;
+  }
+
+  /* ---------- Sections generic ---------- */
+  section{ scroll-margin-top:70px; }
+  .section-eyebrow{
+    font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--mango-2);
+  }
+  .btn-primary{
+    background:var(--mango); color:white; font-weight:600; border-radius:9999px;
+    padding:12px 26px; transition:.2s; border:none; cursor:pointer;
+  }
+  .btn-primary:hover{ background:var(--mango-2); transform:translateY(-1px); }
+  .btn-primary:active{ transform:scale(.97); }
+  .btn-ghost{
+    border:1.5px solid var(--ink); border-radius:9999px; padding:11px 24px; font-weight:600;
+    background:transparent; cursor:pointer; transition:.2s;
+  }
+  .btn-ghost:hover{ background:var(--ink); color:var(--paper); }
+  .btn-ghost:active{ transform:scale(.97); }
+  input, select{
+    width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px;
+    background:var(--paper); font-family:'Space Grotesk',sans-serif; font-size:14px;
+    outline:none; transition:.15s;
+  }
+  input:focus, select:focus{ border-color:var(--mango); }
+  label{ font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--teal-800); }
+
+  .card{
+    background:var(--paper); border:1px solid var(--line); border-radius:16px;
+  }
+  .person-card{ transition:.25s; }
+  .person-card:hover{ transform:translateY(-4px); box-shadow:0 20px 40px -22px rgba(15,38,34,.35); }
+
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--teal-700); border-radius:9999px; }
+
+  .reveal{ opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+  }
+
+  .expense-row:nth-child(odd){ background: rgba(15,38,34,0.025); }
+  .balance-pos{ color:var(--palm); }
+  .balance-neg{ color:var(--mango-2); }
+
+  /* ---------- Wallet link (now a standalone page, opens in new tab) ---------- */
+  #walletFab{ box-shadow:0 14px 30px -12px rgba(255,122,69,.55); touch-action:manipulation; }
+  #walletFab:active{ transform:scale(.94); }
+
+  @media (max-width: 900px){
+    #walletFab{ bottom:calc(20px + var(--sab)); right:calc(16px + var(--sar)); }
+    input, select{ font-size:16px; } /* prevents iOS Safari auto-zoom on focus */
+    section{ scroll-margin-top:64px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav id="topnav" class="px-5 md:px-10 py-4 flex items-center justify-between">
+  <div class="mono text-white text-sm tracking-widest">GOA · PNQ→LONDA</div>
+  <div class="hidden md:flex gap-7">
+    <span class="navlink" data-target="#journey">Journey</span>
+    <span class="navlink" data-target="#itinerary">Itinerary</span>
+    <span class="navlink" data-target="#register">Register</span>
+    <a class="navlink" href="boarding-pass.html">Boarding Pass</a>
+    <a class="navlink navlink-wallet" href="goa-wallet.html">💰 Trip Wallet</a>
+    <span class="navlink" data-target="#team">Crew</span>
+  </div>
+  <span class="navlink md:hidden" onclick="toggleMobileMenu()">Menu</span>
+</nav>
+<div id="menuBackdrop" onclick="closeMobileMenu()"></div>
+<div id="mobilemenu" class="md:hidden">
+  <span class="navlink" data-target="#journey">Journey</span>
+  <span class="navlink" data-target="#itinerary">Itinerary</span>
+  <span class="navlink" data-target="#register">Register</span>
+  <a class="navlink" href="boarding-pass.html">Boarding Pass</a>
+  <a class="navlink navlink-wallet" href="goa-wallet.html">💰 Trip Wallet</a>
+  <span class="navlink" data-target="#team">Crew</span>
+</div>
+
+<!-- ============ WALLET LINK (standalone full-page app, opens goa-wallet.html — not a modal) ============ -->
+<a id="walletFab" href="goa-wallet.html" class="fixed z-[90] bottom-6 right-5 md:bottom-8 md:right-8 btn-primary shadow-lg flex items-center gap-2">
+  <span>💰</span><span class="hidden sm:inline">Trip Wallet</span>
+</a>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="tile-motif"></div>
+  <div class="grain"></div>
+  <div class="relative z-10 max-w-5xl mx-auto px-6 md:px-10 w-full pt-24 pb-16">
+    <div class="flex items-center gap-3 mb-8">
+      <span class="stamp mono text-[11px] w-16 h-16 shrink-0">DEPART<br>PUNE</span>
+      <div class="flex-1 border-t border-dashed border-white/30"></div>
+      <span class="mono text-[11px] opacity-70">5D / 4N</span>
+      <div class="flex-1 border-t border-dashed border-white/30"></div>
+      <span class="stamp mono text-[11px] w-16 h-16 shrink-0">ARRIVE<br>GOA</span>
+    </div>
+    <p class="section-eyebrow mb-3" style="color:#FFAB85">Boarding Card No. GA‑2026</p>
+    <h1 class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.92]">
+      The Goa<br><span style="color:var(--mango)">Run.</span>
+    </h1>
+    <p class="max-w-md mt-6 text-[15px] leading-relaxed opacity-80">
+      One overnight train from Pune, one winding cab ride from Londa station, and a villa full of your people
+      at the other end. Scroll to trace the route, lock your seat, and split the bill without the group‑chat math.
+    </p>
+    <div class="flex flex-wrap gap-3 mt-9">
+      <button class="btn-primary" onclick="document.querySelector('#journey').scrollIntoView({behavior:'smooth'})">Trace the route ↓</button>
+      <button class="btn-ghost" style="border-color:var(--sand); color:var(--sand)" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ JOURNEY / PARALLAX SCROLL ROUTE ============ -->
+<section id="journey" class="journey py-24 px-5 md:px-10">
+  <div class="max-w-5xl mx-auto">
+    <p class="section-eyebrow">Route</p>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">Rail, then road.</h2>
+    <p class="opacity-70 max-w-lg mb-12">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go.</p>
+
+    <div class="sticky top-[70px] z-10 mb-2 flex justify-end">
+      <span class="mono text-xs px-3 py-1 rounded-full bg-[var(--teal-900)] text-[var(--sand)]" id="progress-pill">0% travelled</span>
+    </div>
+
+    <div class="relative">
+      <svg id="route-svg" viewBox="0 0 800 340" preserveAspectRatio="xMidYMid meet">
+        <path id="route-track" class="route-path" d="M40,60 C 220,20 260,120 400,140 S 560,260 760,290"/>
+        <path id="route-fill" class="route-progress" d="M40,60 C 220,20 260,120 400,140 S 560,260 760,290" stroke-dasharray="1" stroke-dashoffset="1"/>
+        <!-- Station markers -->
+        <circle cx="40" cy="60" r="7" fill="#0B3D3A"/>
+        <text x="40" y="42" text-anchor="middle" class="mono" font-size="13" fill="#0B3D3A">PUNE</text>
+
+        <circle cx="400" cy="140" r="7" fill="#1E6091"/>
+        <text x="400" y="122" text-anchor="middle" class="mono" font-size="13" fill="#1E6091">LONDA JN</text>
+
+        <circle cx="760" cy="290" r="7" fill="#FF7A45"/>
+        <text x="712" y="272" text-anchor="middle" class="mono" font-size="13" fill="#E85D2A">VILLA, GOA</text>
+
+        <!-- moving marker -->
+        <g id="mover-train" class="mover">
+          <circle r="9" fill="#FF7A45"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mt-10">
+      <div class="leg-card p-7" id="leg1">
+        <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL</span>
+        <h3 class="display text-2xl font-semibold mt-2 mb-3">Pune Jn → Londa Jn</h3>
+        <p class="text-sm opacity-75 leading-relaxed">Overnight train, roughly 8–9 hours through the Western Ghats. Board late evening in Pune,
+        wake up to fog over the hills as you roll into Londa around sunrise. Keep boarding‑pass details handy — seat numbers go on your digital pass below.</p>
+        <div class="flex gap-6 mt-5 text-sm">
+          <div><p class="mono text-[11px] opacity-50">DEPARTS</p><p class="font-semibold">Pune, ~21:30</p></div>
+          <div><p class="mono text-[11px] opacity-50">ARRIVES</p><p class="font-semibold">Londa, ~06:00</p></div>
+        </div>
+      </div>
+      <div class="leg-card p-7" id="leg2">
+        <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD</span>
+        <h3 class="display text-2xl font-semibold mt-2 mb-3">Londa Jn → Villa</h3>
+        <p class="text-sm opacity-75 leading-relaxed">Shared cabs pick up right outside Londa station for the ~3 hour drive down through
+        the Ghats into Goa — cashew groves, hairpin bends, and your first smell of the coast. Group cabs will be arranged and shared here once headcount is final.</p>
+        <div class="flex gap-6 mt-5 text-sm">
+          <div><p class="mono text-[11px] opacity-50">DRIVE TIME</p><p class="font-semibold">~3 hrs</p></div>
+          <div><p class="mono text-[11px] opacity-50">DROP</p><p class="font-semibold">Villa gate</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ITINERARY ============ -->
+<section id="itinerary" class="py-24 px-5 md:px-10" style="background:var(--paper)">
+  <div class="max-w-5xl mx-auto">
+    <p class="section-eyebrow">Day by day</p>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">The itinerary.</h2>
+    <p class="opacity-70 max-w-lg mb-14">A working plan, loose enough for detours. Edit freely before you send this out.</p>
+
+    <div class="relative pl-8 md:pl-12" style="border-left:2px dashed var(--line)">
+      <div id="itin-days"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REGISTER ============ -->
+<section id="register" class="py-24 px-5 md:px-10" style="background:var(--sand)">
+  <div class="max-w-3xl mx-auto">
+    <p class="section-eyebrow">Lock your seat</p>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-4">Register for the run.</h2>
+    <p class="opacity-70 mb-8 max-w-md">Fill the official headcount form so the organisers can plan cabs, rooms and food — then head over to the Boarding Pass page to generate your own pass to keep or screenshot.</p>
+
+    <div class="card p-1 overflow-hidden">
+      <!-- Replace src below with your real Google Form's embed link (Form → Send → <> → copy iframe src) -->
+      <iframe
+        src="https://docs.google.com/forms/d/e/1FAIpQLSfl1gXHLfyoEZeSVrwZEuolafsBzKNTbGYWr2FfBogojMeRjg/viewform?usp=publish-editor"
+        width="100%" height="480" style="border:0; display:block;">Loading form…</iframe>
+    </div>
+    <p class="text-xs opacity-50 mt-3 mono">Swap the iframe src above for your real Google Form embed link. Google Forms can't talk back to this page, so headcount lives in the form's own response sheet.</p>
+
+    <div class="mt-8 card p-6 flex flex-wrap items-center justify-between gap-4" style="background:var(--ir-navy); border-color:var(--ir-navy);">
+      <div>
+        <p class="mono text-xs tracking-widest" style="color:#FFAB85">NEXT STEP</p>
+        <p class="display text-xl font-semibold mt-1" style="color:var(--sand)">Generate your boarding pass.</p>
+      </div>
+      <a href="boarding-pass.html" class="btn-primary inline-block">Go to Boarding Pass →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TEAM ============ -->
+<section id="team" class="py-24 px-5 md:px-10" style="background:var(--teal-900); color:var(--sand)">
+  <div class="max-w-5xl mx-auto">
+    <p class="section-eyebrow" style="color:#FFAB85">Who's running this</p>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12">The crew.</h2>
+    <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </div>
+</section>
+
+<footer class="py-10 px-5 md:px-10 text-center text-xs opacity-50" style="background:var(--teal-900); color:var(--sand)">
+  Pune → Londa → Goa · built for the crew, edit freely.
+</footer>
+
+<script>
+/* ============================================================
+   NAV: active link tracking + hide-on-scroll-down
+=============================================================*/
+const navlinks = document.querySelectorAll('.navlink[data-target]');
+function toggleMobileMenu(){
+  document.getElementById('mobilemenu').classList.toggle('open');
+  document.getElementById('menuBackdrop').classList.toggle('show');
+}
+function closeMobileMenu(){
+  document.getElementById('mobilemenu').classList.remove('open');
+  document.getElementById('menuBackdrop').classList.remove('show');
+}
+navlinks.forEach(l=>l.addEventListener('click', e=>{
+  closeMobileMenu();
+  document.querySelector(l.dataset.target).scrollIntoView({behavior:'smooth'});
+}));
+const sections = ['#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id));
+let lastY = window.scrollY;
+window.addEventListener('scroll', ()=>{
+  const y = window.scrollY;
+  const nav = document.getElementById('topnav');
+  if(y > lastY && y > 200){ nav.classList.add('hide'); } else { nav.classList.remove('hide'); }
+  lastY = y;
+  let current = null;
+  sections.forEach(s=>{ if(s.getBoundingClientRect().top < 140) current = s.id; });
+  navlinks.forEach(l=> l.classList.toggle('active', current && l.dataset.target === '#'+current));
+});
+
+/* ============================================================
+   REVEAL ON SCROLL (leg cards, generic .reveal elements)
+=============================================================*/
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); } });
+},{threshold:.2});
+document.querySelectorAll('.leg-card').forEach(el=>io.observe(el));
+
+/* ============================================================
+   ROUTE PARALLAX: marker travels along the SVG path with scroll
+=============================================================*/
+const track = document.getElementById('route-track');
+const fillPath = document.getElementById('route-fill');
+const mover = document.getElementById('mover-train');
+const journeySection = document.getElementById('journey');
+const pathLen = track.getTotalLength();
+fillPath.style.strokeDasharray = pathLen;
+fillPath.style.strokeDashoffset = pathLen;
+const pill = document.getElementById('progress-pill');
+
+function updateRoute(){
+  const rect = journeySection.getBoundingClientRect();
+  const total = rect.height - window.innerHeight;
+  let progress = total > 0 ? (-rect.top) / total : 0;
+  progress = Math.max(0, Math.min(1, progress));
+  const point = track.getPointAtLength(progress * pathLen);
+  mover.setAttribute('transform', `translate(${point.x},${point.y})`);
+  fillPath.style.strokeDashoffset = pathLen * (1 - progress);
+  pill.textContent = Math.round(progress*100) + '% travelled';
+  // fade legs based on progress too
+  document.getElementById('leg1').style.opacity = progress > 0.05 ? 1 : 0.5;
+  document.getElementById('leg2').style.opacity = progress > 0.55 ? 1 : 0.5;
+}
+window.addEventListener('scroll', updateRoute);
+window.addEventListener('resize', updateRoute);
+updateRoute();
+
+/* ============================================================
+   ITINERARY DATA
+=============================================================*/
+const itinerary = [
+  {day:"Day 1", title:"Pune → Londa → Villa check‑in", tag:"TRAVEL",
+   items:["Board the overnight train from Pune, ~21:30","Arrive Londa Jn at sunrise, group cabs to the villa (~3 hrs)","Check in, settle rooms, lazy lunch by the pool","Evening: welcome dinner + first beach walk at sunset"]},
+  {day:"Day 2", title:"North Goa beach day", tag:"BEACH",
+   items:["Breakfast at the villa","Baga & Calangute — water sports (parasailing, jet ski)","Anjuna flea market in the evening","Beach shack dinner, live music if it's a Wednesday/Saturday"]},
+  {day:"Day 3", title:"South Goa & sunset cruise", tag:"EXPLORE",
+   items:["Drive down to Palolem and Cabo de Rama fort","Butterfly Beach by boat, swim & snorkel","Sunset river cruise back toward the villa","Bonfire night at the villa"]},
+  {day:"Day 4", title:"Old Goa & Latin Quarter", tag:"CULTURE",
+   items:["Basilica of Bom Jesus & Se Cathedral","Spice plantation lunch (thali + elephant bath, optional)","Fontainhas Latin Quarter — photo walk","Farewell dinner, everyone settles the trip wallet"]},
+  {day:"Day 5", title:"Villa checkout → Londa → Pune", tag:"TRAVEL",
+   items:["Slow morning, checkout by 11:00","Cabs back to Londa Jn","Board return train to Pune","Home by evening"]},
+];
+const itinWrap = document.getElementById('itin-days');
+itinerary.forEach((d,i)=>{
+  const el = document.createElement('div');
+  el.className = "reveal day-card mb-6 p-6 relative";
+  el.innerHTML = `
+    <span class="rail-dot absolute -left-[41px] md:-left-[57px] top-8"></span>
+    <div class="flex flex-wrap items-center gap-3 mb-2">
+      <span class="mono text-xs px-2 py-1 rounded-full" style="background:var(--sand-2)">${d.day}</span>
+      <span class="tag opacity-50">${d.tag}</span>
+    </div>
+    <h3 class="display text-xl md:text-2xl font-semibold mb-3">${d.title}</h3>
+    <ul class="text-sm opacity-75 space-y-1.5 leading-relaxed list-disc pl-4">
+      ${d.items.map(it=>`<li>${it}</li>`).join('')}
+    </ul>`;
+  itinWrap.appendChild(el);
+  io.observe(el);
+});
+
+/* ============================================================
+   TEAM DIRECTORY
+=============================================================*/
+const team = [
+  {name:"Tanmay Singh", role:"Head of Management & Complaints", note:"Escalate here when the cab is late."},
+  {name:"Shubham Kumar, Apoorv & Pratik", role:"Admin", note:"Bookings, rooms, logistics."},
+  {name:"Divya & Tanu Raj", role:"Head Coordinator", note:"Runs the day-to-day plan on ground."},
+  {name:"Nikhil Agrawal", role:"Head of Finance", note:"Owns the trip wallet — pay him back."},
+  {name:"Divya & team", role:"People Coordinator", note:"Headcounts, groups, who's-where."},
+];
+document.getElementById('teamGrid').innerHTML = team.map(t=>`
+  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1)">
+    <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
+      ${t.name.trim()[0]}
+    </div>
+    <h3 class="display text-lg font-semibold mb-1">${t.name}</h3>
+    <p class="mono text-[11px] tracking-wide mb-3" style="color:#FFAB85">${t.role.toUpperCase()}</p>
+    <p class="text-sm opacity-70">${t.note}</p>
+  </div>`).join('');
+</script>
+</body>
+</html>

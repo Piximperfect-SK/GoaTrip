@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Trip Wallet — Goa Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#0F2622;
+    --teal-900:#0B3D3A;
+    --teal-800:#123F3C;
+    --teal-700:#1A544F;
+    --sand:#EFE6D6;
+    --sand-2:#E4D8C2;
+    --paper:#FBF6EC;
+    --mango:#FF7A45;
+    --mango-2:#E85D2A;
+    --azulejo:#1E6091;
+    --azulejo-2:#3B82C4;
+    --palm:#3E7C59;
+    --line: rgba(15,38,34,0.12);
+    --sidebar-w: 248px;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --tabbar-h: 62px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{ overscroll-behavior-y:none; }
+  body{
+    margin:0; color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:none; -webkit-touch-callout:none;
+    background:
+      radial-gradient(900px 500px at 100% -10%, rgba(30,96,145,.06), transparent 60%),
+      radial-gradient(700px 420px at -10% 15%, rgba(255,122,69,.05), transparent 55%),
+      var(--paper);
+  }
+  /* Subtle azulejo-tile watermark, fixed behind all content */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
+    background-image:
+      linear-gradient(45deg, var(--azulejo-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--azulejo-2) 25%, transparent 25%);
+    background-size:52px 52px;
+  }
+  button, .btn-primary, .btn-ghost, .btn-icon, .navitem, .wtab-chip, .tabbar-item, .fab{ touch-action:manipulation; }
+  input, textarea, select{ -webkit-user-select:text; user-select:text; }
+  h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+  .mono{ font-family:'Space Mono', monospace; }
+  ::-webkit-scrollbar{ width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb{ background:var(--teal-700); border-radius:9999px; }
+
+  /* ---------- Shell ---------- */
+  #shell{ display:flex; min-height:100vh; }
+  #sidebar{
+    width:var(--sidebar-w); flex-shrink:0; color:var(--sand);
+    background:
+      radial-gradient(220px 220px at 100% 0%, rgba(255,122,69,.14), transparent 65%),
+      linear-gradient(175deg, var(--teal-900), var(--teal-800) 65%, var(--teal-900));
+    position:fixed; top:0; bottom:0; left:0; z-index:40; display:flex; flex-direction:column;
+    transition:transform .25s ease; overflow:hidden;
+  }
+  #sidebar::after{
+    content:''; position:absolute; left:-30px; bottom:-30px; width:200px; height:200px; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23EFE6D6' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='32' fill='none' stroke='%23EFE6D6' stroke-width='1' stroke-dasharray='2 3'/%3E%3Cpath d='M50 6 L56 46 L94 50 L56 54 L50 94 L44 54 L6 50 L44 46 Z' fill='%23EFE6D6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; opacity:.05;
+  }
+  #sidebar .brand{ padding:22px 20px 16px; border-bottom:1px solid rgba(255,255,255,.08); position:relative; z-index:1; }
+  #sidebar nav{ position:relative; z-index:1; }
+  #sidebar .navitem{
+    display:flex; align-items:center; gap:12px; padding:11px 20px; font-size:14px; font-weight:500;
+    color:rgba(239,230,214,.68); cursor:pointer; border-left:3px solid transparent; transition:.18s ease;
+  }
+  #sidebar .navitem:hover{ color:var(--sand); background:rgba(255,255,255,.05); padding-left:24px; }
+  #sidebar .navitem.active{
+    color:white; background:linear-gradient(90deg, rgba(255,122,69,.14), rgba(255,255,255,.04) 70%);
+    border-left-color:var(--mango);
+  }
+  #sidebar .navitem .ic{ width:18px; text-align:center; transition:transform .18s ease; }
+  #sidebar .navitem.active .ic{ transform:scale(1.15); }
+  #sidebar .foot{ margin-top:auto; padding:16px 20px; font-size:11px; color:rgba(239,230,214,.4); border-top:1px solid rgba(255,255,255,.08); position:relative; z-index:1; }
+
+  #main{ margin-left:var(--sidebar-w); flex:1; min-width:0; }
+  #topbar{
+    position:sticky; top:0; z-index:30; background:rgba(251,246,236,.92); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  #topbar::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
+    background:linear-gradient(90deg, var(--mango) 0%, var(--azulejo-2) 45%, transparent 45%);
+    background-size:200px 2px; opacity:.5;
+  }
+  #menuToggle{ display:none; }
+
+  .page{ display:none; padding:26px 28px 60px; max-width:1400px; position:relative; }
+  .page.active{ display:block; animation:pageIn .35s ease; }
+  .page.watermarked::before{
+    content:''; position:absolute; top:10px; right:0; width:340px; height:340px; z-index:-1;
+    pointer-events:none; opacity:.06;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='100' r='92' fill='none' stroke='%230F2622' stroke-width='1.5'/%3E%3Ccircle cx='100' cy='100' r='64' fill='none' stroke='%230F2622' stroke-width='1' stroke-dasharray='3 5'/%3E%3Cpath d='M100 12 L112 92 L188 100 L112 108 L100 188 L88 108 L12 100 L88 92 Z' fill='%230F2622'/%3E%3Ctext x='100' y='30' text-anchor='middle' font-family='monospace' font-size='9' fill='%230F2622'%3EN%3C/text%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-size:contain;
+  }
+  @keyframes pageIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+
+  .kpi{
+    background:white; border:1px solid var(--line); border-radius:16px; padding:18px 20px;
+    position:relative; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease;
+    animation:kpiIn .45s ease backwards;
+  }
+  .kpi::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, var(--mango), var(--azulejo-2));
+  }
+  .kpi:hover{ transform:translateY(-3px); box-shadow:0 16px 30px -18px rgba(15,38,34,.35); }
+  .kpi:nth-child(1){ animation-delay:.02s; } .kpi:nth-child(2){ animation-delay:.06s; }
+  .kpi:nth-child(3){ animation-delay:.10s; } .kpi:nth-child(4){ animation-delay:.14s; }
+  .kpi:nth-child(5){ animation-delay:.18s; } .kpi:nth-child(6){ animation-delay:.22s; }
+  .kpi:nth-child(7){ animation-delay:.26s; } .kpi:nth-child(8){ animation-delay:.30s; }
+  @keyframes kpiIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+  .kpi .lbl{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--teal-700); opacity:.7; }
+  .kpi .val{ font-family:'Fraunces',serif; font-size:1.7rem; font-weight:600; margin-top:4px; }
+  .kpi .sub{ font-size:12px; opacity:.55; margin-top:2px; }
+
+  .panel{ background:white; border:1px solid var(--line); border-radius:16px; transition:box-shadow .2s ease, transform .2s ease; }
+  @media (hover:hover){ .panel:hover{ box-shadow:0 18px 36px -26px rgba(15,38,34,.4); } }
+  .chart-box{ width:100%; }
+  .section-eyebrow{ font-family:'Space Mono',monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mango-2); }
+
+  .btn-primary{
+    background:linear-gradient(135deg, var(--mango), var(--mango-2)); color:white; font-weight:600; border-radius:10px;
+    padding:10px 20px; transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; border:none; cursor:pointer; font-size:14px;
+    box-shadow:0 8px 18px -8px rgba(232,93,42,.5);
+  }
+  .btn-primary:hover{ filter:brightness(1.05); transform:translateY(-1px); box-shadow:0 12px 22px -8px rgba(232,93,42,.6); }
+  .btn-primary:active{ transform:scale(.97); }
+  .btn-ghost{ border:1.5px solid var(--line); border-radius:10px; padding:9px 18px; font-weight:600; background:white; cursor:pointer; transition:.2s; font-size:14px; color:var(--ink); }
+  .btn-ghost:hover{ border-color:var(--ink); }
+  .btn-ghost:active{ transform:scale(.97); }
+  .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; }
+  .btn-icon:hover{ background:var(--sand); }
+
+  /* ---------- Form elements ----------
+     One consistent look across every input/select/textarea in the app:
+     generous internal padding, a clear resting vs. focus state, a
+     custom select arrow (native ones look inconsistent across browsers),
+     and consistent label → field spacing everywhere a <label> is used. */
+  .field-row{ display:flex; flex-direction:column; gap:6px; }
+  label{ font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px; }
+
+  input[type="text"], input[type="number"], input[type="date"], input[type="search"], input:not([type]),
+  select, textarea{
+    width:100%; border:1.5px solid var(--line); border-radius:12px;
+    padding:12px 14px; background:white; color:var(--ink);
+    font-family:'Space Grotesk',sans-serif; font-size:14px; line-height:1.3;
+    outline:none; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    box-shadow:0 1px 2px rgba(15,38,34,.03);
+  }
+  input::placeholder, textarea::placeholder{ color:var(--ink); opacity:.35; }
+  input:hover:not(:focus):not(:disabled), select:hover:not(:focus):not(:disabled){ border-color:rgba(15,38,34,.28); }
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--mango); background:white;
+    box-shadow:0 0 0 4px rgba(255,122,69,.14);
+  }
+  input:disabled, select:disabled{ opacity:.5; cursor:not-allowed; }
+
+  select:not([multiple]){ appearance:none; -webkit-appearance:none; padding-right:38px; cursor:pointer;
+    text-align:center; text-align-last:center; -moz-text-align-last:center;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%230F2622' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  select:not([multiple]) option{ text-align:center; }
+  select[multiple]{ appearance:auto; -webkit-appearance:auto; background-image:none; padding:8px; cursor:default; text-align:left; }
+  select[multiple] option{ padding:7px 9px; border-radius:7px; text-align:left; }
+
+  /* Rows of side-by-side filter fields (search/category/payer/etc.) share
+     the same vertical rhythm and minimum width so they wrap cleanly. */
+  #page-expenses .panel > div{ row-gap:16px; }
+  #page-expenses label, #expenseForm label, #settlementForm label{ margin-bottom:7px; }
+  #page-expenses .flex.flex-wrap.items-end > div{ min-width:150px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--teal-700); opacity:.65; padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tr:hover td{ background:rgba(15,38,34,.02); }
+  .pill{ font-family:'Space Mono',monospace; font-size:10.5px; padding:3px 9px; border-radius:9999px; background:var(--sand); white-space:nowrap; }
+  .balance-pos{ color:var(--palm); font-weight:600; }
+  .balance-neg{ color:var(--mango-2); font-weight:600; }
+  .avatar{ width:32px; height:32px; border-radius:9999px; background:linear-gradient(135deg, var(--teal-700), var(--teal-900)); color:var(--sand); display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; font-family:'Space Mono',monospace; flex-shrink:0; }
+
+  #participantGrid > *{ animation:kpiIn .4s ease backwards; }
+  #participantGrid > *:nth-child(1){ animation-delay:.02s; } #participantGrid > *:nth-child(2){ animation-delay:.05s; }
+  #participantGrid > *:nth-child(3){ animation-delay:.08s; } #participantGrid > *:nth-child(4){ animation-delay:.11s; }
+  #participantGrid > *:nth-child(5){ animation-delay:.14s; } #participantGrid > *:nth-child(6){ animation-delay:.17s; }
+  #participantGrid > *:nth-child(7){ animation-delay:.20s; } #participantGrid > *:nth-child(8){ animation-delay:.23s; }
+  #participantGrid > *:nth-child(9){ animation-delay:.26s; } #participantGrid > *:nth-child(10){ animation-delay:.29s; }
+  #participantGrid > *:nth-child(11){ animation-delay:.32s; }
+  #participantGrid .panel{ transition:transform .18s ease, box-shadow .18s ease; }
+  #participantGrid .panel:hover{ transform:translateY(-3px); box-shadow:0 16px 30px -18px rgba(15,38,34,.35); }
+
+  .sync-dot{ width:8px; height:8px; border-radius:9999px; display:inline-block; transition:box-shadow .3s ease; }
+  .sync-dot.ok{ background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18); }
+  .sync-dot.bad{ background:var(--mango-2); box-shadow:0 0 0 3px rgba(232,93,42,.18); }
+  .sync-dot.pending{ background:#C9A227; animation:pulse 1.1s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  .banner{ border-radius:12px; padding:12px 16px; font-size:13px; display:flex; align-items:start; gap:10px; }
+  .banner.err{ background:#FBEAE4; color:#8A2E12; border:1px solid #F0BCA7; }
+  .banner.warn{ background:#FBF3DC; color:#7A5A05; border:1px solid #EFD98C; }
+  .banner.ok{ background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4; }
+
+  /* ---------- Modals ---------- */
+  .app-modal{ position:fixed; inset:0; z-index:200; display:none; align-items:flex-start; justify-content:center; background:rgba(15,38,34,0.55); backdrop-filter:blur(4px); padding:16px; overflow-y:auto; animation:modalBgIn .2s ease; }
+  .app-modal.open{ display:flex; }
+  @keyframes modalBgIn{ from{ opacity:0; } to{ opacity:1; } }
+  .modal-panel{ background:var(--paper); border-radius:18px; width:100%; max-width:560px; margin:40px auto; box-shadow:0 40px 90px -30px rgba(0,0,0,.5); animation:modalPanelIn .25s cubic-bezier(.22,1,.36,1); }
+  @keyframes modalPanelIn{ from{ opacity:0; transform:translateY(14px) scale(.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  .modal-panel.wide{ max-width:720px; }
+  .modal-close{ width:30px; height:30px; border-radius:9999px; display:flex; align-items:center; justify-content:center; background:var(--sand); cursor:pointer; transition:.15s; }
+  .modal-close:hover{ background:var(--mango); color:white; transform:rotate(90deg); }
+
+  .wtab-chip{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:9999px; cursor:pointer; border:1px solid var(--line); background:white; transition:.15s; }
+  .wtab-chip.active{ background:var(--teal-900); color:var(--sand); border-color:var(--teal-900); }
+
+  .settle-member-chip{ display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:10px; padding:9px 11px; cursor:pointer; font-size:13px; font-weight:500; transition:.15s; user-select:none; }
+  .settle-member-chip:hover{ border-color:rgba(15,38,34,.3); }
+  .settle-member-chip.checked{ border-color:var(--mango); background:rgba(255,122,69,.08); }
+  .settle-member-chip input{ width:15px; height:15px; accent-color:var(--mango); margin:0; flex-shrink:0; }
+
+  .settle-txn-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; transition:.15s; }
+  .settle-txn-row:hover{ background:rgba(15,38,34,.02); }
+  .settle-txn-row input{ width:15px; height:15px; accent-color:var(--mango); flex-shrink:0; }
+  .settle-txn-row.checked{ background:rgba(255,122,69,.06); }
+
+  /* ---------- App-like mobile nav: bottom tab bar + FAB ---------- */
+  #tabbar{
+    display:none; position:fixed; left:0; right:0; bottom:0; z-index:100;
+    background:rgba(11,61,58,.96); backdrop-filter:blur(14px);
+    border-top:1px solid rgba(255,255,255,.08);
+    padding:6px calc(4px + var(--sar)) calc(6px + var(--sab)) calc(4px + var(--sal));
+    box-shadow:0 -8px 24px rgba(0,0,0,.12);
+  }
+  #tabbar .tabbar-row{ display:flex; align-items:stretch; justify-content:space-around; }
+  .tabbar-item{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    flex:1; padding:7px 2px 5px; border-radius:12px; cursor:pointer; color:rgba(239,230,214,.5);
+    transition:color .15s ease, transform .1s ease; -webkit-user-select:none; user-select:none;
+  }
+  .tabbar-item:active{ transform:scale(.92); }
+  .tabbar-item .tic{ font-size:18px; line-height:1; }
+  .tabbar-item .tlbl{ font-size:9.5px; font-weight:600; letter-spacing:.01em; }
+  .tabbar-item.active{ color:var(--mango); }
+  .tabbar-item.active .tic{ transform:translateY(-1px); }
+
+  .fab{
+    display:none; position:fixed; z-index:101; right:calc(18px + var(--sar));
+    bottom:calc(var(--tabbar-h) + var(--sab) + 16px);
+    width:56px; height:56px; border-radius:9999px; background:var(--mango); color:white;
+    align-items:center; justify-content:center; font-size:26px; font-weight:500; border:none;
+    box-shadow:0 10px 24px -6px rgba(232,93,42,.55), 0 2px 8px rgba(0,0,0,.15); cursor:pointer;
+    transition:transform .12s ease, background .15s ease;
+    animation:fabGlow 2.6s ease-in-out infinite;
+  }
+  .fab:active{ transform:scale(.9); background:var(--mango-2); }
+  @keyframes fabGlow{
+    0%,100%{ box-shadow:0 10px 24px -6px rgba(232,93,42,.55), 0 2px 8px rgba(0,0,0,.15); }
+    50%{ box-shadow:0 10px 28px -4px rgba(232,93,42,.85), 0 2px 10px rgba(0,0,0,.18); }
+  }
+
+  @media (max-width: 900px){
+    body{ overflow-x:hidden; }
+    #sidebar{ display:none; }
+    #main{ margin-left:0; }
+    #menuToggle{ display:none; }
+
+    #topbar{
+      padding:calc(10px + var(--sat)) 16px 10px; gap:10px;
+    }
+    #topbar h2{ font-size:1.05rem; }
+    #topbar .section-eyebrow{ font-size:10px; }
+    #topbar .btn-ghost{ padding:8px 10px; font-size:0; }
+    #topbar .btn-ghost::before{ content:'↻'; font-size:16px; }
+    #topbar .btn-primary{ display:none; } /* replaced by FAB on mobile */
+    #topbar #syncStatus span#syncLabel{ display:none; } /* dot only, label hidden to save space */
+
+    .page{ padding:16px 16px calc(var(--tabbar-h) + var(--sab) + 84px); }
+    #bannerZone{ padding-left:16px !important; padding-right:16px !important; }
+
+    #tabbar{ display:block; }
+    .fab{ display:flex; }
+
+    /* Modals become native-style bottom sheets on mobile */
+    .app-modal{ align-items:flex-end; padding:0; }
+    .modal-panel{
+      margin:0; max-width:100% !important; width:100%;
+      border-radius:20px 20px 0 0; max-height:88vh; overflow-y:auto;
+      padding-bottom:var(--sab); animation:sheetUp .22s ease;
+    }
+    .modal-panel::before{
+      content:''; display:block; width:36px; height:4px; border-radius:9999px;
+      background:var(--line); margin:10px auto 0;
+    }
+    @keyframes sheetUp{ from{ transform:translateY(24px); opacity:.4; } to{ transform:translateY(0); opacity:1; } }
+
+    #page-expenses .flex.flex-wrap.items-end > div{ min-width:calc(50% - 8px); }
+    table{ font-size:12.5px; }
+    th, td{ padding:9px 10px; }
+
+    input[type="text"], input[type="number"], input[type="date"], input[type="search"], input:not([type]),
+    select, textarea{ font-size:16px; } /* prevents iOS Safari auto-zoom on focus */
+  }
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside id="sidebar">
+    <div class="brand">
+      <p class="mono text-[10px] tracking-widest opacity-60">GOA RUN · 2026</p>
+      <h1 class="display text-xl font-semibold mt-1">Trip Wallet</h1>
+    </div>
+    <nav class="py-3">
+      <div class="navitem active" data-page="overview"><span class="ic">◆</span> Overview</div>
+      <div class="navitem" data-page="expenses"><span class="ic">▤</span> Expenses</div>
+      <div class="navitem" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
+      <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
+      <div class="navitem" data-page="activity"><span class="ic">≡</span> Activity Log</div>
+    </nav>
+    <div class="foot">
+      <a href="goa-trip.html" class="hover:text-white">← Back to trip site</a>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div id="main">
+    <div id="topbar">
+      <div class="flex items-center gap-3">
+        <span id="menuToggle" class="btn-icon" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</span>
+        <div>
+          <p class="section-eyebrow" id="pageEyebrow">Split the bill</p>
+          <h2 class="display text-xl font-semibold" id="pageTitle">Overview</h2>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="mono text-xs flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+        <button class="btn-ghost" onclick="pullFromSheet(true)">Refresh</button>
+        <button class="btn-primary" onclick="openExpenseModal()">+ Add expense</button>
+      </div>
+    </div>
+
+    <div id="bannerZone" class="px-7 pt-5"></div>
+
+    <!-- ============ OVERVIEW ============ -->
+    <div class="page active watermarked" id="page-overview">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="kpi"><p class="lbl">Total expenses</p><p class="val" id="kpi-total">₹0</p><p class="sub" id="kpi-total-sub">across the trip</p></div>
+        <div class="kpi"><p class="lbl">Total contributions</p><p class="val" id="kpi-contrib">₹0</p><p class="sub">sum of all amounts paid in</p></div>
+        <div class="kpi"><p class="lbl">Remaining balance</p><p class="val" id="kpi-remaining">₹0</p><p class="sub">still to be settled</p></div>
+        <div class="kpi"><p class="lbl">Average spend / person</p><p class="val" id="kpi-avg">₹0</p><p class="sub">across 11 participants</p></div>
+        <div class="kpi"><p class="lbl">Transactions</p><p class="val" id="kpi-count">0</p><p class="sub">expenses logged</p></div>
+        <div class="kpi"><p class="lbl">Outstanding settlements</p><p class="val" id="kpi-outstanding">0</p><p class="sub">payments needed to settle up</p></div>
+        <div class="kpi"><p class="lbl">Highest category</p><p class="val text-lg" id="kpi-topcat">—</p><p class="sub" id="kpi-topcat-sub">by amount spent</p></div>
+        <div class="kpi"><p class="lbl">Biggest single expense</p><p class="val text-lg" id="kpi-biggest">—</p><p class="sub" id="kpi-biggest-sub"></p></div>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-5 mb-6">
+        <div class="panel p-5 lg:col-span-1">
+          <h3 class="font-semibold mb-1">Spend by category</h3>
+          <p class="text-xs opacity-50 mb-3">Where the trip money is going</p>
+          <div id="chartCategory" class="chart-box" style="height:260px;"></div>
+        </div>
+        <div class="panel p-5 lg:col-span-2">
+          <h3 class="font-semibold mb-1">Spend over time</h3>
+          <p class="text-xs opacity-50 mb-3">Daily total, by date logged</p>
+          <div id="chartTime" class="chart-box" style="height:260px;"></div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-5">
+        <div class="panel p-5">
+          <h3 class="font-semibold mb-1">Paid vs owed, by person</h3>
+          <p class="text-xs opacity-50 mb-3">Who has fronted the most money</p>
+          <div id="chartPerson" class="chart-box" style="height:280px;"></div>
+        </div>
+        <div class="panel p-5">
+          <h3 class="font-semibold mb-1">Net balance, by person</h3>
+          <p class="text-xs opacity-50 mb-3">Positive = gets money back · negative = owes</p>
+          <div id="chartBalance" class="chart-box" style="height:280px;"></div>
+        </div>
+      </div>
+      <p class="text-xs opacity-40 mt-3" id="chartFallbackNote" style="display:none;">Charts couldn't load (offline or the chart library was blocked) — the numbers above and the tables below are still fully up to date.</p>
+    </div>
+
+    <!-- ============ EXPENSES ============ -->
+    <div class="page" id="page-expenses">
+      <div class="panel p-6 mb-5">
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex-1 min-w-[180px]">
+            <label>Search</label>
+            <input id="f-search" placeholder="Search by title…" oninput="renderExpensesTable()"/>
+          </div>
+          <div>
+            <label>Category</label>
+            <select id="f-category" onchange="renderExpensesTable()"><option value="">All</option></select>
+          </div>
+          <div>
+            <label>Paid by</label>
+            <select id="f-payer" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
+          </div>
+          <div>
+            <label>Involves</label>
+            <select id="f-involves" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
+          </div>
+          <div>
+            <label>Sort</label>
+            <select id="f-sort" onchange="renderExpensesTable()">
+              <option value="date_desc">Newest first</option>
+              <option value="date_asc">Oldest first</option>
+              <option value="amt_desc">Amount: high → low</option>
+              <option value="amt_asc">Amount: low → high</option>
+            </select>
+          </div>
+          <button class="btn-ghost" onclick="clearFilters()">Clear filters</button>
+        </div>
+      </div>
+
+      <div class="panel overflow-x-auto">
+        <table>
+          <thead><tr>
+            <th>Title</th><th>Category</th><th>Amount</th><th>Paid by</th><th>Split with</th><th>Date</th><th>Logged by</th><th></th>
+          </tr></thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+        <p class="text-sm opacity-50 text-center py-10" id="expenseEmptyState" style="display:none;">No expenses match these filters.</p>
+      </div>
+    </div>
+
+    <!-- ============ PARTICIPANTS & BALANCES ============ -->
+    <div class="page" id="page-participants">
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" id="participantGrid"></div>
+    </div>
+
+    <!-- ============ SETTLEMENTS ============ -->
+    <div class="page" id="page-settlements">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-semibold">Settlements</h3>
+          <p class="text-xs opacity-50 mt-0.5">Only what's actually recorded below counts — nothing here is auto-suggested or pre-matched between people.</p>
+        </div>
+        <button class="btn-primary" onclick="openSettlementModal()">+ Record a settlement</button>
+      </div>
+
+      <div class="panel p-6 mb-6">
+        <h3 class="font-semibold mb-1">Balances at a glance</h3>
+        <p class="text-xs opacity-50 mb-4">Each person's own total (paid − share, after any settlements). Purely informational — not a suggested payment between specific people.</p>
+        <div id="settlementBalanceGlance" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+
+      <div class="panel p-6">
+        <h3 class="font-semibold mb-1">Recorded settlements</h3>
+        <p class="text-xs opacity-50 mb-4">The actual payments people have made to each other — this is the real source of truth, not a suggestion.</p>
+        <div class="overflow-x-auto">
+          <table>
+            <thead><tr><th>From</th><th>To</th><th>Amount</th><th>Note</th><th>Recorded by</th><th>When</th><th></th></tr></thead>
+            <tbody id="settlementTableBody"></tbody>
+          </table>
+        </div>
+        <p class="text-sm opacity-50 text-center py-8" id="settlementEmptyState" style="display:none;">No settlements recorded yet.</p>
+      </div>
+    </div>
+
+    <!-- ============ ACTIVITY LOG ============ -->
+    <div class="page" id="page-activity">
+      <div class="panel p-6">
+        <h3 class="font-semibold mb-1">Full activity log</h3>
+        <p class="text-xs opacity-50 mb-4">Every add, edit, delete and settlement, with who made the change.</p>
+        <div id="activityLogList" class="divide-y" style="border-color:var(--line)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MOBILE: bottom tab bar ============ -->
+<nav id="tabbar">
+  <div class="tabbar-row">
+    <div class="tabbar-item active" data-page="overview"><span class="tic">◆</span><span class="tlbl">Overview</span></div>
+    <div class="tabbar-item" data-page="expenses"><span class="tic">▤</span><span class="tlbl">Expenses</span></div>
+    <div class="tabbar-item" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
+    <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
+    <div class="tabbar-item" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
+  </div>
+</nav>
+
+<!-- ============ MOBILE: floating add-expense button ============ -->
+<button type="button" class="fab" aria-label="Add expense" onclick="openExpenseModal()">+</button>
+
+<!-- ============ MODAL: Add / Edit Expense ============ -->
+<div id="expenseModal" class="app-modal">
+  <div class="modal-panel wide">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <h3 class="display text-xl font-semibold" id="expenseModalTitle">Add expense</h3>
+      <span class="modal-close" onclick="closeModal('expenseModal')">✕</span>
+    </div>
+    <form id="expenseForm" class="p-6 grid grid-cols-2 gap-5">
+      <input type="hidden" id="e-editing-id" value=""/>
+      <div class="col-span-2"><label>What was it for?</label><input id="e-title" placeholder="e.g. Beach shack dinner" required/></div>
+      <div><label>Amount (₹)</label><input type="number" step="0.01" id="e-amount" placeholder="0.00" required oninput="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"/></div>
+      <div><label>Category</label>
+        <select id="e-category" required>
+          <option>Travel</option><option>Stay</option><option>Food</option>
+          <option>Activities</option><option>Shopping</option><option>Misc</option>
+        </select>
+      </div>
+      <div><label>Paid by</label><select id="e-payer" required></select></div>
+      <div><label>Date</label><input type="date" id="e-date" required/></div>
+      <div class="col-span-2"><label>Split with</label>
+        <select id="e-split" class="w-full" multiple size="6" onchange="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"></select>
+        <p class="text-xs opacity-50 mt-1">Cmd/Ctrl‑click to choose who shares this expense. Leave unselected to split across all 11.</p>
+      </div>
+      <div class="col-span-2">
+        <label>Split method</label>
+        <div class="flex gap-2 p-1 rounded-full w-fit mb-3" style="background:var(--sand)">
+          <span class="wtab-chip active" data-splitmode="equal" onclick="setSplitMode('equal')">Equal — divide amount evenly</span>
+          <span class="wtab-chip" data-splitmode="individual" onclick="setSplitMode('individual')">Individual — enter each amount</span>
+        </div>
+        <div id="individualSplitBox" style="display:none;">
+          <div id="individualSplitInputs" class="border rounded-xl divide-y" style="border-color:var(--line)"></div>
+          <p class="text-xs mt-2" id="individualSplitTotalNote"></p>
+        </div>
+      </div>
+      <div class="col-span-2 flex gap-3 mt-2">
+        <button type="submit" class="btn-primary flex-1" id="expenseFormSubmit">Add expense</button>
+        <button type="button" class="btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL: Expense details ============ -->
+<div id="detailModal" class="app-modal">
+  <div class="modal-panel">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <h3 class="display text-xl font-semibold">Expense details</h3>
+      <span class="modal-close" onclick="closeModal('detailModal')">✕</span>
+    </div>
+    <div class="p-6" id="detailModalBody"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Person detail ============ -->
+<div id="personModal" class="app-modal">
+  <div class="modal-panel wide">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <h3 class="display text-xl font-semibold" id="personModalTitle">Participant</h3>
+      <span class="modal-close" onclick="closeModal('personModal')">✕</span>
+    </div>
+    <div class="p-6" id="personModalBody"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Record settlement ============ -->
+<div id="settlementModal" class="app-modal">
+  <div class="modal-panel wide">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <div>
+        <h3 class="display text-xl font-semibold">Record a settlement</h3>
+        <p class="text-xs opacity-50 mt-0.5">Only what you pick below is used — nothing else is rebalanced.</p>
+      </div>
+      <span class="modal-close" onclick="closeModal('settlementModal')">✕</span>
+    </div>
+
+    <div class="px-6 pt-5">
+      <div class="flex gap-2 p-1 rounded-full w-fit" style="background:var(--sand)">
+        <span class="wtab-chip active" data-smode="equal" onclick="switchSettlementMode('equal')">1 · Equal settlement</span>
+        <span class="wtab-chip" data-smode="manual" onclick="switchSettlementMode('manual')">2 · Manual entry</span>
+      </div>
+    </div>
+
+    <!-- ---- MODE 1: Equal settlement — pick members + transactions, split only those equally ---- -->
+    <div id="settle-equal-panel" class="p-6">
+      <p class="text-xs opacity-60 mb-4">Pick the members involved, then the exact transactions to split equally between them. Everyone and everything else is left untouched.</p>
+
+      <label class="mb-2">1. Members included</label>
+      <div id="equalMemberList" class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"></div>
+
+      <label class="mb-2">2. Transactions to split equally</label>
+      <div id="equalTxnList" class="border rounded-xl divide-y mb-2 max-h-56 overflow-y-auto" style="border-color:var(--line)"></div>
+      <p class="text-xs opacity-45 mb-4">Only checked transactions are counted — unrelated expenses are ignored entirely.</p>
+
+      <div id="equalWarning" class="banner warn mb-4" style="display:none;"></div>
+
+      <button type="button" class="btn-ghost w-full mb-4" onclick="calculateEqualSettlement()">Calculate equal split</button>
+
+      <div id="equalResults"></div>
+    </div>
+
+    <!-- ---- MODE 2: Manual settlement — type it in directly ---- -->
+    <form id="settlementForm" class="p-6 grid grid-cols-2 gap-5" style="display:none;">
+      <div><label>From (paid)</label><select id="s-from" required></select></div>
+      <div><label>To (received)</label><select id="s-to" required></select></div>
+      <div><label>Amount (₹)</label><input type="number" step="0.01" id="s-amount" required/></div>
+      <div><label>Note (optional)</label><input id="s-note" placeholder="UPI, cash…"/></div>
+      <div class="col-span-2 flex gap-3 mt-2">
+        <button type="submit" class="btn-primary flex-1">Record settlement</button>
+        <button type="button" class="btn-ghost" onclick="closeModal('settlementModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL: Name verification ============ -->
+<div id="nameVerifyModal" class="app-modal">
+  <div class="modal-panel" style="max-width:380px;">
+    <div class="p-6">
+      <p class="section-eyebrow mb-2">Quick check</p>
+      <h3 class="display text-xl font-semibold mb-2" id="verifyTitle">Who's making this change?</h3>
+      <p class="text-sm opacity-60 mb-5" id="verifySubtitle">We log a name against every add, edit or removal in the wallet.</p>
+      <form id="verifyForm">
+        <label>Your name</label>
+        <select id="verify-name" required class="w-full mb-4"></select>
+        <div class="flex gap-3">
+          <button type="submit" class="btn-primary flex-1">Confirm</button>
+          <button type="button" class="btn-ghost" onclick="cancelVerify()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Confirm delete ============ -->
+<div id="confirmModal" class="app-modal">
+  <div class="modal-panel" style="max-width:380px;">
+    <div class="p-6">
+      <p class="section-eyebrow mb-2" style="color:var(--mango-2)">Confirm</p>
+      <h3 class="display text-xl font-semibold mb-2" id="confirmTitle">Are you sure?</h3>
+      <p class="text-sm opacity-60 mb-5" id="confirmBody"></p>
+      <div class="flex gap-3">
+        <button class="btn-primary flex-1" style="background:var(--mango-2)" id="confirmYes">Delete</button>
+        <button class="btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+=============================================================*/
+const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw-REsFBC-1cveEfv8SxTP49ff2iGt_S_YGaklYXslldB0xCYqxSkZ8ZD_SLJi41pVPDg/exec";
+const PARTICIPANTS = [
+  "Shubham Kumar","Divya Tanu Raj","Apoorv Pratik","Nikhil Agrawal","Tanmay Singh",
+  "Pratiksha K","Ritu","Rudra","Vikash Kumar","Hritik Saho","Divya Kumari"
+];
+const CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
+
+/* ---------------------------------------------------------------
+   Split-share helper — single place all balance/chart code reads
+   an expense's per-person share from, so both split modes stay
+   consistent everywhere.
+   - Default / "equal" (unchanged): amount ÷ number of people in split.
+   - "individual": each person in the split has their own exact
+     amount (ex.splitAmounts[person]), entered when the expense was
+     logged — for cases like "everyone paid a different cab fare"
+     that an equal split can't represent.
+------------------------------------------------------------------*/
+function expenseShare(ex, person){
+  if(ex.splitType === 'individual' && ex.splitAmounts && ex.splitAmounts[person] !== undefined){
+    return Number(ex.splitAmounts[person]) || 0;
+  }
+  return Number(ex.amount) / ex.split.length;
+}
+
+/* ============================================================
+   STATE
+=============================================================*/
+function loadLocal(){
+  try{ return JSON.parse(localStorage.getItem('goaWalletV2')) || {expenses:[], settlements:[], activity:[]}; }
+  catch(e){ return {expenses:[], settlements:[], activity:[]}; }
+}
+function persistLocal(){ localStorage.setItem('goaWalletV2', JSON.stringify(wallet)); }
+let wallet = loadLocal();
+let charts = {};
+
+/* ============================================================
+   SIDEBAR NAV
+=============================================================*/
+function goToPage(pageKey){
+  document.querySelectorAll('.navitem, .tabbar-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll(`.navitem[data-page="${pageKey}"], .tabbar-item[data-page="${pageKey}"]`).forEach(n=>n.classList.add('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pageKey).classList.add('active');
+  const titles = {overview:['Split the bill','Overview'], expenses:['All expenses','Expenses'],
+    participants:['Who owes what','Participants & Balances'], settlements:['Square up','Settlements'],
+    activity:['Everything logged','Activity Log']};
+  document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
+  document.getElementById('pageTitle').textContent = titles[pageKey][1];
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('main').scrollTo?.({top:0});
+  window.scrollTo(0,0);
+  renderAll();
+  setTimeout(()=> Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }), 0);
+}
+document.querySelectorAll('.navitem, .tabbar-item').forEach(item=>{
+  item.addEventListener('click', ()=> goToPage(item.dataset.page));
+});
+
+/* ============================================================
+   BANNERS
+=============================================================*/
+function showBanner(kind, html){
+  document.getElementById('bannerZone').innerHTML = `<div class="banner ${kind} mb-2">${html}</div>`;
+  if(kind === 'ok'){
+    clearTimeout(showBanner._t);
+    showBanner._t = setTimeout(()=>{ if(document.querySelector('.banner.ok')) clearBanner(); }, 5000);
+  }
+}
+function clearBanner(){ document.getElementById('bannerZone').innerHTML = ''; }
+
+/* ============================================================
+   SYNC STATUS + GOOGLE SHEETS I/O
+   - GET  -> full {expenses, settlements, activity} snapshot
+   - POST -> {action, payload, actor}; sent as text/plain to avoid a
+     CORS preflight (Apps Script doesn't answer OPTIONS requests).
+   - If SHEETS_ENDPOINT is unreachable or misconfigured, we fall back
+     to localStorage and surface a clear banner explaining why.
+=============================================================*/
+function setSyncStatus(state, meta){
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  dot.className = 'sync-dot ' + (state === 'ok' ? 'ok' : state === 'bad' ? 'bad' : 'pending');
+  label.textContent = state === 'ok' ? 'Synced to Sheet' : state === 'bad' ? 'Offline — saved locally' : 'Syncing…';
+  if(meta) label.title = meta;
+}
+
+async function pullFromSheet(manual){
+  if(!SHEETS_ENDPOINT){ setSyncStatus('bad'); return; }
+  setSyncStatus('pending');
+  try{
+    const res = await fetch(SHEETS_ENDPOINT, {method:'GET'});
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); }
+    catch(parseErr){
+      throw new Error('Sheet did not return JSON — usually means the Web App deployment needs "Anyone" access, or a redeploy after code changes. Raw response started with: ' + text.slice(0,120));
+    }
+    if(data.error) throw new Error(data.error);
+    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[]};
+    persistLocal();
+    setSyncStatus('ok');
+    clearBanner();
+    if(manual) showBanner('warn','Refreshed from the Google Sheet.');
+  }catch(err){
+    setSyncStatus('bad');
+    showBanner('err', `<b>Couldn't reach the Google Sheet.</b> Working from the last saved local copy. ${err.message}`);
+  }
+  renderAll();
+}
+
+async function pushToSheet(action, payload, actor){
+  if(!SHEETS_ENDPOINT){ setSyncStatus('bad'); return null; }
+  setSyncStatus('pending');
+  try{
+    const res = await fetch(SHEETS_ENDPOINT, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action, payload, actor, ts:new Date().toISOString()})
+    });
+    const text = await res.text();
+    let data;
+    try{ data = JSON.parse(text); }
+    catch(parseErr){
+      throw new Error('Sheet did not return JSON on write — check the deployment is redeployed as a new version after any code change.');
+    }
+    if(data.error) throw new Error(data.error);
+    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[]};
+    persistLocal();
+    setSyncStatus('ok');
+    clearBanner();
+    return data;
+  }catch(err){
+    setSyncStatus('bad');
+    showBanner('err', `<b>Change saved locally, but the Sheet write failed.</b> ${err.message} It will show as synced again once the endpoint is reachable — hit Refresh to retry.`);
+    return null;
+  }
+}
+
+/* ============================================================
+   NAME VERIFICATION (promise-based, dropdown of the 11 fixed people)
+=============================================================*/
+let verifyResolver = null;
+function requestActor(title, subtitle){
+  return new Promise(resolve=>{
+    verifyResolver = resolve;
+    document.getElementById('verifyTitle').textContent = title || "Who's making this change?";
+    document.getElementById('verifySubtitle').textContent = subtitle || "We log a name against every add, edit or removal.";
+    const sel = document.getElementById('verify-name');
+    sel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    const last = localStorage.getItem('goaWalletLastActor');
+    if(last && PARTICIPANTS.includes(last)) sel.value = last;
+    document.getElementById('nameVerifyModal').classList.add('open');
+  });
+}
+document.getElementById('verifyForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const name = document.getElementById('verify-name').value;
+  if(!name) return;
+  localStorage.setItem('goaWalletLastActor', name);
+  document.getElementById('nameVerifyModal').classList.remove('open');
+  const resolve = verifyResolver; verifyResolver = null;
+  if(resolve) resolve(name);
+});
+function cancelVerify(){
+  document.getElementById('nameVerifyModal').classList.remove('open');
+  const resolve = verifyResolver; verifyResolver = null;
+  if(resolve) resolve(null);
+}
+
+/* ============================================================
+   MODAL HELPERS
+=============================================================*/
+function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+document.querySelectorAll('.app-modal').forEach(m=>{
+  m.addEventListener('click', e=>{ if(e.target === m) closeModal(m.id); });
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.app-modal.open').forEach(m=>closeModal(m.id)); });
+
+function confirmAction(title, body, onYes){
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent = body;
+  const btn = document.getElementById('confirmYes');
+  const clone = btn.cloneNode(true); btn.parentNode.replaceChild(clone, btn);
+  clone.addEventListener('click', async ()=>{ closeModal('confirmModal'); await onYes(); });
+  openModal('confirmModal');
+}
+
+/* ============================================================
+   EXPENSE MODAL (add / edit)
+=============================================================*/
+function populateSelects(){
+  const payerSel = document.getElementById('e-payer');
+  const splitSel = document.getElementById('e-split');
+  payerSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  splitSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('s-from').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('s-to').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+
+  const catFilter = document.getElementById('f-category');
+  catFilter.innerHTML = '<option value="">All</option>' + CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const payerFilter = document.getElementById('f-payer');
+  payerFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  const involvesFilter = document.getElementById('f-involves');
+  involvesFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+}
+populateSelects();
+
+function currentSplitMode(){
+  const active = document.querySelector('[data-splitmode].active');
+  return active ? active.dataset.splitmode : 'equal';
+}
+function setSplitMode(mode){
+  document.querySelectorAll('[data-splitmode]').forEach(t=> t.classList.toggle('active', t.dataset.splitmode===mode));
+  document.getElementById('individualSplitBox').style.display = mode==='individual' ? 'block' : 'none';
+  if(mode === 'individual') refreshIndividualSplitInputs();
+}
+// Rebuilds the per-person amount fields whenever the split mode, the
+// selected members, or the total amount changes — pre-filling an even
+// split as a starting point that the user can then adjust freely.
+function refreshIndividualSplitInputs(prefill){
+  let split = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
+  if(split.length === 0) split = [...PARTICIPANTS];
+  const total = Number(document.getElementById('e-amount').value) || 0;
+  const box = document.getElementById('individualSplitInputs');
+  const even = split.length ? total/split.length : 0;
+  box.innerHTML = split.map(p=>{
+    const val = (prefill && prefill[p] !== undefined) ? prefill[p] : (even ? even.toFixed(2) : '');
+    return `<div class="flex items-center justify-between gap-3 px-3 py-2">
+      <span class="text-sm">${p}</span>
+      <input type="number" step="0.01" class="individual-split-amt w-28 text-right" data-person="${p}" value="${val}" oninput="updateIndividualSplitTotal()"/>
+    </div>`;
+  }).join('');
+  updateIndividualSplitTotal();
+}
+function updateIndividualSplitTotal(){
+  const total = Number(document.getElementById('e-amount').value) || 0;
+  const inputs = Array.from(document.querySelectorAll('.individual-split-amt'));
+  const sum = inputs.reduce((a,i)=> a + (Number(i.value)||0), 0);
+  const note = document.getElementById('individualSplitTotalNote');
+  const diff = total - sum;
+  if(Math.abs(diff) < 0.01){
+    note.className = 'text-xs mt-2 balance-pos';
+    note.textContent = `✓ Adds up to the full ₹${total.toFixed(0)}.`;
+  }else{
+    note.className = 'text-xs mt-2 balance-neg';
+    note.textContent = diff > 0 ? `₹${diff.toFixed(2)} left unassigned — entered amounts total ₹${sum.toFixed(2)} of ₹${total.toFixed(2)}.` : `₹${Math.abs(diff).toFixed(2)} over the total — entered amounts total ₹${sum.toFixed(2)} of ₹${total.toFixed(2)}.`;
+  }
+}
+function openExpenseModal(){
+  document.getElementById('expenseForm').reset();
+  document.getElementById('e-editing-id').value = '';
+  document.getElementById('e-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('expenseModalTitle').textContent = 'Add expense';
+  document.getElementById('expenseFormSubmit').textContent = 'Add expense';
+  setSplitMode('equal');
+  openModal('expenseModal');
+}
+function startEditExpense(id){
+  const ex = wallet.expenses.find(x=>x.id===id);
+  if(!ex) return;
+  document.getElementById('e-editing-id').value = id;
+  document.getElementById('e-title').value = ex.title;
+  document.getElementById('e-amount').value = ex.amount;
+  document.getElementById('e-category').value = ex.category || 'Misc';
+  document.getElementById('e-payer').value = ex.payer;
+  document.getElementById('e-date').value = ex.date || new Date().toISOString().slice(0,10);
+  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
+  document.getElementById('expenseModalTitle').textContent = 'Edit expense';
+  document.getElementById('expenseFormSubmit').textContent = 'Save changes';
+  setSplitMode(ex.splitType === 'individual' ? 'individual' : 'equal');
+  if(ex.splitType === 'individual' && ex.splitAmounts) refreshIndividualSplitInputs(ex.splitAmounts);
+  closeModal('detailModal');
+  openModal('expenseModal');
+}
+document.getElementById('expenseForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const editingId = document.getElementById('e-editing-id').value;
+  const title = document.getElementById('e-title').value.trim();
+  const amount = document.getElementById('e-amount').value;
+  const category = document.getElementById('e-category').value;
+  const payer = document.getElementById('e-payer').value;
+  const date = document.getElementById('e-date').value;
+  let split = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
+  if(split.length === 0) split = [...PARTICIPANTS];
+  if(!title || !amount || !payer) return;
+
+  const splitType = currentSplitMode();
+  let splitAmounts = null;
+  if(splitType === 'individual'){
+    splitAmounts = {};
+    let sum = 0;
+    document.querySelectorAll('.individual-split-amt').forEach(inp=>{ const v = Number(inp.value)||0; splitAmounts[inp.dataset.person] = v; sum += v; });
+    if(Math.abs(sum - Number(amount)) > 0.5){
+      showBanner('warn', `⚠️ Individual amounts (₹${sum.toFixed(2)}) don't add up to the total (₹${Number(amount).toFixed(2)}) — adjust them before saving.`);
+      return;
+    }
+  }
+
+  if(editingId){
+    const actor = await requestActor("Who's editing this expense?", `Confirm your name to save changes to "${title}".`);
+    if(!actor) return;
+    const local = wallet.expenses.find(x=>x.id===editingId);
+    if(local) Object.assign(local, {title, amount, category, payer, split, date, splitType, splitAmounts, updatedBy:actor, updatedAt:new Date().toISOString()});
+    persistLocal(); closeModal('expenseModal'); renderAll();
+    await pushToSheet('editExpense', {id:editingId, title, amount, category, payer, split, date, splitType, splitAmounts}, actor);
+    renderAll();
+  }else{
+    const actor = await requestActor("Who's adding this expense?", `Confirm your name to log "${title}".`);
+    if(!actor) return;
+    const id = 'e'+Date.now();
+    wallet.expenses.push({id, title, amount, category, payer, split, date, splitType, splitAmounts, createdBy:actor, createdAt:new Date().toISOString()});
+    persistLocal(); closeModal('expenseModal'); renderAll();
+    await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts}, actor);
+    renderAll();
+  }
+});
+async function removeExpense(id){
+  const ex = wallet.expenses.find(x=>x.id===id);
+  confirmAction('Delete this expense?', ex ? `"${ex.title}" — ₹${Number(ex.amount).toFixed(0)} will be removed for everyone.` : 'This expense will be removed.', async ()=>{
+    const actor = await requestActor("Who's deleting this expense?", ex ? `Confirm your name to delete "${ex.title}".` : 'Confirm your name to delete this expense.');
+    if(!actor) return;
+    wallet.expenses = wallet.expenses.filter(x=>x.id!==id);
+    persistLocal(); closeModal('detailModal'); renderAll();
+    await pushToSheet('removeExpense', {id}, actor);
+    renderAll();
+  });
+}
+function viewExpense(id){
+  const ex = wallet.expenses.find(x=>x.id===id);
+  if(!ex) return;
+  const isIndividual = ex.splitType === 'individual';
+  const per = Number(ex.amount)/ex.split.length; // only meaningful for equal splits
+  document.getElementById('detailModalBody').innerHTML = `
+    <div class="mb-4">
+      <p class="section-eyebrow">${ex.category||'Misc'}</p>
+      <h4 class="display text-2xl font-semibold mt-1">${ex.title}</h4>
+      <p class="mono text-2xl mt-2">₹${Number(ex.amount).toFixed(0)}</p>
+    </div>
+    <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+      <div><p class="mono text-[11px] opacity-50">PAID BY</p><p class="font-semibold">${ex.payer}</p></div>
+      <div><p class="mono text-[11px] opacity-50">DATE</p><p class="font-semibold">${ex.date||'—'}</p></div>
+      <div><p class="mono text-[11px] opacity-50">SPLIT METHOD</p><p class="font-semibold">${isIndividual ? 'Individual amounts' : 'Equal'}</p></div>
+      <div><p class="mono text-[11px] opacity-50">SPLIT COUNT</p><p class="font-semibold">${ex.split.length} people</p></div>
+    </div>
+    <div class="mb-5">
+      <p class="mono text-[11px] opacity-50 mb-1">SPLIT WITH</p>
+      ${isIndividual
+        ? `<div class="divide-y" style="border-color:var(--line)">${ex.split.map(s=>`
+            <div class="flex items-center justify-between py-1.5"><span class="text-sm">${s}</span><span class="mono text-sm">₹${expenseShare(ex,s).toFixed(0)}</span></div>`).join('')}</div>`
+        : `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${s} · ₹${per.toFixed(0)}</span>`).join('')}</div>`}
+    </div>
+    <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${ex.updatedBy}` : `Added by ${ex.createdBy||'—'}`}</p>
+    <div class="flex gap-3">
+      <button class="btn-primary flex-1" onclick="startEditExpense('${ex.id}')">Edit</button>
+      <button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>
+    </div>`;
+  openModal('detailModal');
+}
+
+/* ============================================================
+   SETTLEMENTS
+=============================================================*/
+/* ============================================================
+   SETTLEMENTS
+
+   Two independent ways to record a settlement:
+
+   1. EQUAL SETTLEMENT — you pick a subset of members and a subset
+      of transactions. Only those exact transactions are totalled
+      and divided equally among only those exact members. Nobody
+      and nothing outside that selection is touched or rebalanced —
+      this is a self-contained, one-off calculation, not a global
+      re-optimization like the old buggy settlement suggester.
+
+   2. MANUAL SETTLEMENT — type in exactly who paid whom, unchanged
+      from before.
+
+   Either way, what actually gets written to the ledger is a normal
+   settlement record {from, to, amount}, so the existing balance
+   math (computeNetBalances / buildPairwiseLedger) is untouched.
+=============================================================*/
+function switchSettlementMode(mode){
+  document.querySelectorAll('[data-smode]').forEach(t=> t.classList.toggle('active', t.dataset.smode===mode));
+  document.getElementById('settle-equal-panel').style.display = mode==='equal' ? 'block' : 'none';
+  document.getElementById('settlementForm').style.display = mode==='manual' ? 'grid' : 'none';
+}
+function openSettlementModal(){
+  document.getElementById('settlementForm').reset();
+  document.getElementById('equalResults').innerHTML = '';
+  document.getElementById('equalWarning').style.display = 'none';
+  equalCalcState = { payments: [], note: '' };
+  populateEqualSettlementLists();
+  switchSettlementMode('equal');
+  openModal('settlementModal');
+}
+function populateEqualSettlementLists(){
+  document.getElementById('equalMemberList').innerHTML = PARTICIPANTS.map(p=>`
+    <label class="settle-member-chip">
+      <input type="checkbox" class="equal-member-cb" value="${p}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/> ${p}
+    </label>`).join('');
+  const sorted = wallet.expenses.slice().sort((a,b)=> (b.date||b.createdAt||'').localeCompare(a.date||a.createdAt||''));
+  document.getElementById('equalTxnList').innerHTML = sorted.map(ex=>`
+    <label class="settle-txn-row">
+      <input type="checkbox" class="equal-txn-cb" value="${ex.id}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/>
+      <span class="flex-1">
+        <span class="text-sm font-medium block">${ex.title}</span>
+        <span class="text-xs opacity-50">${ex.payer} paid · ${ex.date||'—'} · split with ${ex.split.length===PARTICIPANTS.length?'everyone':ex.split.join(', ')}</span>
+      </span>
+      <span class="mono text-sm">₹${Number(ex.amount).toFixed(0)}</span>
+    </label>`).join('') || '<p class="text-sm opacity-50 p-4">No expenses logged yet.</p>';
+}
+let equalCalcState = { payments: [], note: '' };
+
+function calculateEqualSettlement(){
+  const members = Array.from(document.querySelectorAll('.equal-member-cb:checked')).map(c=>c.value);
+  const txnIds = Array.from(document.querySelectorAll('.equal-txn-cb:checked')).map(c=>c.value);
+  const warnBox = document.getElementById('equalWarning');
+  const results = document.getElementById('equalResults');
+  results.innerHTML = '';
+  equalCalcState = { payments: [], note: '' };
+
+  if(members.length < 2){ warnBox.style.display='flex'; warnBox.className='banner warn mb-4'; warnBox.innerHTML = '⚠️ Pick at least 2 members to split between.'; return; }
+  if(txnIds.length === 0){ warnBox.style.display='flex'; warnBox.className='banner warn mb-4'; warnBox.innerHTML = '⚠️ Pick at least 1 transaction to include.'; return; }
+
+  const txns = txnIds.map(id=> wallet.expenses.find(x=>x.id===id)).filter(Boolean);
+  const outsidePayers = [...new Set(txns.filter(t=>!members.includes(t.payer)).map(t=>t.payer))];
+  if(outsidePayers.length){
+    warnBox.style.display='flex'; warnBox.className='banner warn mb-4';
+    warnBox.innerHTML = `⚠️ ${outsidePayers.join(', ')} paid for one of the selected transactions but isn't in the selected members list, so their payment can't be credited here. Add them to the member list or unselect that transaction.`;
+    return;
+  }
+  warnBox.style.display = 'none';
+
+  const total = txns.reduce((a,t)=> a + Number(t.amount), 0);
+  const shareEach = total / members.length;
+  const net = {};
+  members.forEach(m=> net[m] = -shareEach);
+  txns.forEach(t=>{ net[t.payer] += Number(t.amount); });
+
+  // Simplify to the minimum payments needed — but strictly scoped to
+  // this selected member set only, computed fresh, never persisted as
+  // an ongoing "suggestion" that could reshuffle later.
+  const creditors = Object.entries(net).filter(([,v])=>v>0.5).map(([m,v])=>({m,v})).sort((a,b)=>b.v-a.v);
+  const debtors = Object.entries(net).filter(([,v])=>v<-0.5).map(([m,v])=>({m,v:-v})).sort((a,b)=>b.v-a.v);
+  const payments = []; let i=0, j=0;
+  while(i<debtors.length && j<creditors.length){
+    const pay = Math.min(debtors[i].v, creditors[j].v);
+    payments.push({from:debtors[i].m, to:creditors[j].m, amount:pay});
+    debtors[i].v -= pay; creditors[j].v -= pay;
+    if(debtors[i].v < 0.5) i++;
+    if(creditors[j].v < 0.5) j++;
+  }
+
+  const note = `Equal settlement · ${txns.length} txn${txns.length===1?'':'s'} (${txns.map(t=>t.title).join(', ')}) · split ₹${shareEach.toFixed(0)} each among ${members.join(', ')}`;
+  // Stored in state and referenced by index below — NOT inlined as JSON
+  // into onclick attributes. Expense titles can contain apostrophes
+  // (e.g. "O'Learys tab"), and embedding that inside a single-quoted
+  // onclick='...' attribute breaks the HTML and silently kills the
+  // button, which is exactly what was causing "Record" to do nothing.
+  equalCalcState = { payments, note };
+
+  results.innerHTML = `
+    <div class="panel p-4 mb-3" style="background:var(--sand)">
+      <p class="text-xs opacity-70">Total selected: <span class="mono font-semibold">₹${total.toFixed(0)}</span> across ${txns.length} transaction${txns.length===1?'':'s'} · <span class="mono font-semibold">₹${shareEach.toFixed(0)}</span> each for ${members.length} people</p>
+    </div>
+    ${payments.length ? payments.map((p,idx)=>`
+      <div class="owe-row mb-2" id="equalPaymentRow-${idx}">
+        <span class="font-medium text-sm">${p.from}</span><span class="opacity-50 text-sm">owes</span><span class="font-medium text-sm">${p.to}</span>
+        <span class="mono ml-auto text-sm">₹${p.amount.toFixed(0)}</span>
+        <button type="button" class="btn-ghost text-xs" style="padding:6px 10px" onclick="recordEqualSettlementAt(${idx})">Record</button>
+      </div>`).join('') : '<p class="text-sm opacity-50">Selected members are already even on these transactions.</p>'}
+    ${payments.length>1 ? `<button type="button" class="btn-primary w-full mt-2" id="recordAllEqualBtn" onclick="recordAllEqualSettlementsFromState()">Record all ${payments.length} payments</button>` : ''}
+  `;
+}
+async function recordEqualSettlementAt(idx){
+  const p = equalCalcState.payments[idx];
+  if(!p) return;
+  const actor = await requestActor("Who's recording this settlement?", `Confirm your name to log ${p.from} → ${p.to}.`);
+  if(!actor) return;
+  const row = document.getElementById(`equalPaymentRow-${idx}`);
+  if(row) row.style.opacity = '0.5';
+  const id = 's'+Date.now()+Math.floor(Math.random()*1000);
+  wallet.settlements.push({id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note, actor, ts:new Date().toISOString()});
+  persistLocal(); renderAll();
+  const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note}, actor);
+  renderAll();
+  if(row) row.innerHTML = `<span class="text-sm">✅ ${p.from} → ${p.to} recorded (₹${p.amount.toFixed(0)})${synced ? '' : ' — saved locally, will sync when reachable'}</span>`;
+  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+}
+async function recordAllEqualSettlementsFromState(){
+  const payments = equalCalcState.payments;
+  const note = equalCalcState.note;
+  if(!payments.length) return;
+  const actor = await requestActor("Who's recording these settlements?", `Confirm your name to log all ${payments.length} payments.`);
+  if(!actor) return;
+  const btn = document.getElementById('recordAllEqualBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Recording…'; }
+  let allSynced = true;
+  for(const p of payments){
+    const id = 's'+Date.now()+Math.floor(Math.random()*1000);
+    wallet.settlements.push({id, from:p.from, to:p.to, amount:p.amount, note, actor, ts:new Date().toISOString()});
+    const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note}, actor);
+    if(!synced) allSynced = false;
+  }
+  persistLocal(); renderAll();
+  equalCalcState = { payments: [], note: '' };
+  closeModal('settlementModal');
+  showBanner(allSynced ? 'ok' : 'warn', `✅ Recorded ${payments.length} settlements.${allSynced ? '' : ' Some may only be saved locally — check the sync status and hit Refresh.'}`);
+}
+document.getElementById('settlementForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const from = document.getElementById('s-from').value;
+  const to = document.getElementById('s-to').value;
+  const amount = document.getElementById('s-amount').value;
+  const note = document.getElementById('s-note').value.trim();
+  if(!from || !to || !amount || from===to) return;
+  const actor = await requestActor("Who's recording this settlement?", `Confirm your name to log ${from} → ${to}.`);
+  if(!actor) return;
+  const id = 's'+Date.now();
+  wallet.settlements.push({id, from, to, amount, note, actor, ts:new Date().toISOString()});
+  persistLocal(); closeModal('settlementModal'); renderAll();
+  const synced = await pushToSheet('addSettlement', {id, from, to, amount, note}, actor);
+  renderAll();
+  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+});
+async function removeSettlement(id){
+  confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
+    const actor = await requestActor("Who's removing this settlement?");
+    if(!actor) return;
+    wallet.settlements = wallet.settlements.filter(x=>x.id!==id);
+    persistLocal(); renderAll();
+    const synced = await pushToSheet('removeSettlement', {id}, actor);
+    renderAll();
+    showBanner(synced ? 'ok' : 'warn', `Settlement removed.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  });
+}
+
+/* ============================================================
+   BALANCE MATH
+
+   computeNetBalances() gives each person's own overall total
+   (paid − share, adjusted by settlements they were personally
+   party to). This was already isolated per-person: a settlement
+   between X and Y only ever touches net[X] and net[Y].
+
+   The bug was in the OLD simplifySettlements(): it took everyone's
+   aggregate net and ran a greedy "minimum number of payments"
+   matcher across the whole group. That optimizer has no concept of
+   who actually owes whom — it just pairs the biggest creditor with
+   the biggest debtor — so recording or removing ONE settlement
+   could reshuffle the suggested pairing for completely unrelated
+   people on the next render. That's the cascade.
+
+   Fixed version below: buildPairwiseLedger() builds debt directly
+   from each expense's split (X owes the payer their share) and
+   applies settlements only to the specific pair they were recorded
+   between. Settling up between A and B only ever changes the A↔B
+   entry — nothing else in the ledger moves. Splitting logic itself
+   (share calculation per expense) is untouched.
+=============================================================*/
+function computeNetBalances(){
+  const net = {}; PARTICIPANTS.forEach(p=> net[p]=0);
+  wallet.expenses.forEach(ex=>{
+    if(net[ex.payer]===undefined) net[ex.payer]=0;
+    net[ex.payer] += Number(ex.amount);
+    ex.split.forEach(p=>{ if(net[p]===undefined) net[p]=0; net[p] -= expenseShare(ex,p); });
+  });
+  wallet.settlements.forEach(s=>{
+    net[s.from] = (net[s.from]||0) + Number(s.amount); // paid off debt
+    net[s.to] = (net[s.to]||0) - Number(s.amount);     // received money
+  });
+  return net;
+}
+
+// Ledger of "who owes whom, directly" — built only from real expense
+// relationships (not a global re-optimization). ledger[a][b] = amount
+// a owes b, from shares of expenses b paid for that a was part of.
+function buildPairwiseLedger(){
+  const ledger = {};
+  const add = (debtor, creditor, amt)=>{
+    if(debtor === creditor || amt === 0) return;
+    ledger[debtor] = ledger[debtor] || {};
+    ledger[debtor][creditor] = (ledger[debtor][creditor] || 0) + amt;
+  };
+  wallet.expenses.forEach(ex=>{
+    ex.split.forEach(p=>{ if(p !== ex.payer) add(p, ex.payer, expenseShare(ex,p)); });
+  });
+  // A settlement only ever adjusts the ledger entry between its own
+  // two people — it can never touch a third person's balance.
+  wallet.settlements.forEach(s=>{ add(s.from, s.to, -Number(s.amount)); });
+  return ledger;
+}
+
+// Collapses each unordered {A,B} pair in the ledger to a single net
+// direction/amount. Independent per pair — settling A↔B never shifts
+// what's shown for any other pair.
+function pairwiseSettlements(){
+  const ledger = buildPairwiseLedger();
+  const seen = new Set();
+  const result = [];
+  PARTICIPANTS.forEach(a=>{
+    PARTICIPANTS.forEach(b=>{
+      if(a===b) return;
+      const key = [a,b].sort().join('|');
+      if(seen.has(key)) return;
+      seen.add(key);
+      const aOwesB = (ledger[a] && ledger[a][b]) || 0;
+      const bOwesA = (ledger[b] && ledger[b][a]) || 0;
+      const net = aOwesB - bOwesA;
+      if(net > 0.5) result.push({from:a, to:b, amount:net});
+      else if(net < -0.5) result.push({from:b, to:a, amount:-net});
+    });
+  });
+  return result.sort((x,y)=>y.amount-x.amount);
+}
+
+/* ============================================================
+   RENDER: OVERVIEW
+=============================================================*/
+function animateValue(el, endValue, prefix){
+  if(!el) return;
+  const startValue = Number(el.dataset.rawval || 0);
+  if(Math.abs(endValue-startValue) < 0.5){ el.textContent = prefix+endValue.toFixed(0); el.dataset.rawval = endValue; return; }
+  const duration = 500, startTime = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-startTime)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = startValue + (endValue-startValue)*eased;
+    el.textContent = prefix+val.toFixed(0);
+    if(p < 1) requestAnimationFrame(tick); else el.dataset.rawval = endValue;
+  }
+  requestAnimationFrame(tick);
+}
+function renderOverview(){
+  const total = wallet.expenses.reduce((a,ex)=>a+Number(ex.amount),0);
+  const count = wallet.expenses.length;
+  const net = computeNetBalances();
+  const remaining = Object.values(net).filter(v=>v>0).reduce((a,v)=>a+v,0);
+  const avg = total / PARTICIPANTS.length;
+  const settlements = pairwiseSettlements();
+
+  animateValue(document.getElementById('kpi-total'), total, '₹');
+  document.getElementById('kpi-total-sub').textContent = `${count} transaction${count===1?'':'s'}`;
+  animateValue(document.getElementById('kpi-contrib'), total, '₹');
+  animateValue(document.getElementById('kpi-remaining'), remaining, '₹');
+  animateValue(document.getElementById('kpi-avg'), avg, '₹');
+  document.getElementById('kpi-count').textContent = count;
+  document.getElementById('kpi-outstanding').textContent = settlements.length;
+
+  const byCat = {};
+  wallet.expenses.forEach(ex=>{ byCat[ex.category||'Misc'] = (byCat[ex.category||'Misc']||0) + Number(ex.amount); });
+  const topCat = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('kpi-topcat').textContent = topCat ? topCat[0] : '—';
+  document.getElementById('kpi-topcat-sub').textContent = topCat ? `₹${topCat[1].toFixed(0)} spent` : 'no expenses yet';
+
+  const biggest = wallet.expenses.slice().sort((a,b)=>Number(b.amount)-Number(a.amount))[0];
+  document.getElementById('kpi-biggest').textContent = biggest ? biggest.title : '—';
+  document.getElementById('kpi-biggest-sub').textContent = biggest ? `₹${Number(biggest.amount).toFixed(0)} · paid by ${biggest.payer}` : '';
+
+  renderChartCategory(byCat);
+  renderChartTime();
+  renderChartPerson();
+  renderChartBalance(net);
+}
+function destroyChart(key){ if(charts[key]){ charts[key].dispose(); delete charts[key]; } }
+const palette = ['#FF7A45','#1E6091','#3E7C59','#E85D2A','#3B82C4','#C9A227','#0B3D3A','#8A5A9E'];
+
+/* ---------- Apache ECharts wiring ----------
+   Swapped in for Chart.js, which was unreliable here (canvas sizing
+   inside a hidden/tabbed panel, plus a CDN that could silently fail
+   to load and leave the whole page's charts blank with no fallback).
+   ECharts renders into a normal sized <div>, resizes cleanly when the
+   window or its container changes, and we guard every call so a
+   blocked CDN degrades gracefully instead of breaking the app. */
+function chartsAvailable(){
+  if(typeof echarts === 'undefined'){
+    console.warn('ECharts did not load — skipping chart render. The rest of the app still works.');
+    document.getElementById('chartFallbackNote').style.display = 'block';
+    return false;
+  }
+  document.getElementById('chartFallbackNote').style.display = 'none';
+  return true;
+}
+function getOrInitChart(key, domId){
+  const dom = document.getElementById(domId);
+  if(!dom) return null;
+  if(!charts[key]) charts[key] = echarts.init(dom);
+  return charts[key];
+}
+const baseTextStyle = { fontFamily:"'Space Grotesk', sans-serif", color:'#0F2622' };
+
+function renderChartCategory(byCat){
+  if(!chartsAvailable()) return;
+  const chart = getOrInitChart('cat', 'chartCategory');
+  const labels = Object.keys(byCat), data = Object.values(byCat);
+  chart.setOption({
+    textStyle: baseTextStyle,
+    tooltip: { trigger:'item', formatter:p=>`${p.marker} ${p.name}<br/>₹${Number(p.value).toFixed(0)} · ${p.percent}%` },
+    legend: { bottom:0, textStyle:{...baseTextStyle, fontSize:11}, itemWidth:11, itemHeight:11 },
+    color: palette,
+    series: [{
+      type:'pie', radius:['42%','72%'], center:['50%','44%'],
+      avoidLabelOverlap:true,
+      itemStyle:{ borderColor:'#FBF6EC', borderWidth:2 },
+      label:{ show:false },
+      emphasis:{ label:{ show:true, fontWeight:600, formatter:p=>`₹${Number(p.value).toFixed(0)}` }, scaleSize:6 },
+      data: labels.map((l,i)=>({ name:l, value:data[i] }))
+    }]
+  }, true);
+}
+function renderChartTime(){
+  if(!chartsAvailable()) return;
+  const chart = getOrInitChart('time', 'chartTime');
+  const byDate = {};
+  wallet.expenses.forEach(ex=>{ const d = ex.date || (ex.createdAt||'').slice(0,10) || 'Undated'; byDate[d] = (byDate[d]||0) + Number(ex.amount); });
+  const labels = Object.keys(byDate).sort();
+  const data = labels.map(l=>byDate[l]);
+  chart.setOption({
+    textStyle: baseTextStyle,
+    tooltip: { trigger:'axis', valueFormatter:v=>`₹${Number(v).toFixed(0)}` },
+    grid: { left:8, right:16, top:20, bottom:28, containLabel:true },
+    xAxis: { type:'category', data:labels, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}}, axisLabel:{color:'#0F2622', fontSize:10} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    series: [{
+      type:'line', data, smooth:.3, symbolSize:7,
+      lineStyle:{ color:'#FF7A45', width:2.5 },
+      itemStyle:{ color:'#FF7A45' },
+      areaStyle:{ color:{ type:'linear', x:0,y:0,x2:0,y2:1, colorStops:[{offset:0,color:'rgba(255,122,69,.28)'},{offset:1,color:'rgba(255,122,69,0)'}] } }
+    }]
+  }, true);
+}
+function renderChartPerson(){
+  if(!chartsAvailable()) return;
+  const chart = getOrInitChart('person', 'chartPerson');
+  const paid = {}, owed = {};
+  PARTICIPANTS.forEach(p=>{ paid[p]=0; owed[p]=0; });
+  wallet.expenses.forEach(ex=>{
+    paid[ex.payer] = (paid[ex.payer]||0) + Number(ex.amount);
+    ex.split.forEach(p=> owed[p] = (owed[p]||0) + expenseShare(ex,p));
+  });
+  const labels = PARTICIPANTS.map(p=>p.split(' ')[0]);
+  chart.setOption({
+    textStyle: baseTextStyle,
+    tooltip: { trigger:'axis', axisPointer:{type:'shadow'}, valueFormatter:v=>`₹${Number(v).toFixed(0)}` },
+    legend: { bottom:0, textStyle:{...baseTextStyle, fontSize:11}, itemWidth:11, itemHeight:11 },
+    grid: { left:8, right:16, top:16, bottom:52, containLabel:true },
+    xAxis: { type:'category', data:labels, axisLabel:{color:'#0F2622', fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    series: [
+      { name:'Paid', type:'bar', data:PARTICIPANTS.map(p=>paid[p]), itemStyle:{color:'#1E6091', borderRadius:[4,4,0,0]}, barMaxWidth:18 },
+      { name:'Share owed', type:'bar', data:PARTICIPANTS.map(p=>owed[p]), itemStyle:{color:'#D8CBAE', borderRadius:[4,4,0,0]}, barMaxWidth:18 }
+    ]
+  }, true);
+}
+function renderChartBalance(net){
+  if(!chartsAvailable()) return;
+  const chart = getOrInitChart('balance', 'chartBalance');
+  const labels = PARTICIPANTS.map(p=>p.split(' ')[0]);
+  const data = PARTICIPANTS.map(p=>net[p]||0);
+  chart.setOption({
+    textStyle: baseTextStyle,
+    tooltip: { trigger:'axis', axisPointer:{type:'shadow'}, valueFormatter:v=> (v>=0?'+₹':'−₹') + Math.abs(Number(v)).toFixed(0) },
+    grid: { left:8, right:16, top:16, bottom:52, containLabel:true },
+    xAxis: { type:'category', data:labels, axisLabel:{color:'#0F2622', fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    series: [{
+      type:'bar', data, barMaxWidth:26, itemStyle:{ borderRadius:[4,4,4,4], color:p=> p.value>=0 ? '#3E7C59' : '#E85D2A' }
+    }]
+  }, true);
+}
+
+/* Keep charts crisp on window resize and when the sidebar collapses/expands. */
+window.addEventListener('resize', ()=>{ Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }); });
+
+/* ============================================================
+   RENDER: EXPENSES TABLE
+=============================================================*/
+function clearFilters(){
+  document.getElementById('f-search').value='';
+  document.getElementById('f-category').value='';
+  document.getElementById('f-payer').value='';
+  document.getElementById('f-involves').value='';
+  document.getElementById('f-sort').value='date_desc';
+  renderExpensesTable();
+}
+function renderExpensesTable(){
+  const q = document.getElementById('f-search').value.trim().toLowerCase();
+  const cat = document.getElementById('f-category').value;
+  const payer = document.getElementById('f-payer').value;
+  const involves = document.getElementById('f-involves').value;
+  const sort = document.getElementById('f-sort').value;
+
+  let rows = wallet.expenses.filter(ex=>{
+    if(q && !ex.title.toLowerCase().includes(q)) return false;
+    if(cat && (ex.category||'Misc') !== cat) return false;
+    if(payer && ex.payer !== payer) return false;
+    if(involves && !ex.split.includes(involves)) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    if(sort==='amt_desc') return Number(b.amount)-Number(a.amount);
+    if(sort==='amt_asc') return Number(a.amount)-Number(b.amount);
+    const da = a.date || a.createdAt || '', db = b.date || b.createdAt || '';
+    return sort==='date_asc' ? da.localeCompare(db) : db.localeCompare(da);
+  });
+
+  const body = document.getElementById('expenseTableBody');
+  body.innerHTML = rows.map(ex=>`
+    <tr>
+      <td class="font-semibold cursor-pointer" onclick="viewExpense('${ex.id}')">${ex.title}</td>
+      <td><span class="pill">${ex.category||'Misc'}</span></td>
+      <td class="mono">₹${Number(ex.amount).toFixed(0)}</td>
+      <td>${ex.payer}</td>
+      <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : ex.split.join(', ')}</td>
+      <td class="mono text-xs">${ex.date||'—'}</td>
+      <td class="text-xs opacity-60">${ex.updatedBy || ex.createdBy || '—'}</td>
+      <td>
+        <div class="flex gap-1.5 justify-end">
+          <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
+          <span class="btn-icon" title="Edit" onclick="startEditExpense('${ex.id}')">✎</span>
+          <span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>
+        </div>
+      </td>
+    </tr>`).join('');
+  document.getElementById('expenseEmptyState').style.display = rows.length ? 'none' : 'block';
+}
+
+/* ============================================================
+   RENDER: PARTICIPANTS & BALANCES
+=============================================================*/
+function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function renderParticipants(){
+  const net = computeNetBalances();
+  document.getElementById('participantGrid').innerHTML = PARTICIPANTS.map(p=>{
+    const v = net[p]||0;
+    return `<div class="panel p-5 cursor-pointer" onclick="viewPerson('${p}')">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="avatar">${initials(p)}</span>
+        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
+      </div>
+      <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
+      <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}</p>
+    </div>`;
+  }).join('');
+}
+function viewPerson(person){
+  let paid=0, share=0; const rows=[];
+  wallet.expenses.forEach(ex=>{
+    const amt = Number(ex.amount), per = expenseShare(ex, person);
+    const isPayer = ex.payer===person, isSplit = ex.split.includes(person);
+    if(isPayer) paid += amt;
+    if(isSplit) share += per;
+    if(isPayer || isSplit) rows.push({title:ex.title, role:isPayer?'Paid':'Owes share', amt:isPayer?amt:per, date:ex.date});
+  });
+  const net = paid - share;
+  document.getElementById('personModalTitle').textContent = person;
+  document.getElementById('personModalBody').innerHTML = `
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="kpi"><p class="lbl">Total paid</p><p class="val text-lg">₹${paid.toFixed(0)}</p></div>
+      <div class="kpi"><p class="lbl">Total share</p><p class="val text-lg">₹${share.toFixed(0)}</p></div>
+      <div class="kpi"><p class="lbl">Net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toFixed(0)}</p></div>
+    </div>
+    <h4 class="font-semibold mb-2">Itemised breakdown</h4>
+    <div class="divide-y" style="border-color:var(--line)">
+      ${rows.reverse().map(r=>`<div class="py-3 flex items-center justify-between">
+        <div><p class="font-semibold text-sm">${r.title}</p><p class="text-xs opacity-50">${r.role} · ${r.date||'—'}</p></div>
+        <p class="mono text-sm ${r.role==='Paid'?'balance-pos':'balance-neg'}">₹${r.amt.toFixed(0)}</p>
+      </div>`).join('') || '<p class="text-sm opacity-50 py-4">No expenses involve this person yet.</p>'}
+    </div>`;
+  openModal('personModal');
+}
+
+/* ============================================================
+   RENDER: SETTLEMENTS
+=============================================================*/
+function renderSettlements(){
+  const net = computeNetBalances();
+  const glance = document.getElementById('settlementBalanceGlance');
+  const nonZero = PARTICIPANTS.filter(p => Math.abs(net[p]||0) > 0.5);
+  glance.innerHTML = nonZero.length ? nonZero.map(p=>{
+    const v = net[p]||0;
+    return `<div class="flex items-center justify-between border rounded-xl px-4 py-3" style="border-color:var(--line)">
+      <span class="text-sm font-medium">${p}</span>
+      <span class="mono text-sm ${v>=0?'balance-pos':'balance-neg'}">${v>=0? 'gets back ₹'+v.toFixed(0) : 'owes ₹'+Math.abs(v).toFixed(0)}</span>
+    </div>`;
+  }).join('') : '<p class="text-sm opacity-50">Everyone is settled up 🎉</p>';
+
+  const body = document.getElementById('settlementTableBody');
+  body.innerHTML = wallet.settlements.slice().reverse().map(s=>`
+    <tr>
+      <td>${s.from}</td><td>${s.to}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
+      <td class="text-xs opacity-60">${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
+      <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
+      <td><span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span></td>
+    </tr>`).join('');
+  document.getElementById('settlementEmptyState').style.display = wallet.settlements.length ? 'none' : 'block';
+}
+
+/* ============================================================
+   RENDER: ACTIVITY LOG
+=============================================================*/
+function renderActivity(){
+  const list = document.getElementById('activityLogList');
+  list.innerHTML = wallet.activity.slice().reverse().map(a=>`
+    <div class="py-3 flex items-center justify-between gap-3">
+      <div><p class="text-sm font-medium">${a.detail||''}</p><p class="text-xs opacity-50">${(a.action||'').replace('_',' ')} · by ${a.actor}</p></div>
+      <p class="mono text-xs opacity-50">${(a.ts||'').replace('T',' ').slice(0,16)}</p>
+    </div>`).join('') || '<p class="text-sm opacity-50 py-6">Nothing logged yet.</p>';
+}
+
+/* ============================================================
+   RENDER ALL
+=============================================================*/
+function renderAll(){
+  renderOverview();
+  renderExpensesTable();
+  renderParticipants();
+  renderSettlements();
+  renderActivity();
+}
+try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
+pullFromSheet();
+
+/* ============================================================
+   ECHARTS LOADER — tries a few CDNs in turn
+   In some browsers/networks a single CDN domain (cdnjs, jsdelivr,
+   unpkg) can be blocked outright — Edge's "Tracking Prevention",
+   a corporate firewall, or an ad/tracker blocklist. A blocked
+   <script src> just silently never fires "load", so the app was
+   stuck showing "ECharts did not load" forever even though the
+   library was reachable from a different CDN. This tries each
+   source in turn and only gives up (showing the fallback note)
+   once all of them have failed.
+=============================================================*/
+const ECHARTS_SOURCES = [
+  'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js',
+  'https://unpkg.com/echarts@5.5.1/dist/echarts.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js'
+];
+function loadEcharts(sources, i){
+  i = i || 0;
+  if(typeof echarts !== 'undefined'){ onEchartsReady(); return; }
+  if(i >= sources.length){
+    console.warn('All ECharts CDN sources were blocked or unreachable — charts will stay hidden, the rest of the app still works.');
+    chartsAvailable(); // surfaces the on-page fallback note
+    return;
+  }
+  const s = document.createElement('script');
+  s.src = sources[i];
+  s.onload = onEchartsReady;
+  s.onerror = function(){ loadEcharts(sources, i+1); };
+  document.head.appendChild(s);
+}
+function onEchartsReady(){
+  Object.values(charts).forEach(c=>{ try{ c.dispose(); }catch(e){} });
+  charts = {};
+  renderOverview();
+}
+loadEcharts(ECHARTS_SOURCES);
+</script>
+</body>
+</html>
