@@ -2,15 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="theme-color" content="#0B3D3A" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Boarding Pass — Goa Run</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
@@ -23,24 +18,19 @@
     --paper:#FBF6EC;
     --mango:#FF7A45;
     --mango-2:#E85D2A;
-    --azulejo:#1E6091;
-    --azulejo-2:#3B82C4;
-    --palm:#3E7C59;
     --line: rgba(15,38,34,0.14);
-    --ir-navy:#16305C;
-    --ir-navy-2:#0F2547;
-    --ir-cream:#F6F1E3;
-    --ir-cream-2:#EFE7D2;
-    --ir-line: rgba(22,48,92,0.28);
-    --sat: env(safe-area-inset-top, 0px);
-    --sab: env(safe-area-inset-bottom, 0px);
-    --sal: env(safe-area-inset-left, 0px);
-    --sar: env(safe-area-inset-right, 0px);
+
+    /* boarding pass tokens */
+    --bp-ink:#0B2340;
+    --bp-brass:#C9A227;
+    --bp-rust:#B4472F;
+    --bp-slate:#5B6472;
+    --bp-line:#D8D2C2;
+    --bp-cardbg:#FFFFFF;
+    --bp-stubtext:#F7F4EC;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html{ overscroll-behavior-y:none; }
-  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; overscroll-behavior-y:none; -webkit-touch-callout:none; }
-  button, .btn-primary, .btn-ghost, .switch{ touch-action:manipulation; }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; }
   h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
   .mono{ font-family:'Space Mono', monospace; }
   ::-webkit-scrollbar{ width:10px; }
@@ -49,167 +39,244 @@
 
   /* ---------- Top bar ---------- */
   #topbar{
-    background:rgba(11,61,58,0.94); color:var(--sand); backdrop-filter:blur(8px);
-    position:sticky; top:0; z-index:100;
+    background:var(--teal-900); color:var(--sand);
     padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    padding-top:calc(16px + var(--sat)); padding-left:calc(20px + var(--sal)); padding-right:calc(20px + var(--sar));
     border-bottom:1px solid rgba(255,255,255,0.08);
   }
   #topbar a{ color:var(--sand); opacity:.8; text-decoration:none; font-size:13px; transition:.15s; }
   #topbar a:hover{ opacity:1; color:white; }
 
-  @media (max-width: 720px){
-    input.refined, input.refined-lg{ font-size:16px; } /* prevents iOS Safari auto-zoom on focus */
-    section{ padding:32px 16px calc(70px + var(--sab)); }
-    .field-grid{ gap:16px 12px; }
-  }
-
   section{ padding:56px 20px 90px; }
   .section-eyebrow{ font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--mango-2); }
-  .card{ background:var(--paper); border:1px solid var(--line); border-radius:16px; }
 
   .btn-primary{ background:var(--mango); color:white; font-weight:600; border-radius:9999px; padding:12px 26px; transition:.2s; border:none; cursor:pointer; }
   .btn-primary:hover{ background:var(--mango-2); transform:translateY(-1px); }
-  .btn-primary:active{ transform:scale(.97); }
+  .btn-primary:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
   .btn-ghost{ border:1.5px solid var(--ink); border-radius:9999px; padding:11px 24px; font-weight:600; background:transparent; cursor:pointer; transition:.2s; }
   .btn-ghost:hover{ background:var(--ink); color:var(--paper); }
-  .btn-ghost:active{ transform:scale(.97); }
 
-  /* ---------- Indian Railways boarding pass (matches reference screenshot) ---------- */
-  .ir-ticket{
-    display:flex; border-radius:14px; overflow:hidden;
-    box-shadow:0 20px 45px -22px rgba(15,37,71,0.45);
-    background:var(--ir-cream);
-    font-family:'Space Grotesk', sans-serif;
-    color:var(--ir-navy);
-    max-width:820px; margin:0 auto;
+  /* ---------- Two-column layout: form left, preview right ---------- */
+  .pass-layout{
+    display:grid;
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    gap:36px;
+    align-items:start;
   }
-  .ir-side{
-    background:var(--ir-navy);
-    color:var(--ir-cream);
-    width:118px; flex:none;
-    padding:18px 10px;
-    display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
-  }
-  .ir-emblem{
-    width:60px; height:60px; border-radius:9999px; border:2px solid var(--ir-cream);
-    display:flex; align-items:center; justify-content:center; position:relative; flex:none;
-  }
-  .ir-emblem::before{
-    content:""; position:absolute; inset:5px; border-radius:9999px; border:1px dashed rgba(246,241,227,.55);
-  }
-  .ir-emblem svg{ width:30px; height:30px; position:relative; z-index:1; }
-  .ir-side .ir-brand{ font-weight:700; font-size:13px; line-height:1.25; }
-  .ir-side .ir-hindi{ font-size:11px; line-height:1.5; opacity:.9; margin-top:6px; }
-  .ir-side .ir-train-mini{ display:flex; }
-  .ir-side .ir-train-mini svg{ width:34px; height:20px; }
-
-  .ir-main{ flex:1; min-width:0; padding:16px 22px; display:flex; flex-direction:column; }
-  .ir-headerrow{
-    display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:6px 14px;
-    border-bottom:1.5px solid var(--ir-line); padding-bottom:10px; margin-bottom:16px;
-  }
-  .ir-headerrow .ir-h-left{ font-weight:700; font-size:14px; letter-spacing:.02em; white-space:nowrap; }
-  .ir-headerrow .ir-h-left .sep{ opacity:.4; margin:0 6px; font-weight:400; }
-  .ir-headerrow .ir-h-right{ text-align:right; font-weight:700; font-size:11px; line-height:1.4; white-space:nowrap; }
-
-  .ir-route{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:18px; }
-  .ir-route .station{ min-width:0; flex:1; }
-  .ir-route .station .lbl{ font-size:10px; font-weight:700; letter-spacing:.06em; opacity:.65; margin-bottom:2px; }
-  .ir-route .station .city{ font-family:'Fraunces',serif; font-weight:700; font-size:21px; line-height:1.15; overflow-wrap:break-word; }
-  .ir-route .station .code{ font-size:11px; font-weight:600; opacity:.7; margin-top:3px; }
-  .ir-route .station.to{ text-align:right; }
-  .ir-route .mid{ flex:none; display:flex; align-items:center; justify-content:center; gap:6px; padding-top:10px; width:84px; }
-  .ir-route .mid .dash{ flex:1; height:0; border-top:2px dashed var(--ir-line); }
-  .ir-route .mid svg{ flex:none; }
-
-  .ir-details{ display:flex; gap:18px; margin-bottom:14px; flex-wrap:wrap; }
-  .ir-detcol{ flex:1; min-width:150px; display:flex; flex-direction:column; gap:9px; }
-  .ir-det-item{ display:flex; align-items:flex-start; gap:8px; }
-  .ir-det-item svg{ width:14px; height:14px; margin-top:2px; flex:none; opacity:.75; }
-  .ir-det-item .k{ font-size:9.5px; font-weight:700; letter-spacing:.05em; opacity:.6; display:block; }
-  .ir-det-item .v{ font-size:13px; font-weight:700; }
-  .ir-fare{
-    flex:none; align-self:flex-start; border:1.5px dashed var(--ir-line); border-radius:10px;
-    padding:10px 16px; text-align:center; min-width:110px;
-  }
-  .ir-fare .k{ font-size:9.5px; font-weight:700; letter-spacing:.05em; opacity:.6; }
-  .ir-fare .amt{ font-family:'Fraunces',serif; font-weight:700; font-size:26px; margin-top:2px; }
-  .ir-fare .amt sup{ font-size:14px; }
-  .ir-fare .note{ font-size:9px; opacity:.55; margin-top:2px; }
-
-  .ir-footer{
-    background:var(--ir-navy); color:var(--ir-cream); margin:14px -22px -16px;
-    padding:10px 22px; display:flex; align-items:center; justify-content:space-between; gap:10px;
-  }
-  .ir-footer .wish{ font-family:'Fraunces',serif; font-style:italic; font-size:13px; white-space:nowrap; }
-  .ir-footer .thanks{ font-size:11px; opacity:.85; text-align:center; flex:1; }
-  .ir-footer .mark{ display:flex; align-items:center; justify-content:center; width:26px; height:26px; border:1.5px solid var(--ir-cream); border-radius:9999px; flex:none; }
-  .ir-footer .mark svg{ width:18px; height:18px; }
-
-  .ir-divider{ position:relative; width:0; flex:none; }
-  .ir-divider .line{ position:absolute; top:0; bottom:0; left:0; border-left:2px dashed rgba(15,37,71,0.3); }
-  .ir-divider .hole{ position:absolute; left:-9px; width:18px; height:18px; border-radius:9999px; background:var(--paper); }
-  .ir-divider .hole.top{ top:-9px; }
-  .ir-divider .hole.bottom{ bottom:-9px; }
-
-  .ir-stub{ width:230px; flex:none; display:flex; flex-direction:column; }
-  .ir-stub .stub-head{ background:var(--ir-navy); color:var(--ir-cream); font-weight:700; font-size:12px; letter-spacing:.04em; padding:12px 18px; }
-  .ir-stub .stub-body{ padding:16px 18px; flex:1; display:flex; flex-direction:column; }
-  .ir-stub .stub-route{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
-  .ir-stub .stub-route .city{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; }
-  .ir-stub .stub-route svg{ width:16px; height:16px; opacity:.7; }
-  .ir-stub .stub-codes{ display:flex; justify-content:space-between; font-size:10px; font-weight:600; opacity:.6; margin-bottom:10px; }
-  .ir-stub .stub-hr{ border-top:1px dashed var(--ir-line); margin-bottom:10px; }
-  .ir-stub .stub-row{ display:flex; align-items:center; gap:8px; padding:5px 0; }
-  .ir-stub .stub-row svg{ width:13px; height:13px; opacity:.7; flex:none; }
-  .ir-stub .stub-row .k{ font-size:9.5px; font-weight:700; opacity:.6; letter-spacing:.04em; flex:1; }
-  .ir-stub .stub-row .v{ font-size:12.5px; font-weight:700; }
-  .ir-stub .stub-barcode{ margin-top:auto; padding-top:14px; }
-  .ir-stub .barcode-strip{
-    height:38px; border-radius:2px;
-    background: repeating-linear-gradient(90deg, var(--ir-navy) 0 2px, transparent 2px 4px, var(--ir-navy) 4px 5px, transparent 5px 8px, var(--ir-navy) 8px 11px, transparent 11px 13px);
-  }
-  .ir-stub .barcode-num{ text-align:center; font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.08em; margin-top:6px; }
-
-  @media (max-width: 720px){
-    .ir-ticket{ flex-direction:column; }
-    .ir-side{ width:100%; flex-direction:row; justify-content:center; padding:12px; }
-    .ir-divider{ display:none; }
-    .ir-stub{ width:100%; border-top:2px dashed var(--ir-line); }
+  @media (max-width:900px){
+    .pass-layout{ grid-template-columns:1fr; }
   }
 
-  /* ---------- Refined boarding-pass form ---------- */
-  .ir-form-section{ background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:18px; }
-  .ir-form-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
-  .ir-form-header .htitle{ display:flex; align-items:center; gap:10px; }
-  .ir-form-header .hicon{
-    width:26px; height:26px; border-radius:9999px; background:var(--teal-900); color:var(--sand);
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
-    font-family:'Space Mono',monospace; flex:none;
+  .pass-form-col{ position:relative; }
+  .pass-preview-col{ position:relative; min-height:360px; }
+  @media (min-width:901px){
+    .pass-preview-col{ position:sticky; top:28px; }
   }
-  .ir-form-header h4{ font-family:'Fraunces',serif; font-weight:600; font-size:16px; margin:0; }
 
-  .field-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 16px; }
-  .field{ display:flex; flex-direction:column; }
-  .field-label{ font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--teal-800); margin-bottom:7px; opacity:.85; }
-  input.refined{
-    border:1.5px solid var(--line); border-radius:12px; padding:12px 14px;
-    font-size:14.5px; background:#fff; font-family:'Space Grotesk',sans-serif;
-    transition:.15s; width:100%; outline:none;
+  /* ---------- Lookup form ---------- */
+  .lookup-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:20px;
+    padding:32px 28px;
   }
-  input.refined:focus{ border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,0.12); }
-  input.refined-lg{ font-size:17px; padding:14px 16px; font-weight:600; }
+  .field-label{ font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--teal-800); opacity:.85; }
+  .lookup-row{ display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+  .lookup-row input{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; padding:14px 16px;
+    font-size:16px; font-weight:600; background:#fff; font-family:'Space Grotesk',sans-serif;
+    outline:none; transition:.15s;
+  }
+  .lookup-row input:focus{ border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,0.14); }
+  .lookup-row button{
+    background:var(--teal-900); color:var(--sand); font-weight:700; border:none; border-radius:12px;
+    padding:14px 22px; cursor:pointer; transition:.2s; white-space:nowrap;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .lookup-row button:hover{ background:var(--ink); }
+  .lookup-row button:disabled{ opacity:.55; cursor:not-allowed; }
+  .lookup-hint{ font-size:12px; opacity:.55; margin-top:10px; }
+  .lookup-error{
+    margin-top:14px; font-size:13px; color:#B4472F; font-weight:600;
+    background:rgba(180,71,47,0.08); border:1px solid rgba(180,71,47,0.25);
+    border-radius:10px; padding:10px 14px; display:none;
+  }
 
-  .switch{ position:relative; display:inline-block; width:44px; height:25px; flex:none; }
-  .switch input{ opacity:0; width:0; height:0; position:absolute; }
-  .switch .slider{ position:absolute; cursor:pointer; inset:0; background:var(--sand-2); transition:.2s; border-radius:9999px; }
-  .switch .slider::before{
-    content:""; position:absolute; height:19px; width:19px; left:3px; top:3px;
-    background:white; transition:.2s; border-radius:9999px; box-shadow:0 1px 3px rgba(0,0,0,.3);
+  /* ---------- Fetching animation ---------- */
+  .fetch-wrap{
+    display:none; text-align:center;
+    border:1px dashed var(--bp-line); border-radius:18px; padding:46px 24px;
+    background:var(--bp-cardbg);
   }
-  .switch input:checked + .slider{ background:var(--mango); }
-  .switch input:checked + .slider::before{ transform:translateX(19px); }
+  .fetch-track{
+    position:relative; height:2px; background:repeating-linear-gradient(90deg, var(--teal-700) 0 8px, transparent 8px 14px);
+    margin:0 6px 18px;
+  }
+  .fetch-train{ position:absolute; top:50%; left:0; transform:translate(-50%,-50%); animation:fetchMove 1.6s ease-in-out infinite; color:var(--teal-900); }
+  .fetch-train svg{ width:22px; height:22px; display:block; }
+  @keyframes fetchMove{ 0%{left:0%;} 50%{left:100%;} 50.01%{left:0%;} 100%{left:100%;} }
+  .fetch-status{ font-family:'Space Mono', monospace; font-size:12.5px; letter-spacing:.06em; color:var(--teal-800); min-height:18px; }
+  .fetch-dots span{ animation:fetchBlink 1.2s infinite; opacity:0; }
+  .fetch-dots span:nth-child(2){ animation-delay:.2s; }
+  .fetch-dots span:nth-child(3){ animation-delay:.4s; }
+  @keyframes fetchBlink{ 0%,100%{opacity:0;} 40%{opacity:1;} }
+
+  /* ---------- Preview placeholder (shown before a lookup) ---------- */
+  .preview-placeholder{
+    border:1.5px dashed var(--bp-line); border-radius:20px; background:var(--bp-cardbg);
+    min-height:340px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:40px 28px; color:var(--bp-slate); gap:14px;
+  }
+  .preview-placeholder .ph-icon{ color:var(--bp-brass); opacity:.8; }
+  .preview-placeholder .ph-icon svg{ width:44px; height:44px; }
+  .preview-placeholder p{ margin:0; font-size:14px; max-width:280px; }
+  .preview-placeholder p.title{ font-weight:700; color:var(--bp-ink); font-size:15px; }
+
+  #passOutput{ opacity:0; transform:translateY(14px); transition:opacity .5s ease, transform .5s ease; display:none; }
+  #passOutput.show{ opacity:1; transform:translateY(0); display:block; }
+
+  /* =====================================================
+     BOARDING PASS — rectangular flight-style design
+     ===================================================== */
+  #passCard{ display:flex; flex-direction:column; }
+  .bp-pass{
+    position:relative;
+    display:grid;
+    grid-template-columns: 1fr 220px;
+    width:100%;
+    background:var(--bp-cardbg);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow: 0 26px 60px -24px rgba(11,35,64,0.35), 0 0 0 1px rgba(11,35,64,0.06);
+    font-family:'Inter', sans-serif;
+    color:var(--bp-ink);
+    margin-bottom:26px;
+  }
+  .bp-pass:last-child{ margin-bottom:0; }
+
+  .bp-pass::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vagator%2C%20Goa%2C%20India%2C%20Coconut%20palm%20trees.jpg');
+    background-size:cover; background-position:center 40%;
+    opacity:0.20; filter:saturate(1.05); z-index:0;
+  }
+  .bp-pass::after{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0.94) 100%);
+    z-index:0;
+  }
+  .bp-main, .bp-stub{ position:relative; z-index:1; }
+
+  .bp-main{ padding:30px 34px 26px; display:flex; flex-direction:column; gap:22px; }
+
+  .bp-head{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding-bottom:16px; border-bottom:1.5px solid var(--bp-line);
+  }
+  .bp-brand{ display:flex; align-items:center; gap:14px; }
+  .bp-brand img{ height:34px; width:auto; flex-shrink:0; }
+  .bp-brand-text .l1{ font-family:'Playfair Display', serif; font-weight:800; font-size:19px; color:var(--bp-ink); line-height:1.2; }
+  .bp-brand-text .l2{
+    font-family:'Space Mono', monospace; font-size:10px; letter-spacing:2.3px; text-transform:uppercase;
+    color:var(--bp-slate); margin-top:3px;
+  }
+  .bp-pnr-wrap{ text-align:right; flex-shrink:0; }
+  .bp-pnr-wrap .eyebrow{
+    font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:2.8px; text-transform:uppercase;
+    color:var(--bp-rust); font-weight:700;
+    display:flex; align-items:center; justify-content:flex-end; gap:5px;
+  }
+  .bp-pnr-wrap .eyebrow svg{ width:12px; height:12px; }
+  .bp-pnr-wrap .pnr{
+    font-family:'Space Mono', monospace; font-size:15px; color:var(--bp-ink); font-weight:700;
+    margin-top:5px; letter-spacing:1.5px;
+  }
+
+  .bp-route{ display:flex; align-items:flex-start; gap:20px; }
+  .bp-city{ flex-shrink:0; }
+  .bp-city .code{ font-family:'Playfair Display', serif; font-weight:800; font-size:44px; color:var(--bp-ink); line-height:1; }
+  .bp-city .name{
+    font-size:11.5px; font-weight:600; color:var(--bp-slate); margin-top:6px;
+    text-transform:uppercase; letter-spacing:.5px; max-width:150px;
+  }
+  .bp-track{
+    flex:1; position:relative; height:2px;
+    background:repeating-linear-gradient(90deg, var(--bp-brass) 0 8px, transparent 8px 14px);
+    margin-top:22px;
+  }
+  .bp-track::after{
+    content:""; position:absolute; right:-2px; top:50%; width:11px; height:11px;
+    background:var(--bp-rust); border-radius:2px; transform:translateY(-50%) rotate(45deg);
+  }
+  .bp-track .train-icon{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:var(--bp-cardbg); padding:0 10px; color:var(--bp-ink); display:flex; align-items:center;
+  }
+  .bp-track .train-icon svg{ width:18px; height:18px; display:block; }
+
+  .bp-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px 18px; padding-top:4px; }
+  .bp-field .label{
+    font-family:'Space Mono', monospace; font-size:9px; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--bp-slate); margin-bottom:6px; display:flex; align-items:center; gap:5px;
+  }
+  .bp-field .label svg{ width:12px; height:12px; flex-shrink:0; color:var(--bp-brass); }
+  .bp-field .value{ font-size:14.5px; font-weight:700; color:var(--bp-ink); line-height:1.3; }
+  .bp-field .value.mono{ font-family:'Space Mono', monospace; font-size:13.5px; letter-spacing:.2px; }
+  .bp-field .sub{ font-size:10.5px; color:var(--bp-slate); font-weight:500; margin-top:3px; }
+
+  .bp-note{
+    display:flex; align-items:center; gap:9px; padding-top:14px; border-top:1px dashed var(--bp-line);
+  }
+  .bp-note .dot{ width:6px; height:6px; border-radius:50%; background:var(--bp-brass); flex:none; }
+  .bp-note p{ font-size:10.5px; color:var(--bp-slate); letter-spacing:.15px; margin:0; }
+
+  .bp-stub{
+    background:var(--bp-ink); color:var(--bp-stubtext); padding:26px 22px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    border-left:2px dashed rgba(247,244,236,0.25);
+  }
+  .bp-stub::before, .bp-stub::after{
+    content:""; position:absolute; left:-11px; width:22px; height:22px;
+    background:var(--paper); border-radius:50%; z-index:2;
+  }
+  .bp-stub::before{ top:-11px; }
+  .bp-stub::after{ bottom:-11px; }
+
+  .bp-stub-eyebrow{
+    font-family:'Space Mono', monospace; font-size:9px; letter-spacing:2.3px; text-transform:uppercase;
+    color:var(--bp-brass); font-weight:700;
+  }
+  .bp-stub-route{ font-family:'Playfair Display', serif; font-size:23px; font-weight:700; margin:8px 0 2px; }
+  .bp-stub-route span{ color:var(--bp-brass); font-size:16px; margin:0 4px; }
+
+  .bp-stub-fields{ display:flex; flex-direction:column; gap:13px; margin-top:20px; }
+  .bp-stub-fields .label{
+    font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:1.8px; text-transform:uppercase;
+    color:rgba(247,244,236,0.55); display:flex; align-items:center; gap:5px;
+  }
+  .bp-stub-fields .label svg{ width:10px; height:10px; }
+  .bp-stub-fields .value{ font-family:'Space Mono', monospace; font-size:13.5px; font-weight:700; margin-top:4px; letter-spacing:.2px; }
+
+  .bp-barcode{
+    margin-top:20px; height:40px; border-radius:2px; opacity:.9;
+    background: repeating-linear-gradient(90deg, var(--paper) 0 2px, transparent 2px 3px, var(--paper) 3px 5px, transparent 5px 8px, var(--paper) 8px 9px, transparent 9px 12px);
+  }
+  .bp-barcode-num{
+    font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:2.6px; text-align:center;
+    margin-top:7px; color:rgba(247,244,236,0.6);
+  }
+
+  @media (max-width:720px){
+    .bp-pass{ grid-template-columns:1fr; border-radius:16px; }
+    .bp-stub{ border-left:none; border-top:2px dashed rgba(247,244,236,0.25); }
+    .bp-stub::before,.bp-stub::after{ left:50%; top:-11px; transform:translateX(-50%); }
+    .bp-stub::after{ top:auto; bottom:-11px; }
+    .bp-grid{ grid-template-columns:repeat(2,1fr); }
+    .bp-city .code{ font-size:34px; }
+  }
+
+  .download-row{ text-align:center; margin-top:22px; }
+  .download-row .btn-ghost{ display:inline-flex; align-items:center; gap:8px; }
+  .download-row .btn-ghost svg{ width:15px; height:15px; }
 </style>
 </head>
 <body>
@@ -221,208 +288,386 @@
 </div>
 
 <section>
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-6xl mx-auto">
     <p class="section-eyebrow">Your pass</p>
-    <h1 class="display text-4xl md:text-5xl font-semibold mt-2 mb-4">Generate a boarding pass.</h1>
-    <p class="opacity-70 mb-10 max-w-lg">Fill in your journey details below — every field is editable — and get a printable Indian Railways‑style boarding pass for your onward and return legs.</p>
+    <h1 class="display text-4xl md:text-5xl font-semibold mt-2 mb-4">Get your boarding pass.</h1>
+    <p class="opacity-70 mb-10 max-w-lg">Type the name you registered with — we'll pull your journey details straight from the trip sheet and put together your boarding pass.</p>
 
-    <div class="grid lg:grid-cols-[420px_1fr] gap-14 items-start">
-      <form id="passForm">
+    <div class="pass-layout">
+      <!-- ============ LEFT: FORM ============ -->
+      <div class="pass-form-col">
+        <div class="lookup-card">
+          <span class="field-label">Passenger name</span>
+          <form id="lookupForm" class="lookup-row">
+            <input required id="p-name" placeholder="e.g. Dean M. Winters" autocomplete="off"/>
+            <button type="submit" id="lookupBtn">
+              <span id="lookupBtnLabel">Find my ticket</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <p class="lookup-hint">Case-insensitive · must match the name on the registration sheet exactly.</p>
+          <p class="lookup-error" id="lookupError"></p>
+        </div>
+      </div>
 
-        <div class="ir-form-section">
-          <div class="field">
-            <span class="field-label">Passenger name</span>
-            <input required id="p-name" class="refined refined-lg" placeholder="Dean M. Winters"/>
-          </div>
+      <!-- ============ RIGHT: PREVIEW ============ -->
+      <div class="pass-preview-col">
+        <div class="preview-placeholder" id="previewPlaceholder"></div>
+
+        <div class="fetch-wrap" id="fetchWrap">
+          <div class="fetch-track"><span class="fetch-train" id="fetchTrainIcon"></span></div>
+          <p class="fetch-status" id="fetchStatus">Locating your PNR<span class="fetch-dots"><span>.</span><span>.</span><span>.</span></span></p>
         </div>
 
-        <div class="ir-form-section">
-          <div class="ir-form-header">
-            <div class="htitle"><span class="hicon">1</span><h4>Onward journey</h4></div>
-          </div>
-          <div class="field-grid">
-            <div class="field"><span class="field-label">From code</span><input class="refined" id="o-fromcode" value="PNQ"/></div>
-            <div class="field"><span class="field-label">From station</span><input class="refined" id="o-fromname" value="Pune Junction"/></div>
-            <div class="field"><span class="field-label">To code</span><input class="refined" id="o-tocode" value="GOA"/></div>
-            <div class="field"><span class="field-label">To station</span><input class="refined" id="o-toname" value="Goa"/></div>
-            <div class="field"><span class="field-label">Journey date</span><input class="refined" id="o-date" value="02 Oct 2024"/></div>
-            <div class="field"><span class="field-label">Departure</span><input class="refined" id="o-time" value="01:50 AM"/></div>
-            <div class="field"><span class="field-label">Train no.</span><input class="refined" id="o-trainno" value="12133"/></div>
-            <div class="field"><span class="field-label">Train name</span><input class="refined" id="o-trainname" value="Konkan Kanya Exp"/></div>
-            <div class="field"><span class="field-label">Class</span><input class="refined" id="o-class" value="SL (Sleeper)"/></div>
-            <div class="field"><span class="field-label">PNR</span><input class="refined" id="o-pnr" value="1234567890"/></div>
-            <div class="field"><span class="field-label">Coach / Seat</span><input class="refined" id="o-seat" value="S5 / 36"/></div>
-            <div class="field"><span class="field-label">Fare (₹)</span><input class="refined" id="o-fare" value="342.70"/></div>
-          </div>
-        </div>
-
-        <div class="ir-form-section">
-          <div class="ir-form-header">
-            <div class="htitle"><span class="hicon">2</span><h4>Return journey</h4></div>
-            <label class="switch"><input type="checkbox" id="includeReturn" checked/><span class="slider"></span></label>
-          </div>
-          <div id="returnFields" class="field-grid">
-            <div class="field"><span class="field-label">From code</span><input class="refined" id="r-fromcode" value="GOA"/></div>
-            <div class="field"><span class="field-label">From station</span><input class="refined" id="r-fromname" value="Madgaon (Goa)"/></div>
-            <div class="field"><span class="field-label">To code</span><input class="refined" id="r-tocode" value="PNQ"/></div>
-            <div class="field"><span class="field-label">To station</span><input class="refined" id="r-toname" value="Pune"/></div>
-            <div class="field"><span class="field-label">Journey date</span><input class="refined" id="r-date" value="05 Oct 2024"/></div>
-            <div class="field"><span class="field-label">Departure</span><input class="refined" id="r-time" value="05:55 PM"/></div>
-            <div class="field"><span class="field-label">Train no.</span><input class="refined" id="r-trainno" value="11060"/></div>
-            <div class="field"><span class="field-label">Train name</span><input class="refined" id="r-trainname" value="Konkan Express"/></div>
-            <div class="field"><span class="field-label">Class</span><input class="refined" id="r-class" value="SL (Sleeper)"/></div>
-            <div class="field"><span class="field-label">PNR</span><input class="refined" id="r-pnr" value="0987654321"/></div>
-            <div class="field"><span class="field-label">Coach / Seat</span><input class="refined" id="r-seat" value="S6 / 41"/></div>
-            <div class="field"><span class="field-label">Fare (₹)</span><input class="refined" id="r-fare" value="810.40"/></div>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-primary w-full">Generate my boarding pass →</button>
-      </form>
-
-      <div id="passOutput">
-        <div class="card p-10 flex flex-col items-center text-center justify-center h-full" style="border-style:dashed; min-height:320px;">
-          <span class="mono text-xs tracking-widest opacity-50 mb-2">PREVIEW</span>
-          <p class="opacity-60 max-w-xs">Fill in the journey details and hit generate — your boarding pass will appear here, ready to screenshot or download.</p>
-        </div>
+        <div id="passOutput"></div>
       </div>
     </div>
   </div>
 </section>
 
 <script>
-const irIcons = {
-  train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="4"/><path d="M4 11h16"/><path d="M8 16l-2 4"/><path d="M16 16l2 4"/><circle cx="8.5" cy="13.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="13.5" r=".6" fill="currentColor"/></svg>`,
-  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>`,
-  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`,
-  pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.6 7-12a7 7 0 1 0-14 0c0 5.4 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>`,
-  person: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>`,
-  seat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v10a2 2 0 0 0 2 2h9"/><path d="M5 11h10"/><path d="M17 11v6"/><path d="M4 20h16"/></svg>`,
-  rupee: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 11h6M9 8c3 0 5 1 5 3.2S12 14 9 14l6 5"/></svg>`,
-  arrow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`,
-  seal: `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="20" cy="20" r="17"/><circle cx="20" cy="20" r="12.5" stroke-dasharray="2 2.6"/><circle cx="20" cy="20" r="4.2" fill="currentColor" stroke="none"/><path d="M20 11v4.5M20 24.5V29M11 20h4.5M24.5 20H29M13.6 13.6l3.1 3.1M23.3 23.3l3.1 3.1M13.6 26.4l3.1-3.1M23.3 16.7l3.1-3.1" stroke-linecap="round"/></svg>`
+/* ============================================================
+   GOOGLE SHEET SETUP (Apps Script backend)
+   1. Deploy boarding-pass-backend.gs as its own Apps Script Web App
+      bound to your trip sheet.
+   2. Paste the Web App URL below:
+      https://script.google.com/macros/s/AKfycb.../exec
+   3. Tickets tab: one row per journey leg. Name must match what the
+      passenger types in exactly (case/whitespace ignored). A round
+      trip = two rows, same Name, Leg = onward / return.
+   ============================================================ */
+const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx2AkwL-gL3HdGFabJuylOG9JLRiip-yY1OdFQOThzn0WdTLKk33FuaLGWzmEgD09-z/exec";
+
+async function fetchTickets(name){
+  const url = SHEETS_ENDPOINT + '?name=' + encodeURIComponent(name) + '&cachebust=' + Date.now();
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Could not reach the trip sheet.');
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data.tickets || [];
+}
+
+/* ============================================================
+   ICONS — a small inline SVG set (stroke, currentColor) so every
+   field, eyebrow and status line uses a consistent icon language
+   without pulling in an icon-font dependency.
+============================================================ */
+const ICONS = {
+  train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="4"/><path d="M4 11h16"/><circle cx="8" cy="17.5" r="1.4"/><circle cx="16" cy="17.5" r="1.4"/><path d="M8 21l-2 2M16 21l2 2"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>`,
+  seat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v9a2 2 0 002 2h6"/><path d="M6 15H4.8a1 1 0 00-1 1v2.6a1 1 0 001 1H6"/><path d="M14 15h4a2 2 0 012 2v2.6"/><path d="M20 19.6h-2.4"/></svg>`,
+  user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.6-6.5 8-6.5s8 2.3 8 6.5"/></svg>`,
+  fare: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11"/><path d="M6 8h11"/><path d="M6 4c7 0 7 8 0 8h-1l6 8"/></svg>`,
+  quota: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h12l-2.2 4L17 12H5"/></svg>`,
+  ticket: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a2 2 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a2 2 0 000-3V9z"/><path d="M9 7.5v9" stroke-dasharray="2 2.4"/></svg>`,
 };
 
-function buildIRTicket(leg, passenger){
+/* Placeholder shown on the right before a lookup has run. */
+document.getElementById('previewPlaceholder').innerHTML = `
+  <div class="ph-icon">${ICONS.ticket}</div>
+  <p class="title">Your boarding pass will appear here</p>
+  <p>Enter the name you registered with on the left and hit “Find my ticket” — we'll build a printable pass from your trip‑sheet row.</p>
+`;
+document.getElementById('fetchTrainIcon').innerHTML = ICONS.train;
+
+const fetchMessages = [
+  'Locating your PNR',
+  'Checking the reservation chart',
+  'Fetching seat & coach details',
+  'Preparing your boarding pass'
+];
+
+function runFetchAnimation(){
+  const placeholder = document.getElementById('previewPlaceholder');
+  const wrap = document.getElementById('fetchWrap');
+  const status = document.getElementById('fetchStatus');
+  placeholder.style.display = 'none';
+  wrap.style.display = 'block';
+  let i = 0;
+  status.innerHTML = fetchMessages[0] + '<span class="fetch-dots"><span>.</span><span>.</span><span>.</span></span>';
+  const interval = setInterval(() => {
+    i = (i + 1) % fetchMessages.length;
+    status.innerHTML = fetchMessages[i] + '<span class="fetch-dots"><span>.</span><span>.</span><span>.</span></span>';
+  }, 650);
+  return () => { clearInterval(interval); wrap.style.display = 'none'; };
+}
+
+function groupPnr(pnr){
+  const digits = String(pnr || '').replace(/\s+/g, '');
+  return digits.replace(/(.{3})(?=.)/g, '$1 ').trim() || '—';
+}
+
+/* ---------- Date/time formatting ----------
+   Date: DD Month YYYY (e.g. "02 October 2024")
+   Time: HH:MM:SS, 24-hour (e.g. "21:30:00") — seconds default to
+   "00" when the source data only carries hours and minutes. */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function formatDate(dateStr){
+  if(!dateStr) return '—';
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return dateStr;
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+function weekdayOf(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d.getTime())) return '';
+  return WEEKDAYS[d.getUTCDay()];
+}
+function formatTime(timeStr){
+  if(!timeStr) return '—';
+  const raw = String(timeStr).trim();
+
+  // Plain "HH:MM", "HH:MM:SS", or "HH:MM AM/PM" strings.
+  const plain = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])?$/);
+  if(plain){
+    let [, hh, mm, ss, ampm] = plain;
+    hh = parseInt(hh, 10);
+    ss = ss || '00';
+    if(ampm){
+      const isPM = ampm.toLowerCase() === 'pm';
+      if(isPM && hh !== 12) hh += 12;
+      if(!isPM && hh === 12) hh = 0;
+    }
+    return `${String(hh).padStart(2,'0')}:${mm}:${ss}`;
+  }
+
+  // ISO datetime strings — what Apps Script/Sheets returns for any
+  // Date- or Time-formatted cell (e.g. "2026-10-01T18:30:00.000Z").
+  // A cell formatted as Time-only comes back anchored to Sheets'
+  // date epoch (1899-12-30), e.g. "1899-12-29T20:28:50.000Z" for
+  // "20:28:50" — that's not a bug in the data, just how Sheets
+  // serializes a time-of-day value. Either way, the wall-clock time
+  // typed into the sheet is preserved in the UTC hh/mm/ss, so we
+  // read it back with the UTC getters rather than local-timezone
+  // ones (which would shift depending on the viewer's browser).
+  const iso = raw.match(/^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+  if(iso){
+    const [, hh, mm, ss] = iso;
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  const d = new Date(raw);
+  if(!isNaN(d.getTime())){
+    const hh = String(d.getUTCHours()).padStart(2,'0');
+    const mm = String(d.getUTCMinutes()).padStart(2,'0');
+    const ss = String(d.getUTCSeconds()).padStart(2,'0');
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  return raw;
+}
+
+function classSub(cls){
+  const c = (cls || '').toLowerCase();
+  if(c.includes('sl')) return 'Sleeper';
+  if(c.includes('3a')) return 'AC 3-Tier';
+  if(c.includes('2a')) return 'AC 2-Tier';
+  if(c.includes('1a')) return 'AC First Class';
+  if(c.includes('cc')) return 'Chair Car';
+  return '';
+}
+
+function buildPassCard(leg, passenger){
+  const legLabel = (leg.leg || '').toLowerCase() === 'return' ? 'Return Journey' : 'Onward Journey';
+  const pnrGrouped = groupPnr(leg.pnr);
+  const dateDisplay = formatDate(leg.date);
+  const timeDisplay = formatTime(leg.time);
+  const wk = weekdayOf(leg.date);
+  const clsSub = classSub(leg.cls);
+  const fareNum = Number(leg.fare || 0);
+  const fareDisplay = isNaN(fareNum) ? (leg.fare || '') : '₹' + fareNum.toFixed(2);
+
   return `
-  <div class="ir-ticket mb-6">
-    <div class="ir-side">
-      <div class="ir-emblem">${irIcons.seal}</div>
-      <div class="ir-brand">INDIAN<br/>RAILWAYS</div>
-      <span class="ir-train-mini">${irIcons.train}</span>
-      <div class="ir-hindi">आनंदमय यात्रा<br/>सुरक्षित यात्रा</div>
+  <div class="bp-pass">
+    <div class="bp-main">
+      <div class="bp-head">
+        <div class="bp-brand">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways">
+          <div class="bp-brand-text">
+            <div class="l1">Indian Railways</div>
+            <div class="l2">Boarding Pass · ${legLabel}</div>
+          </div>
+        </div>
+        <div class="bp-pnr-wrap">
+          <div class="eyebrow">${ICONS.ticket} PNR Number</div>
+          <div class="pnr">${pnrGrouped}</div>
+        </div>
+      </div>
+
+      <div class="bp-route">
+        <div class="bp-city">
+          <div class="code">${leg.fromcode || ''}</div>
+          <div class="name">${leg.fromname || ''}</div>
+        </div>
+        <div class="bp-track"><span class="train-icon">${ICONS.train}</span></div>
+        <div class="bp-city" style="text-align:right;">
+          <div class="code">${leg.tocode || ''}</div>
+          <div class="name">${leg.toname || ''}</div>
+        </div>
+      </div>
+
+      <div class="bp-grid">
+        <div class="bp-field">
+          <div class="label">${ICONS.train}<span>Train</span></div>
+          <div class="value">${leg.trainno || ''}</div>
+          <div class="sub">${leg.trainname || ''}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.calendar}<span>Date</span></div>
+          <div class="value mono">${dateDisplay}</div>
+          <div class="sub">${wk}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.clock}<span>Departure</span></div>
+          <div class="value mono">${timeDisplay}</div>
+          <div class="sub">${leg.fromname || ''}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.fare}<span>Fare</span></div>
+          <div class="value mono">${fareDisplay}</div>
+          <div class="sub">Incl. all taxes</div>
+        </div>
+
+        <div class="bp-field">
+          <div class="label">${ICONS.user}<span>Passenger</span></div>
+          <div class="value">${passenger}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.ticket}<span>Class</span></div>
+          <div class="value">${leg.cls || ''}</div>
+          <div class="sub">${clsSub}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.seat}<span>Coach / Berth</span></div>
+          <div class="value mono">${leg.seat || ''}</div>
+        </div>
+        <div class="bp-field">
+          <div class="label">${ICONS.quota}<span>Quota</span></div>
+          <div class="value">General</div>
+        </div>
+      </div>
+
+      <div class="bp-note">
+        <span class="dot"></span>
+        <p>Carry a valid photo ID · Report at the platform 20 minutes before departure · Happy journey!</p>
+      </div>
     </div>
 
-    <div class="ir-main">
-      <div class="ir-headerrow">
-        <div class="ir-h-left">INDIAN RAILWAYS<span class="sep">|</span>BOARDING PASS</div>
-        <div class="ir-h-right">E‑TICKET<br/>ECONOMY CLASS</div>
+    <div class="bp-stub">
+      <div>
+        <div class="bp-stub-eyebrow">Passenger Copy</div>
+        <div class="bp-stub-route">${leg.fromcode || ''}<span>→</span>${leg.tocode || ''}</div>
       </div>
 
-      <div class="ir-route">
-        <div class="station from">
-          <p class="lbl">FROM</p>
-          <p class="city">${leg.fromname}</p>
-          <p class="code">${leg.fromcode}</p>
+      <div class="bp-stub-fields">
+        <div>
+          <div class="label">${ICONS.train}<span>Train No.</span></div>
+          <div class="value">${leg.trainno || ''}</div>
         </div>
-        <div class="mid"><span class="dash"></span>${irIcons.train}<span class="dash"></span>${irIcons.arrow}</div>
-        <div class="station to">
-          <p class="lbl">TO</p>
-          <p class="city">${leg.toname}</p>
-          <p class="code">${leg.tocode}</p>
+        <div>
+          <div class="label">${ICONS.calendar}<span>Date</span></div>
+          <div class="value">${dateDisplay}</div>
         </div>
-      </div>
-
-      <div class="ir-details">
-        <div class="ir-detcol">
-          <div class="ir-det-item">${irIcons.calendar}<div><span class="k">JOURNEY DATE</span><span class="v">${leg.date}</span></div></div>
-          <div class="ir-det-item">${irIcons.clock}<div><span class="k">DEPARTURE</span><span class="v">${leg.time}</span></div></div>
-          <div class="ir-det-item">${irIcons.pin}<div><span class="k">FROM STATION</span><span class="v">${leg.fromname} (${leg.fromcode})</span></div></div>
-          <div class="ir-det-item">${irIcons.person}<div><span class="k">PASSENGER</span><span class="v">${passenger}</span></div></div>
+        <div>
+          <div class="label">${ICONS.seat}<span>Coach · Berth</span></div>
+          <div class="value">${leg.seat || ''}</div>
         </div>
-        <div class="ir-detcol">
-          <div class="ir-det-item">${irIcons.train}<div><span class="k">TRAIN NO.</span><span class="v">${leg.trainno}</span></div></div>
-          <div class="ir-det-item">${irIcons.train}<div><span class="k">TRAIN NAME</span><span class="v">${leg.trainname}</span></div></div>
-          <div class="ir-det-item">${irIcons.seat}<div><span class="k">CLASS</span><span class="v">${leg.cls}</span></div></div>
-          <div class="ir-det-item">${irIcons.rupee}<div><span class="k">PNR</span><span class="v">${leg.pnr}</span></div></div>
-          <div class="ir-det-item">${irIcons.seat}<div><span class="k">COACH / SEAT</span><span class="v">${leg.seat}</span></div></div>
-        </div>
-        <div class="ir-fare">
-          <p class="k">FARE</p>
-          <p class="amt">₹${Number(leg.fare).toFixed(0)}<sup>.${(Number(leg.fare)%1).toFixed(2).slice(2)}</sup></p>
-          <p class="note">(Inclusive of all taxes)</p>
+        <div>
+          <div class="label">${ICONS.clock}<span>Departs</span></div>
+          <div class="value">${timeDisplay}</div>
         </div>
       </div>
 
-      <div class="ir-footer">
-        <span class="wish">Happy Journey!</span>
-        <span class="thanks">Thank you for choosing Indian Railways.</span>
-        <span class="mark">${irIcons.seal}</span>
-      </div>
-    </div>
-
-    <div class="ir-divider"><span class="line"></span><span class="hole top"></span><span class="hole bottom"></span></div>
-
-    <div class="ir-stub">
-      <div class="stub-head">PASSENGER COPY</div>
-      <div class="stub-body">
-        <div class="stub-route">
-          <span class="city">${leg.fromcode}</span>${irIcons.arrow}<span class="city">${leg.tocode}</span>
-        </div>
-        <div class="stub-codes"><span>${leg.fromname}</span><span>${leg.toname}</span></div>
-        <div class="stub-hr"></div>
-        <div class="stub-row">${irIcons.calendar}<span class="k">DATE</span><span class="v">${leg.date}</span></div>
-        <div class="stub-row">${irIcons.clock}<span class="k">DEPARTURE</span><span class="v">${leg.time}</span></div>
-        <div class="stub-row">${irIcons.train}<span class="k">TRAIN NO.</span><span class="v">${leg.trainno}</span></div>
-        <div class="stub-row">${irIcons.seat}<span class="k">COACH / SEAT</span><span class="v">${leg.seat}</span></div>
-        <div class="stub-row">${irIcons.rupee}<span class="k">FARE</span><span class="v">₹${Number(leg.fare).toFixed(2)}</span></div>
-        <div class="stub-barcode">
-          <div class="barcode-strip"></div>
-          <div class="barcode-num">${leg.pnr}</div>
-        </div>
+      <div>
+        <div class="bp-barcode"></div>
+        <div class="bp-barcode-num">${pnrGrouped}</div>
       </div>
     </div>
   </div>`;
 }
 
-function readLeg(prefix){
-  const v = id => document.getElementById(id).value.trim();
-  return {
-    fromcode: v(prefix+'-fromcode'), fromname: v(prefix+'-fromname'),
-    tocode: v(prefix+'-tocode'), toname: v(prefix+'-toname'),
-    date: v(prefix+'-date'), time: v(prefix+'-time'),
-    trainno: v(prefix+'-trainno'), trainname: v(prefix+'-trainname'),
-    cls: v(prefix+'-class'), pnr: v(prefix+'-pnr'),
-    seat: v(prefix+'-seat'), fare: v(prefix+'-fare') || '0'
-  };
-}
-
-document.getElementById('includeReturn').addEventListener('change', e=>{
-  document.getElementById('returnFields').style.display = e.target.checked ? '' : 'none';
-});
-
-document.getElementById('passForm').addEventListener('submit', function(e){
+document.getElementById('lookupForm').addEventListener('submit', async function(e){
   e.preventDefault();
-  const name = document.getElementById('p-name').value.trim();
-  const includeReturn = document.getElementById('includeReturn').checked;
+  const nameInput = document.getElementById('p-name').value.trim();
+  const btn = document.getElementById('lookupBtn');
+  const btnLabel = document.getElementById('lookupBtnLabel');
+  const errEl = document.getElementById('lookupError');
+  const output = document.getElementById('passOutput');
+  const placeholder = document.getElementById('previewPlaceholder');
 
-  let html = `<div id="passCard">`;
-  html += buildIRTicket(readLeg('o'), name);
-  if(includeReturn){ html += buildIRTicket(readLeg('r'), name); }
-  html += `</div>`;
+  errEl.style.display = 'none';
+  output.classList.remove('show');
+  output.innerHTML = '';
+  btn.disabled = true;
+  btnLabel.textContent = 'Searching…';
 
-  document.getElementById('passOutput').innerHTML = html + `<button class="btn-ghost mt-2 text-sm" onclick="downloadPass()">Download pass as image</button>`;
-  document.getElementById('passOutput').scrollIntoView({behavior:'smooth', block:'nearest'});
+  const stopAnimation = runFetchAnimation();
+  const minDelay = new Promise(r => setTimeout(r, 1800));
+
+  try{
+    const [matches] = await Promise.all([ fetchTickets(nameInput), minDelay ]);
+
+    if(matches.length === 0){
+      throw new Error(`No ticket found for "${nameInput}". Double-check the spelling, or confirm you're registered.`);
+    }
+
+    const onward = matches.find(r => (r.leg || '').toLowerCase() === 'onward') || matches[0];
+    const ret = matches.find(r => (r.leg || '').toLowerCase() === 'return');
+
+    let html = `<div id="passCard">`;
+    html += buildPassCard(onward, nameInput);
+    if(ret){ html += buildPassCard(ret, nameInput); }
+    html += `</div>`;
+
+    output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button></div>`;
+    stopAnimation();
+    requestAnimationFrame(() => output.classList.add('show'));
+    output.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }catch(err){
+    stopAnimation();
+    placeholder.style.display = 'flex';
+    errEl.textContent = err.message || 'Something went wrong fetching your ticket. Please try again.';
+    errEl.style.display = 'block';
+  }finally{
+    btn.disabled = false;
+    btnLabel.textContent = 'Find my ticket';
+  }
 });
 
-function downloadPass(){
+/* ---------- Download as a standalone ticket image ----------
+   Rendered off-screen inside a padded backdrop (rather than
+   captured straight off the live page) so the exported PNG reads
+   as its own printable ticket — full drop shadow, breathing room,
+   and webfonts guaranteed loaded — instead of a cropped screenshot
+   of a webpage. */
+async function downloadPass(){
   const node = document.getElementById('passCard');
-  html2canvas(node, {backgroundColor:'#FBF6EC', scale:2}).then(canvas=>{
+  if(!node) return;
+
+  if(document.fonts && document.fonts.ready){
+    try{ await document.fonts.ready; }catch(e){}
+  }
+
+  const exportWrap = document.createElement('div');
+  exportWrap.style.cssText = 'position:fixed; left:-9999px; top:0; display:inline-block; padding:40px; background:linear-gradient(160deg,#EFEADE,#F7F4EC);';
+  const clone = node.cloneNode(true);
+  clone.style.margin = '0';
+  exportWrap.appendChild(clone);
+  document.body.appendChild(exportWrap);
+
+  try{
+    const canvas = await html2canvas(exportWrap, { backgroundColor:null, scale:2, useCORS:true });
+    const nameSlug = (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     const link = document.createElement('a');
-    link.download = 'goa-boarding-pass.png';
-    link.href = canvas.toDataURL();
+    link.download = `boarding-pass-${nameSlug || 'goa'}.png`;
+    link.href = canvas.toDataURL('image/png');
     link.click();
-  });
+  } finally {
+    document.body.removeChild(exportWrap);
+  }
 }
 </script>
 </body>

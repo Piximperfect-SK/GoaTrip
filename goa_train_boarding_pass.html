@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Boarding Pass — Pune ⇄ Goa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B2340;
+    --brass:#C9A227;
+    --paper:#F7F4EC;
+    --paper-dim:#EFEADE;
+    --rust:#B4472F;
+    --slate:#5B6472;
+    --line:#D8D2C2;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 20% 20%, #12335c 0%, transparent 45%),
+      radial-gradient(circle at 85% 80%, #0e2a4d 0%, transparent 50%),
+      var(--ink);
+    font-family:'Inter', sans-serif;
+    padding:40px 20px;
+  }
+
+  .pass{
+    position:relative;
+    display:grid;
+    grid-template-columns: 1fr 220px;
+    width:920px;
+    max-width:100%;
+    background:var(--paper);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow: 0 30px 70px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  /* background photo wash */
+  .pass::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vagator%2C%20Goa%2C%20India%2C%20Coconut%20palm%20trees.jpg');
+    background-size:cover;
+    background-position:center 40%;
+    opacity:0.20;
+    filter:saturate(1.05);
+    z-index:0;
+  }
+  .pass::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(100deg, rgba(247,244,236,0.94) 0%, rgba(247,244,236,0.86) 55%, rgba(247,244,236,0.94) 100%);
+    z-index:0;
+  }
+
+  .main, .stub{ position:relative; z-index:1; }
+
+  .main{
+    padding:34px 38px 28px 38px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+
+  /* header */
+  .head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding-bottom:18px;
+    border-bottom:1.5px solid var(--line);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand img{
+    height:36px;
+    width:auto;
+    filter:saturate(1.1);
+  }
+  .brand-text .line1{
+    font-family:'Playfair Display', serif;
+    font-weight:800;
+    font-size:20px;
+    color:var(--ink);
+    letter-spacing:0.2px;
+  }
+  .brand-text .line2{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-top:2px;
+  }
+  .pass-label{
+    text-align:right;
+  }
+  .pass-label .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--rust);
+    font-weight:700;
+  }
+  .pass-label .pnr{
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+    color:var(--ink);
+    font-weight:700;
+    margin-top:4px;
+    letter-spacing:1px;
+  }
+
+  /* route */
+  .route{
+    display:flex;
+    align-items:center;
+    gap:22px;
+  }
+  .city{
+    flex-shrink:0;
+  }
+  .city .code{
+    font-family:'Playfair Display', serif;
+    font-weight:800;
+    font-size:52px;
+    color:var(--ink);
+    line-height:1;
+  }
+  .city .name{
+    font-family:'Inter', sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--slate);
+    margin-top:6px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .track{
+    flex:1;
+    position:relative;
+    height:2px;
+    background:repeating-linear-gradient(90deg, var(--brass) 0 8px, transparent 8px 14px);
+    margin-top:-18px;
+  }
+  .track::after{
+    content:"";
+    position:absolute;
+    right:-2px; top:50%;
+    width:12px; height:12px;
+    background:var(--rust);
+    border-radius:2px;
+    transform:translateY(-50%) rotate(45deg);
+  }
+  .track .train-icon{
+    position:absolute;
+    left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    background:var(--paper);
+    padding:0 10px;
+    font-size:20px;
+  }
+
+  /* details grid */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px 18px;
+    padding-top:6px;
+  }
+  .grid .full{ grid-column:1 / -1; }
+  .field .label{
+    font-family:'Space Mono', monospace;
+    font-size:9.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--slate);
+    margin-bottom:6px;
+  }
+  .field .value{
+    font-family:'Inter', sans-serif;
+    font-size:16px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .field .value.mono{
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+  }
+  .field .sub{
+    font-size:11px;
+    color:var(--slate);
+    font-weight:500;
+    margin-top:2px;
+  }
+
+  .divider-note{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .divider-note .dot{
+    width:6px; height:6px; border-radius:50%; background:var(--brass);
+  }
+  .divider-note p{
+    font-size:11px;
+    color:var(--slate);
+    font-family:'Inter', sans-serif;
+    letter-spacing:0.2px;
+  }
+
+  /* stub */
+  .stub{
+    background:var(--ink);
+    color:var(--paper);
+    padding:30px 24px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    border-left:2px dashed rgba(247,244,236,0.25);
+  }
+  .stub::before, .stub::after{
+    content:"";
+    position:absolute;
+    left:-11px;
+    width:22px; height:22px;
+    background:var(--ink);
+    border-radius:50%;
+    z-index:2;
+  }
+  .stub::before{ top:-11px; }
+  .stub::after{ bottom:-11px; }
+
+  .stub-top .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:9.5px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:700;
+  }
+  .stub-top .route-mini{
+    font-family:'Playfair Display', serif;
+    font-size:26px;
+    font-weight:700;
+    margin:8px 0 2px 0;
+  }
+  .stub-top .route-mini span{ color:var(--brass); font-size:18px; margin:0 4px; }
+
+  .stub-fields{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-top:20px;
+  }
+  .stub-fields .label{
+    font-family:'Space Mono', monospace;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:rgba(247,244,236,0.55);
+  }
+  .stub-fields .value{
+    font-family:'Space Mono', monospace;
+    font-size:15px;
+    font-weight:700;
+    margin-top:3px;
+  }
+
+  .barcode{
+    margin-top:22px;
+    height:46px;
+    background: repeating-linear-gradient(90deg, var(--paper) 0 2px, transparent 2px 3px, var(--paper) 3px 5px, transparent 5px 8px, var(--paper) 8px 9px, transparent 9px 12px);
+    opacity:0.9;
+    border-radius:2px;
+  }
+  .barcode-num{
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:3px;
+    text-align:center;
+    margin-top:6px;
+    color:rgba(247,244,236,0.6);
+  }
+
+  @media (max-width:720px){
+    .pass{ grid-template-columns:1fr; border-radius:16px; }
+    .stub{ border-left:none; border-top:2px dashed rgba(247,244,236,0.25); }
+    .stub::before,.stub::after{ left:50%; top:-11px; transform:translateX(-50%); }
+    .stub::after{ top:auto; bottom:-11px; }
+    .grid{ grid-template-columns:repeat(2,1fr); }
+    .city .code{ font-size:40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="pass">
+
+  <div class="main">
+    <div class="head">
+      <div class="brand">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways">
+        <div class="brand-text">
+          <div class="line1">Indian Railways</div>
+          <div class="line2">Boarding Pass · Onward Journey</div>
+        </div>
+      </div>
+      <div class="pass-label">
+        <div class="eyebrow">PNR Number</div>
+        <div class="pnr">1234 567 890</div>
+      </div>
+    </div>
+
+    <div class="route">
+      <div class="city">
+        <div class="code">PNQ</div>
+        <div class="name">Pune Junction</div>
+      </div>
+      <div class="track"><span class="train-icon">🚆</span></div>
+      <div class="city">
+        <div class="code">GOA</div>
+        <div class="name">Goa</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <div class="label">Train</div>
+        <div class="value">12133</div>
+        <div class="sub">Konkan Kanya Exp</div>
+      </div>
+      <div class="field">
+        <div class="label">Date</div>
+        <div class="value mono">02 OCT 2024</div>
+        <div class="sub">Wednesday</div>
+      </div>
+      <div class="field">
+        <div class="label">Departure</div>
+        <div class="value mono">01:50 AM</div>
+        <div class="sub">Pune Junction</div>
+      </div>
+      <div class="field">
+        <div class="label">Fare</div>
+        <div class="value mono">₹342.70</div>
+        <div class="sub">Incl. all taxes</div>
+      </div>
+
+      <div class="field">
+        <div class="label">Passenger</div>
+        <div class="value">Dean M. Winters</div>
+      </div>
+      <div class="field">
+        <div class="label">Class</div>
+        <div class="value">SL</div>
+        <div class="sub">Sleeper</div>
+      </div>
+      <div class="field">
+        <div class="label">Coach / Berth</div>
+        <div class="value mono">S5 / 36</div>
+      </div>
+      <div class="field">
+        <div class="label">Quota</div>
+        <div class="value">General</div>
+      </div>
+    </div>
+
+    <div class="divider-note">
+      <span class="dot"></span>
+      <p>Carry a valid photo ID · Report at the platform 20 minutes before departure · Have a beautiful trip to Goa</p>
+    </div>
+  </div>
+
+  <div class="stub">
+    <div class="stub-top">
+      <div class="eyebrow">Passenger Copy</div>
+      <div class="route-mini">PNQ<span>→</span>GOA</div>
+    </div>
+
+    <div class="stub-fields">
+      <div>
+        <div class="label">Train No.</div>
+        <div class="value">12133</div>
+      </div>
+      <div>
+        <div class="label">Date</div>
+        <div class="value">02 OCT 24</div>
+      </div>
+      <div>
+        <div class="label">Coach · Berth</div>
+        <div class="value">S5 · 36</div>
+      </div>
+      <div>
+        <div class="label">Departs</div>
+        <div class="value">01:50 AM</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="barcode"></div>
+      <div class="barcode-num">1234 567 890</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="pass" style="margin-top:26px;">
+
+  <div class="main">
+    <div class="head">
+      <div class="brand">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways">
+        <div class="brand-text">
+          <div class="line1">Indian Railways</div>
+          <div class="line2">Boarding Pass · Return Journey</div>
+        </div>
+      </div>
+      <div class="pass-label">
+        <div class="eyebrow">PNR Number</div>
+        <div class="pnr">0987 654 321</div>
+      </div>
+    </div>
+
+    <div class="route">
+      <div class="city">
+        <div class="code">GOA</div>
+        <div class="name">Madgaon, Goa</div>
+      </div>
+      <div class="track"><span class="train-icon">🚆</span></div>
+      <div class="city">
+        <div class="code">PNQ</div>
+        <div class="name">Pune</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <div class="label">Train</div>
+        <div class="value">11060</div>
+        <div class="sub">Konkan Express</div>
+      </div>
+      <div class="field">
+        <div class="label">Date</div>
+        <div class="value mono">05 OCT 2024</div>
+        <div class="sub">Saturday</div>
+      </div>
+      <div class="field">
+        <div class="label">Departure</div>
+        <div class="value mono">05:55 PM</div>
+        <div class="sub">Madgaon, Goa</div>
+      </div>
+      <div class="field">
+        <div class="label">Fare</div>
+        <div class="value mono">₹810.40</div>
+        <div class="sub">Incl. all taxes</div>
+      </div>
+
+      <div class="field">
+        <div class="label">Passenger</div>
+        <div class="value">Dean M. Winters</div>
+      </div>
+      <div class="field">
+        <div class="label">Class</div>
+        <div class="value">SL</div>
+        <div class="sub">Sleeper</div>
+      </div>
+      <div class="field">
+        <div class="label">Coach / Berth</div>
+        <div class="value mono">S6 / 41</div>
+      </div>
+      <div class="field">
+        <div class="label">Quota</div>
+        <div class="value">General</div>
+      </div>
+    </div>
+
+    <div class="divider-note">
+      <span class="dot"></span>
+      <p>Carry a valid photo ID · Report at the platform 20 minutes before departure · Safe travels back</p>
+    </div>
+  </div>
+
+  <div class="stub">
+    <div class="stub-top">
+      <div class="eyebrow">Passenger Copy</div>
+      <div class="route-mini">GOA<span>→</span>PNQ</div>
+    </div>
+
+    <div class="stub-fields">
+      <div>
+        <div class="label">Train No.</div>
+        <div class="value">11060</div>
+      </div>
+      <div>
+        <div class="label">Date</div>
+        <div class="value">05 OCT 24</div>
+      </div>
+      <div>
+        <div class="label">Coach · Berth</div>
+        <div class="value">S6 · 41</div>
+      </div>
+      <div>
+        <div class="label">Departs</div>
+        <div class="value">05:55 PM</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="barcode"></div>
+      <div class="barcode-num">0987 654 321</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
