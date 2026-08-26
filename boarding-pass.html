@@ -178,6 +178,15 @@
      width/height attributes — and what gets downloaded — stay fixed. */
   @media (max-width:860px){
     .pass-preview-col{ display:flex; justify-content:center; }
+  }
+  /* Tablet range: still the fixed-ratio 2-up card, just scaled down as
+     a whole to fit the viewport (this is what the download always
+     captures, so preview and export match exactly). Below this range
+     (real phones) we switch to a reflowed, single-column layout
+     instead — see the max-width:640px block further down — because
+     scaling a 792px-wide card down to a ~360px phone makes every
+     label unreadably small. */
+  @media (min-width:641px) and (max-width:860px){
     .bp-pass-fixed{
       transform: scale(calc(min(1, (100vw - 40px) / 792)));
       transform-origin: top center;
@@ -243,11 +252,11 @@
     padding-bottom:12px; border-bottom:1.5px solid var(--bp-line);
   }
   .bp-brand{ display:flex; align-items:center; gap:14px; }
-  .bp-logos{ display:flex; align-items:center; gap:9px; flex-shrink:0; }
-  .bp-logos .bp-logo-divider{ width:1px; height:26px; background:var(--bp-line); flex-shrink:0; }
-  .bp-brand .bp-logo{ height:32px; width:32px; flex-shrink:0; display:block; object-fit:contain; }
+  .bp-logos{ display:flex; align-items:center; gap:11px; flex-shrink:0; }
+  .bp-logos .bp-logo-divider{ width:1px; height:34px; background:var(--bp-line); flex-shrink:0; }
+  .bp-brand .bp-logo{ height:44px; width:44px; flex-shrink:0; display:block; object-fit:contain; }
   .bp-brand .bp-logo svg{ height:100%; width:100%; display:block; }
-  .bp-brand .bp-logo.bp-logo-irctc{ height:26px; width:auto; max-width:44px; }
+  .bp-brand .bp-logo.bp-logo-irctc{ height:36px; width:auto; max-width:60px; }
   .bp-brand-text .l1{ font-family:'Playfair Display', serif; font-weight:800; font-size:19px; color:var(--bp-ink); line-height:1.2; }
   .bp-brand-text .l2{
     font-family:'Space Mono', monospace; font-size:10px; letter-spacing:2.3px; text-transform:uppercase;
@@ -357,13 +366,37 @@
     margin-top:2px; color:rgba(247,244,236,0.6);
   }
 
-  @media (max-width:720px){
-    .bp-pass{ grid-template-columns:1fr; border-radius:16px; }
-    .bp-stub{ border-left:none; border-top:2px dashed rgba(247,244,236,0.25); }
-    .bp-stub::before,.bp-stub::after{ left:50%; top:-11px; transform:translateX(-50%); }
-    .bp-stub::after{ top:auto; bottom:-11px; }
-    .bp-grid{ grid-template-columns:repeat(2,1fr); }
-    .bp-city .code{ font-size:34px; }
+  /* ---------- Real phones: reflowed single-column pass ----------
+     Everything here is scoped under .bp-pass-fixed on purpose. The
+     PNG/PDF download clones only the bare .bp-pass node and appends
+     it to an offscreen container OUTSIDE .bp-pass-fixed (see
+     captureCardCanvases), so none of these rules can ever leak into
+     what gets exported — downloads keep using the fixed 792x312
+     (→2475x975 print) two-column card regardless of screen size.
+     On screen, below 640px we drop the "scaled-down miniature of the
+     desktop card" approach entirely and let the card reflow at full
+     readable size: main details on top, ticket stub underneath. */
+  @media (max-width:640px){
+    .bp-pass-fixed{
+      width:100%; max-width:420px; height:auto; overflow:visible;
+      transform:none; margin:0 auto 22px;
+    }
+    .bp-pass-fixed .bp-pass-scaler{
+      position:static; width:100%; height:auto; transform:none;
+    }
+    .bp-pass-fixed .bp-pass{
+      width:100%; height:auto; grid-template-columns:1fr; border-radius:16px;
+    }
+    .bp-pass-fixed .bp-main{ height:auto; padding:22px 20px 18px; }
+    .bp-pass-fixed .bp-stub{
+      height:auto; border-left:none; border-top:2px dashed rgba(247,244,236,0.25);
+      border-radius:0 0 16px 16px; padding:20px;
+    }
+    .bp-pass-fixed .bp-stub::before,.bp-pass-fixed .bp-stub::after{ left:50%; top:-11px; transform:translateX(-50%); }
+    .bp-pass-fixed .bp-stub::after{ top:auto; bottom:-11px; }
+    .bp-pass-fixed .bp-grid{ grid-template-columns:repeat(2,1fr); }
+    .bp-pass-fixed .bp-city .code{ font-size:34px; }
+    .bp-pass-fixed .bp-route{ flex-wrap:nowrap; }
   }
 
   .download-row{ text-align:center; margin-top:22px; }
