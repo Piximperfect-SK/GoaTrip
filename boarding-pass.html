@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.4.4/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
@@ -306,7 +305,7 @@
 
   .bp-stub{
     background:var(--bp-ink); color:var(--bp-stubtext); padding:18px 20px;
-    display:flex; flex-direction:column; justify-content:space-between;
+    display:flex; flex-direction:column;
     border-left:2px dashed rgba(247,244,236,0.25); height:100%;
     border-radius:0 18px 18px 0;
   }
@@ -324,24 +323,30 @@
   .bp-stub-route{ font-family:'Playfair Display', serif; font-size:21px; font-weight:700; margin:6px 0 2px; }
   .bp-stub-route span{ color:var(--bp-brass); font-size:15px; margin:0 4px; }
 
+  /* Everything below the route header (QR + caption + PNR echo) is
+     grouped and centered as one block in the REMAINING stub height —
+     not pinned to the bottom the way the old space-between layout
+     did — so the QR reads as the visual center of the navy panel,
+     not an afterthought docked below it. */
   .bp-qr-wrap{
-    margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:6px;
+    flex:1; min-height:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
   }
   .bp-qr-box{
-    background:var(--paper); border-radius:10px; padding:6px;
-    width:98px; height:98px; position:relative;
-    box-shadow:0 6px 14px -6px rgba(0,0,0,0.35);
+    background:var(--paper); border-radius:12px; padding:8px;
+    width:150px; height:150px; position:relative; flex-shrink:0;
+    box-shadow:0 8px 18px -6px rgba(0,0,0,0.4);
   }
   /* Absolute + translate centering instead of flex: html2canvas does
      not reliably honor flexbox alignment for replaced elements like a
-     <canvas> child during export capture — it can fall back to the
-     canvas's default top-left inline placement, which is exactly the
+     <canvas>/<img> child during export capture — it can fall back to
+     the element's default top-left inline placement, which was the
      "QR shifted toward one corner" artifact this replaces. Absolute
      positioning with a transform is layout-engine-independent and
      renders identically live and in the html2canvas export. */
   .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:86px !important; height:86px !important; display:block;
+    width:134px !important; height:134px !important; display:block;
   }
   .bp-qr-caption{
     font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; text-transform:uppercase;
@@ -810,28 +815,25 @@ function buildPassCard(leg, passenger, qrId){
   </div>`;
 }
 
-/* Renders a QR code into `el` without ever letting a failure escape —
-   a broken QR payload should degrade quietly (fallback caption)
-   instead of taking down the whole ticket render, which is what
-   happened when this call lived inside the main try/catch.
-   Uses the soldair/qrcode canvas library (window.QRCode.toCanvas),
-   swapped in for the older davidshimjs qrcodejs build, which shipped
-   a very limited internal version/capacity table and could throw
-   "code length overflow" even on modest, already-clipped text. */
+/* Renders the QR as a plain <img> from the goqr.me / QR Server image
+   API (https://api.qrserver.com) instead of a client-side JS library.
+   This sidesteps every canvas-sizing/centering quirk of the old
+   approach entirely — it's just an image, sized and centered by
+   ordinary CSS, and it survives the html2canvas export clone the
+   same way any other <img> on the pass does (crossOrigin + useCORS,
+   same as the two brand logos).
+   Requested at 3x the on-screen 134px display size so it stays sharp
+   once the whole pass is captured at ~2.7x for print (2475px wide). */
+function qrApiUrl(text){
+  const px = 134 * 3;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${px}x${px}&margin=0&ecc=M&data=${encodeURIComponent(text)}`;
+}
 function renderQrSafely(el, text){
-  if(!el || typeof QRCode === 'undefined' || typeof QRCode.toCanvas !== 'function') {
+  if(!el || !text){
     if(el) el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
     return false;
   }
-  el.innerHTML = '';
-  const canvas = document.createElement('canvas');
-  el.appendChild(canvas);
-  QRCode.toCanvas(canvas, text, { width: 86, margin: 0, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
-    if(err){
-      console.warn('QR render failed, showing fallback instead:', err);
-      el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
-    }
-  });
+  el.innerHTML = `<img src="${qrApiUrl(text)}" crossorigin="anonymous" alt="Boarding pass QR code" onerror="this.parentElement.innerHTML='<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;&quot;>QR unavailable — check your connection</div>'">`;
   return true;
 }
 
@@ -876,7 +878,7 @@ async function runLookup(nameInput){
     // offline and doesn't depend on this page or its backend.
     legsToRender.forEach(({leg, qrId}) => {
       const el = document.getElementById(qrId);
-      if(!el || typeof QRCode === 'undefined') return;
+      if(!el) return;
       const qrPayload = buildQrPayload(leg, nameInput);
       el.dataset.qrText = qrPayload;
       renderQrSafely(el, qrPayload);
@@ -938,6 +940,26 @@ document.addEventListener('DOMContentLoaded', () => {
    Shared by both the PNG and PDF download paths so they always
    agree on exactly the same pixels, at exactly the same fixed size. */
 const PRINT_W = 2475, PRINT_H = 975, PRINT_GAP = 40;
+
+/* Waits for every <img> inside `container` to finish loading (success
+   or failure) before resolving, with a hard timeout so one slow/dead
+   image (e.g. the QR API being briefly unreachable) can't hang the
+   whole export forever — it just proceeds and lets that image capture
+   as broken/blank rather than blocking the download indefinitely. */
+function waitForImagesToLoad(container, timeoutMs){
+  timeoutMs = timeoutMs || 8000;
+  const imgs = Array.from(container.querySelectorAll('img'));
+  return Promise.all(imgs.map(img => {
+    if(img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return new Promise(resolve => {
+      const done = () => resolve();
+      img.addEventListener('load', done, { once:true });
+      img.addEventListener('error', done, { once:true });
+      setTimeout(done, timeoutMs);
+    });
+  }));
+}
+
 
 /* ---------- Force-perfect rounding, at the pixel level ----------
    html2canvas does not reliably respect border-radius on elements
@@ -1016,17 +1038,17 @@ async function captureCardCanvases(){
       clone.style.height = designH + 'px';
       clone.style.margin = '0';
 
-      // QRCode's generated <canvas> does not reliably survive a deep
-      // clone with its pixel data intact in every browser — rebuild
-      // it directly on the clone from the original's stored payload.
-      passNode.querySelectorAll('.bp-qr-box').forEach(orig => {
-        const cloneBox = clone.querySelector('#' + orig.id);
-        const text = orig.dataset.qrText;
-        if(cloneBox && text) renderQrSafely(cloneBox, text);
-      });
-
       offscreen.innerHTML = '';
       offscreen.appendChild(clone);
+
+      // The two brand logos are inline base64 data URIs (already
+      // "loaded" instantly), but the QR is now a network-fetched
+      // <img> from the QR API — cloneNode(true) carries over its src,
+      // but the browser doesn't guarantee it's finished loading by
+      // the time we hand the clone to html2canvas right after. Wait
+      // for every image in the clone to actually finish (or time out)
+      // before capturing, or the QR can come out blank in the export.
+      await waitForImagesToLoad(clone);
 
       // backgroundColor:null keeps the four corners OUTSIDE the pass's
       // own border-radius fully transparent in the captured canvas.
