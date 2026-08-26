@@ -688,7 +688,7 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
   btnLabel.textContent = 'Searching…';
 
   const stopAnimation = runFetchAnimation();
-  const minDelay = new Promise(r => setTimeout(r, 1800));
+  const minDelay = new Promise(r => setTimeout(r, 900));
 
   try{
     const [matches] = await Promise.all([ fetchTickets(nameInput), minDelay ]);
