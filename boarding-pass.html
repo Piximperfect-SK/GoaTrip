@@ -410,13 +410,48 @@
    ============================================================ */
 const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx2AkwL-gL3HdGFabJuylOG9JLRiip-yY1OdFQOThzn0WdTLKk33FuaLGWzmEgD09-z/exec";
 
-async function fetchTickets(name){
-  const url = SHEETS_ENDPOINT + '?name=' + encodeURIComponent(name) + '&cachebust=' + Date.now();
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('Could not reach the trip sheet.');
-  const data = await res.json();
-  if(data.error) throw new Error(data.error);
-  return data.tickets || [];
+async function fetchTickets(name, opts){
+  opts = opts || {};
+  const maxAttempts = opts.maxAttempts || 3;
+  const timeoutMs = opts.timeoutMs || 12000;
+  let lastErr = null;
+
+  for(let attempt = 1; attempt <= maxAttempts; attempt++){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try{
+      const url = SHEETS_ENDPOINT + '?name=' + encodeURIComponent(name) + '&cachebust=' + Date.now();
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timer);
+
+      const text = await res.text();
+      let data;
+      try{ data = JSON.parse(text); }
+      catch(parseErr){
+        // Apps Script most commonly returns non-JSON when the Web App
+        // isn't deployed with "Anyone" access (an HTML login/consent
+        // page comes back instead), or after a code change that wasn't
+        // redeployed as a new version. Surface that distinction instead
+        // of a generic parse error.
+        throw new Error('The trip sheet did not return valid data — usually this means the Apps Script Web App needs to be redeployed as a new version, or its access is not set to "Anyone".');
+      }
+      if(!res.ok) throw new Error(data.error || `Trip sheet responded with an error (HTTP ${res.status}).`);
+      if(data.error) throw new Error(data.error);
+      return data.tickets || [];
+    }catch(err){
+      clearTimeout(timer);
+      lastErr = err.name === 'AbortError'
+        ? new Error('The trip sheet took too long to respond.')
+        : err;
+      // Only retry on what looks like a transient network hiccup —
+      // not on a clean "no ticket found"/deployment error, which won't
+      // change on retry.
+      const transient = err.name === 'AbortError' || err instanceof TypeError;
+      if(!transient || attempt === maxAttempts) break;
+      await new Promise(r => setTimeout(r, 500 * attempt)); // simple backoff
+    }
+  }
+  throw lastErr || new Error('Could not reach the trip sheet.');
 }
 
 /* ============================================================
@@ -589,30 +624,26 @@ const WATERMARK_SVG = `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/
   </g>
 </svg>`;
 
-/* Formatted text block encoded into each pass's QR code — a plain,
-   human-readable summary (not JSON) so a scan shows the same words
-   printed on the ticket. Each field is clamped defensively: the
-   qrcodejs build loaded from cdnjs only ships a capacity table up to
-   a modest QR version, so if a sheet cell ever contains something
-   unexpectedly long (wrapped text, a stray note, a merged cell) the
-   payload can blow past that ceiling and throw "code length
-   overflow" — clip() keeps the encoded text short no matter what the
-   sheet contains. */
+/* The QR code on each pass encodes a URL back to THIS page with the
+   passenger's name (and which leg) pre-filled, e.g.:
+     https://.../boarding-pass.html?name=Shubham%20Kumar&leg=onward
+   Scanning it opens the page, which auto-runs the same live lookup
+   against the Google Sheet (see the DOMContentLoaded handler below)
+   — so the QR always shows the current data from the sheet at scan
+   time, not a static snapshot baked in when the pass was generated.
+   clip() keeps the name itself sane-length regardless of what's typed
+   in, though URLs don't have the same hard capacity ceiling that the
+   old plain-text QR payload did. */
 function clip(str, max){
   str = String(str || '').replace(/\s+/g, ' ').trim();
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }
-function buildQrText(leg, passenger, dateDisplay, timeDisplay, fareDisplay, pnrGrouped){
-  return [
-    `Passenger: ${clip(passenger, 40)}`,
-    `PNR: ${clip(pnrGrouped, 20)}`,
-    `Train: ${clip(`${leg.trainno || ''} ${leg.trainname || ''}`.trim(), 40)}`,
-    `Route: ${clip(leg.fromcode, 8)} → ${clip(leg.tocode, 8)}`,
-    `Date: ${clip(dateDisplay, 20)}`,
-    `Departure: ${clip(timeDisplay, 20)}`,
-    `Seat: ${clip(leg.seat, 20)}`,
-    `Fare: ${clip(fareDisplay, 20)}`
-  ].join('\n');
+function buildQrUrl(passenger, legKey){
+  const base = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams();
+  params.set('name', clip(passenger, 60));
+  if(legKey) params.set('leg', legKey);
+  return `${base}?${params.toString()}`;
 }
 
 function classSub(cls){
@@ -756,9 +787,7 @@ function renderQrSafely(el, text){
   return true;
 }
 
-document.getElementById('lookupForm').addEventListener('submit', async function(e){
-  e.preventDefault();
-  const nameInput = document.getElementById('p-name').value.trim();
+async function runLookup(nameInput){
   const btn = document.getElementById('lookupBtn');
   const btnLabel = document.getElementById('lookupBtnLabel');
   const errEl = document.getElementById('lookupError');
@@ -784,8 +813,8 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
     const onward = matches.find(r => (r.leg || '').toLowerCase() === 'onward') || matches[0];
     const ret = matches.find(r => (r.leg || '').toLowerCase() === 'return');
 
-    const legsToRender = [{ leg: onward, qrId: 'qr-onward-' + Date.now() }];
-    if(ret) legsToRender.push({ leg: ret, qrId: 'qr-return-' + Date.now() });
+    const legsToRender = [{ leg: onward, qrId: 'qr-onward-' + Date.now(), legKey: 'onward' }];
+    if(ret) legsToRender.push({ leg: ret, qrId: 'qr-return-' + Date.now(), legKey: 'return' });
 
     let html = `<div id="passCard">`;
     legsToRender.forEach(({leg, qrId}) => { html += buildPassCard(leg, nameInput, qrId); });
@@ -794,16 +823,15 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
     output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button></div>`;
 
     // Render each leg's real QR code now that its container is in the DOM.
-    legsToRender.forEach(({leg, qrId}) => {
+    // The QR encodes a link back to this page (with the passenger's name
+    // and leg pre-filled) rather than a static text snapshot, so scanning
+    // it always re-fetches the live row from the Google Sheet.
+    legsToRender.forEach(({leg, qrId, legKey}) => {
       const el = document.getElementById(qrId);
       if(!el || typeof QRCode === 'undefined') return;
-      const dateDisplay = formatDate(leg.date);
-      const timeDisplay = formatTime(leg.time);
-      const fareNum = Number(leg.fare || 0);
-      const fareDisplay = isNaN(fareNum) ? (leg.fare || '') : '₹' + fareNum.toFixed(2);
-      const qrText = buildQrText(leg, nameInput, dateDisplay, timeDisplay, fareDisplay, groupPnr(leg.pnr));
-      el.dataset.qrText = qrText;
-      renderQrSafely(el, qrText);
+      const qrUrl = buildQrUrl(nameInput, legKey);
+      el.dataset.qrText = qrUrl;
+      renderQrSafely(el, qrUrl);
     });
 
     stopAnimation();
@@ -817,6 +845,26 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
   }finally{
     btn.disabled = false;
     btnLabel.textContent = 'Find my ticket';
+  }
+}
+
+document.getElementById('lookupForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const nameInput = document.getElementById('p-name').value.trim();
+  if(nameInput) runLookup(nameInput);
+});
+
+/* Auto-run a lookup when the page is opened with ?name=... in the URL
+   — this is exactly what each pass's QR code links to, so scanning a
+   printed pass opens this page and immediately re-fetches that
+   passenger's current row from the Google Sheet, rather than just
+   showing whatever static text was baked in when the pass was made. */
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const nameFromUrl = params.get('name');
+  if(nameFromUrl){
+    document.getElementById('p-name').value = nameFromUrl;
+    runLookup(nameFromUrl.trim());
   }
 });
 
