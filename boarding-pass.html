@@ -424,16 +424,49 @@ function groupPnr(pnr){
    "00" when the source data only carries hours and minutes. */
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* Parses "02 Oct 2026" / "02 October 2026" — the exact shape the
+   Apps Script backend now sends — directly into {day, monthIndex,
+   year} components, WITHOUT ever handing the string to `new Date()`.
+   That matters: non-ISO date strings like "02 Oct 2026" are parsed
+   by the browser as LOCAL midnight (per the JS spec), and this code
+   used to then read the UTC date back out — for any visitor whose
+   browser timezone is ahead of UTC (e.g. IST, UTC+5:30), local
+   midnight on the 2nd is still the 1st in UTC, so the date silently
+   printed one day early. That was the exact "2nd shows as 1st, 5th
+   shows as 4th" bug. Parsing the components ourselves sidesteps the
+   ambiguity entirely. Falls back to Date-parsing (still via UTC
+   getters, for the same reason) only for other input shapes, e.g. a
+   raw ISO timestamp. */
+function parseDateParts(dateStr){
+  const raw = String(dateStr || '').trim();
+  const m = raw.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if(m){
+    const day = parseInt(m[1], 10);
+    const wanted = m[2].toLowerCase();
+    const monthIndex = MONTHS.findIndex(mo =>
+      mo.toLowerCase() === wanted || mo.slice(0,3).toLowerCase() === wanted.slice(0,3)
+    );
+    const year = parseInt(m[3], 10);
+    if(monthIndex >= 0 && day >= 1 && day <= 31) return { day, monthIndex, year };
+  }
+  const d = new Date(raw);
+  if(!isNaN(d.getTime())) return { day: d.getUTCDate(), monthIndex: d.getUTCMonth(), year: d.getUTCFullYear() };
+  return null;
+}
 function formatDate(dateStr){
   if(!dateStr) return '—';
-  const d = new Date(dateStr);
-  if(isNaN(d.getTime())) return dateStr;
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${day} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  const parts = parseDateParts(dateStr);
+  if(!parts) return dateStr;
+  const day = String(parts.day).padStart(2, '0');
+  return `${day} ${MONTHS[parts.monthIndex]} ${parts.year}`;
 }
 function weekdayOf(dateStr){
-  const d = new Date(dateStr);
-  if(isNaN(d.getTime())) return '';
+  const parts = parseDateParts(dateStr);
+  if(!parts) return '';
+  // Date.UTC with explicit numeric parts is unambiguous — no local-
+  // timezone interpretation involved, unlike `new Date(dateStr)`.
+  const d = new Date(Date.UTC(parts.year, parts.monthIndex, parts.day));
   return WEEKDAYS[d.getUTCDay()];
 }
 function formatTime(timeStr){
