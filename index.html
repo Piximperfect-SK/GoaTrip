@@ -126,6 +126,58 @@
   .grain{position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 
+  /* ---------- Ambient background motion (hero) ---------- */
+  .hero-blob{ position:absolute; border-radius:9999px; filter:blur(70px); pointer-events:none; z-index:0; }
+  .hero-blob-a{ width:420px; height:420px; background:var(--mango); opacity:.22; top:-140px; left:-120px; animation:blobDriftA 22s ease-in-out infinite; }
+  .hero-blob-b{ width:520px; height:520px; background:var(--azulejo); opacity:.20; bottom:-180px; right:-160px; animation:blobDriftB 26s ease-in-out infinite; }
+  @keyframes blobDriftA{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(60px,40px) scale(1.15); } }
+  @keyframes blobDriftB{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-50px,-30px) scale(1.1); } }
+
+  /* Tide-line divider stitching the hero into the sand-toned journey
+     section below — two full periods duplicated across a 2400-wide
+     viewBox on an element rendered at 200% width, so translating it
+     by exactly one container-width (-50% of its own width) advances
+     the pattern by two whole periods and loops with no visible seam. */
+  .wave-divider{ position:absolute; left:0; right:0; bottom:-1px; height:46px; overflow:hidden; z-index:2; line-height:0; pointer-events:none; }
+  .wave-divider svg{ width:200%; height:100%; display:block; animation:waveScroll 20s linear infinite; }
+  .wave-path{ fill:var(--sand); }
+  @keyframes waveScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+  /* One-time page-load entrance for the hero content */
+  .hero-intro{ animation:heroIntro .9s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes heroIntro{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* Floating hero cutout (villa-on-the-cove illustration) */
+  .hero-visual{ position:relative; z-index:1; }
+  .hero-cutout{
+    width:100%; max-width:460px; display:block; margin:0 auto;
+    filter:drop-shadow(0 30px 45px rgba(0,0,0,.4));
+    animation:heroFloat 7s ease-in-out infinite;
+    transition:transform .3s ease;
+  }
+  .hero-visual:hover .hero-cutout{ transform:scale(1.03); }
+  @keyframes heroFloat{ 0%,100%{ transform:translateY(0) rotate(-1deg); } 50%{ transform:translateY(-16px) rotate(1deg); } }
+
+  /* Trip essentials chip row, under the hero subcopy */
+  .trip-meta{
+    display:flex; flex-wrap:wrap; align-items:center; gap:9px 14px;
+    font-family:'Space Mono',monospace; font-size:12.5px; letter-spacing:.03em;
+    color:var(--sand); opacity:.9;
+  }
+  .trip-meta-item{ display:inline-flex; align-items:center; gap:7px; }
+  .trip-meta-item strong{ color:var(--mango); font-weight:700; }
+  .trip-meta-sep{ opacity:.35; }
+
+  /* Postcard vignette (pinned near the itinerary heading) */
+  .postcard{ position:absolute; top:-6px; right:0; width:230px; z-index:0; pointer-events:none; }
+  .postcard img{
+    width:100%; display:block;
+    filter:drop-shadow(0 22px 32px rgba(15,38,34,.28));
+    animation:postcardSway 8s ease-in-out infinite;
+  }
+  @keyframes postcardSway{ 0%,100%{ transform:rotate(4deg) translateY(0); } 50%{ transform:rotate(1.5deg) translateY(-10px); } }
+  @media (max-width:900px){ .postcard{ display:none; } }
+
   /* ---------- Journey / parallax route ---------- */
   .journey{
     background:var(--sand);
@@ -217,7 +269,7 @@
   .reveal.in{ opacity:1; transform:translateY(0); }
 
   @media (prefers-reduced-motion: reduce){
-    *{ transition:none !important; scroll-behavior:auto !important; }
+    *{ transition:none !important; scroll-behavior:auto !important; animation:none !important; }
   }
 
   .expense-row:nth-child(odd){ background: rgba(15,38,34,0.025); }
@@ -268,27 +320,46 @@
 <!-- ============ HERO ============ -->
 <header class="hero">
   <div class="tile-motif"></div>
+  <div class="hero-blob hero-blob-a"></div>
+  <div class="hero-blob hero-blob-b"></div>
   <div class="grain"></div>
-  <div class="relative z-10 max-w-5xl mx-auto px-6 md:px-10 w-full pt-24 pb-16">
-    <div class="flex items-center gap-3 mb-8">
-      <span class="stamp mono text-[11px] w-16 h-16 shrink-0">DEPART<br>PUNE</span>
-      <div class="flex-1 border-t border-dashed border-white/30"></div>
-      <span class="mono text-[11px] opacity-70">5D / 4N</span>
-      <div class="flex-1 border-t border-dashed border-white/30"></div>
-      <span class="stamp mono text-[11px] w-16 h-16 shrink-0">ARRIVE<br>GOA</span>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-24 pb-20 grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-6 items-center">
+    <div class="hero-intro">
+      <div class="flex items-center gap-3 mb-8">
+        <span class="stamp mono text-[11px] w-16 h-16 shrink-0">DEPART<br>PUNE</span>
+        <div class="flex-1 border-t border-dashed border-white/30"></div>
+        <span class="mono text-[11px] opacity-70">4D / 3N</span>
+        <div class="flex-1 border-t border-dashed border-white/30"></div>
+        <span class="stamp mono text-[11px] w-16 h-16 shrink-0">ARRIVE<br>GOA</span>
+      </div>
+      <p class="section-eyebrow mb-3" style="color:#FFAB85">Boarding Card No. GA‑2026</p>
+      <h1 class="display font-semibold text-[13vw] md:text-[5.6rem] leading-[0.92]">
+        The Goa<br><span style="color:var(--mango)">Run.</span>
+      </h1>
+      <p class="max-w-md mt-6 text-[15px] leading-relaxed opacity-80">
+        One overnight train from Pune, one winding cab ride from Londa station, and a villa full of your people
+        at the other end. Scroll to trace the route, lock your seat, and split the bill without the group‑chat math.
+      </p>
+      <div class="trip-meta mt-7">
+        <span class="trip-meta-item">📅 <strong>2–5 Oct 2026</strong></span>
+        <span class="trip-meta-sep">·</span>
+        <span class="trip-meta-item">🚆 Pune Jn → Londa Jn → Pune Jn</span>
+      </div>
+      <div class="flex flex-wrap gap-3 mt-9">
+        <button class="btn-primary" onclick="document.querySelector('#journey').scrollIntoView({behavior:'smooth'})">Trace the route ↓</button>
+        <button class="btn-ghost" style="border-color:var(--sand); color:var(--sand)" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+      </div>
     </div>
-    <p class="section-eyebrow mb-3" style="color:#FFAB85">Boarding Card No. GA‑2026</p>
-    <h1 class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.92]">
-      The Goa<br><span style="color:var(--mango)">Run.</span>
-    </h1>
-    <p class="max-w-md mt-6 text-[15px] leading-relaxed opacity-80">
-      One overnight train from Pune, one winding cab ride from Londa station, and a villa full of your people
-      at the other end. Scroll to trace the route, lock your seat, and split the bill without the group‑chat math.
-    </p>
-    <div class="flex flex-wrap gap-3 mt-9">
-      <button class="btn-primary" onclick="document.querySelector('#journey').scrollIntoView({behavior:'smooth'})">Trace the route ↓</button>
-      <button class="btn-ghost" style="border-color:var(--sand); color:var(--sand)" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+    <div class="hero-visual hidden md:flex justify-center items-center hero-intro" style="animation-delay:.15s">
+      <img src="scene1.webp" alt="Cliffside villa above a turquoise Goan cove, palms overhead" class="hero-cutout" />
     </div>
+  </div>
+
+  <div class="wave-divider" aria-hidden="true">
+    <svg viewBox="0 0 2400 60" preserveAspectRatio="none">
+      <path class="wave-path" d="M0,30 C150,60 450,0 600,30 C750,60 1050,0 1200,30 C1350,60 1650,0 1800,30 C1950,60 2250,0 2400,30 L2400,60 L0,60 Z"></path>
+    </svg>
   </div>
 </header>
 
@@ -297,7 +368,8 @@
   <div class="max-w-5xl mx-auto">
     <p class="section-eyebrow">Route</p>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">Rail, then road.</h2>
-    <p class="opacity-70 max-w-lg mb-12">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go.</p>
+    <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go.</p>
+    <p class="text-xs opacity-50 mb-12 mono">Onward: 2 Oct 2026 · Return: same route, reversed, on 5 Oct 2026</p>
 
     <div class="sticky top-[70px] z-10 mb-2 flex justify-end">
       <span class="mono text-xs px-3 py-1 rounded-full bg-[var(--teal-900)] text-[var(--sand)]" id="progress-pill">0% travelled</span>
@@ -324,9 +396,9 @@
       </svg>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6 mt-10">
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
       <div class="leg-card p-7" id="leg1">
-        <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL</span>
+        <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL · 2 OCT</span>
         <h3 class="display text-2xl font-semibold mt-2 mb-3">Pune Jn → Londa Jn</h3>
         <p class="text-sm opacity-75 leading-relaxed">Overnight train, roughly 8–9 hours through the Western Ghats. Board late evening in Pune,
         wake up to fog over the hills as you roll into Londa around sunrise. Keep boarding‑pass details handy — seat numbers go on your digital pass below.</p>
@@ -336,7 +408,7 @@
         </div>
       </div>
       <div class="leg-card p-7" id="leg2">
-        <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD</span>
+        <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD · 2 OCT</span>
         <h3 class="display text-2xl font-semibold mt-2 mb-3">Londa Jn → Villa</h3>
         <p class="text-sm opacity-75 leading-relaxed">Shared cabs pick up right outside Londa station for the ~3 hour drive down through
         the Ghats into Goa — cashew groves, hairpin bends, and your first smell of the coast. Group cabs will be arranged and shared here once headcount is final.</p>
@@ -345,16 +417,29 @@
           <div><p class="mono text-[11px] opacity-50">DROP</p><p class="font-semibold">Villa gate</p></div>
         </div>
       </div>
+      <div class="leg-card p-7" id="leg3">
+        <span class="mono text-xs" style="color:var(--palm)">LEG 03 — RETURN · 5 OCT</span>
+        <h3 class="display text-2xl font-semibold mt-2 mb-3">Villa → Londa Jn → Pune</h3>
+        <p class="text-sm opacity-75 leading-relaxed">The same route in reverse: cabs from the villa back up to Londa Jn, then the overnight train
+        home to Pune. Exact pickup time depends on the return train — will be confirmed and added to everyone's boarding pass.</p>
+        <div class="flex gap-6 mt-5 text-sm">
+          <div><p class="mono text-[11px] opacity-50">LEAVES VILLA</p><p class="font-semibold">Afternoon</p></div>
+          <div><p class="mono text-[11px] opacity-50">HOME IN PUNE</p><p class="font-semibold">Next morning</p></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ============ ITINERARY ============ -->
 <section id="itinerary" class="py-24 px-5 md:px-10" style="background:var(--paper)">
-  <div class="max-w-5xl mx-auto">
-    <p class="section-eyebrow">Day by day</p>
+  <div class="max-w-5xl mx-auto relative">
+    <div class="postcard" aria-hidden="true">
+      <img src="scene2.webp" alt="" />
+    </div>
+    <p class="section-eyebrow">Day by day · 2–5 Oct 2026</p>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">The itinerary.</h2>
-    <p class="opacity-70 max-w-lg mb-14">A working plan, loose enough for detours. Edit freely before you send this out.</p>
+    <p class="opacity-70 max-w-lg mb-14">Travel days are locked. The two beach days in the middle are open — plan's still forming, drop ideas in the group chat.</p>
 
     <div class="relative pl-8 md:pl-12" style="border-left:2px dashed var(--line)">
       <div id="itin-days"></div>
@@ -470,26 +555,27 @@ updateRoute();
    ITINERARY DATA
 =============================================================*/
 const itinerary = [
-  {day:"Day 1", title:"Pune → Londa → Villa check‑in", tag:"TRAVEL",
+  {day:"Day 1", date:"2 Oct · Fri", title:"Pune → Londa → Villa check‑in", tag:"TRAVEL", tbd:false,
    items:["Board the overnight train from Pune, ~21:30","Arrive Londa Jn at sunrise, group cabs to the villa (~3 hrs)","Check in, settle rooms, lazy lunch by the pool","Evening: welcome dinner + first beach walk at sunset"]},
-  {day:"Day 2", title:"North Goa beach day", tag:"BEACH",
-   items:["Breakfast at the villa","Baga & Calangute — water sports (parasailing, jet ski)","Anjuna flea market in the evening","Beach shack dinner, live music if it's a Wednesday/Saturday"]},
-  {day:"Day 3", title:"South Goa & sunset cruise", tag:"EXPLORE",
-   items:["Drive down to Palolem and Cabo de Rama fort","Butterfly Beach by boat, swim & snorkel","Sunset river cruise back toward the villa","Bonfire night at the villa"]},
-  {day:"Day 4", title:"Old Goa & Latin Quarter", tag:"CULTURE",
-   items:["Basilica of Bom Jesus & Se Cathedral","Spice plantation lunch (thali + elephant bath, optional)","Fontainhas Latin Quarter — photo walk","Farewell dinner, everyone settles the trip wallet"]},
-  {day:"Day 5", title:"Villa checkout → Londa → Pune", tag:"TRAVEL",
-   items:["Slow morning, checkout by 11:00","Cabs back to Londa Jn","Board return train to Pune","Home by evening"]},
+  {day:"Day 2", date:"3 Oct · Sat", title:"Open day — plan TBD", tag:"TBD", tbd:true,
+   items:["Beach time, water sports or a local excursion — nothing locked yet","Drop ideas in the group chat and this card gets filled in"]},
+  {day:"Day 3", date:"4 Oct · Sun", title:"Open day — plan TBD", tag:"TBD", tbd:true,
+   items:["Second full day in Goa — likely candidates: Old Goa, a sunset cruise, or a market run","Final call once headcount + preferences are in"]},
+  {day:"Day 4", date:"5 Oct · Mon", title:"Villa checkout → Londa → Pune", tag:"TRAVEL", tbd:false,
+   items:["Slow morning, checkout by 11:00","Cabs back to Londa Jn","Board return train to Pune","Home the next morning"]},
 ];
 const itinWrap = document.getElementById('itin-days');
 itinerary.forEach((d,i)=>{
   const el = document.createElement('div');
   el.className = "reveal day-card mb-6 p-6 relative";
+  el.style.transitionDelay = (i*0.06)+'s';
   el.innerHTML = `
     <span class="rail-dot absolute -left-[41px] md:-left-[57px] top-8"></span>
     <div class="flex flex-wrap items-center gap-3 mb-2">
       <span class="mono text-xs px-2 py-1 rounded-full" style="background:var(--sand-2)">${d.day}</span>
+      <span class="mono text-xs px-2 py-1 rounded-full" style="background:var(--paper); border:1px dashed var(--line)">${d.date}</span>
       <span class="tag opacity-50">${d.tag}</span>
+      ${d.tbd ? '<span class="mono text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(255,122,69,.14); color:var(--mango-2); border:1px dashed var(--mango)">PLACEHOLDER</span>' : ''}
     </div>
     <h3 class="display text-xl md:text-2xl font-semibold mb-3">${d.title}</h3>
     <ul class="text-sm opacity-75 space-y-1.5 leading-relaxed list-disc pl-4">
