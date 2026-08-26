@@ -353,13 +353,6 @@ async function fetchTickets(name){
    field, eyebrow and status line uses a consistent icon language
    without pulling in an icon-font dependency.
 ============================================================ */
-/* Self-contained fallback emblem for the logo slot — a simple wheel
-   + rail motif, used only if the external Wikimedia SVG fails to
-   load in CORS mode (needed for html2canvas exports). Being an
-   inline data URI, this never depends on the network, so it always
-   renders both on-screen and in the downloaded image. */
-const FALLBACK_LOGO_DATA_URI = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='none' stroke='%230B2340' stroke-width='3'/><circle cx='32' cy='32' r='6' fill='%230B2340'/><g stroke='%230B2340' stroke-width='3' stroke-linecap='round'><line x1='32' y1='10' x2='32' y2='20'/><line x1='32' y1='44' x2='32' y2='54'/><line x1='10' y1='32' x2='20' y2='32'/><line x1='44' y1='32' x2='54' y2='32'/><line x1='16.7' y1='16.7' x2='23.5' y2='23.5'/><line x1='40.5' y1='40.5' x2='47.3' y2='47.3'/><line x1='47.3' y1='16.7' x2='40.5' y2='23.5'/><line x1='23.5' y1='40.5' x2='16.7' y2='47.3'/></g></svg>";
-
 const ICONS = {
   train: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="13" rx="4"/><path d="M4 11h16"/><circle cx="8" cy="17.5" r="1.4"/><circle cx="16" cy="17.5" r="1.4"/><path d="M8 21l-2 2M16 21l2 2"/></svg>`,
   calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>`,
@@ -510,21 +503,37 @@ function formatTime(timeStr){
    payload can blow past that ceiling and throw "code length
    overflow" — clip() keeps the encoded text short no matter what the
    sheet contains. */
+/* QR scanners generally assume Latin-1/ISO-8859-1 byte decoding per
+   the QR spec's default (this library doesn't set a UTF-8 ECI
+   header), so any multi-byte UTF-8 character — the rupee sign ₹, the
+   route arrow → — can come out garbled, or fail the scan outright on
+   stricter decoders. asciiSafe() swaps the handful we actually use
+   for plain ASCII equivalents, purely for the QR payload; the
+   on-screen ticket text is untouched and keeps the real symbols. */
+function asciiSafe(str){
+  return String(str || '')
+    .replace(/₹/g, 'Rs ')
+    .replace(/→/g, '->')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/–|—/g, '-')
+    .replace(/[^\x00-\x7F]/g, ''); // strip anything else non-ASCII as a last resort
+}
 function clip(str, max){
   str = String(str || '').replace(/\s+/g, ' ').trim();
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }
 function buildQrText(leg, passenger, dateDisplay, timeDisplay, fareDisplay, pnrGrouped){
-  return [
+  return asciiSafe([
     `Passenger: ${clip(passenger, 40)}`,
     `PNR: ${clip(pnrGrouped, 20)}`,
     `Train: ${clip(`${leg.trainno || ''} ${leg.trainname || ''}`.trim(), 40)}`,
-    `Route: ${clip(leg.fromcode, 8)} → ${clip(leg.tocode, 8)}`,
+    `Route: ${clip(leg.fromcode, 8)} -> ${clip(leg.tocode, 8)}`,
     `Date: ${clip(dateDisplay, 20)}`,
     `Departure: ${clip(timeDisplay, 20)}`,
     `Seat: ${clip(leg.seat, 20)}`,
     `Fare: ${clip(fareDisplay, 20)}`
-  ].join('\n');
+  ].join('\n'));
 }
 
 function classSub(cls){
@@ -538,7 +547,6 @@ function classSub(cls){
 }
 
 function buildPassCard(leg, passenger, qrId){
-  const logoId = 'logo-' + qrId;
   const legLabel = (leg.leg || '').toLowerCase() === 'return' ? 'Return Journey' : 'Onward Journey';
   const pnrGrouped = groupPnr(leg.pnr);
   const dateDisplay = formatDate(leg.date);
@@ -553,7 +561,7 @@ function buildPassCard(leg, passenger, qrId){
     <div class="bp-main">
       <div class="bp-head">
         <div class="bp-brand">
-          <img id="${logoId}" src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways" crossorigin="anonymous">
+          <img src="MOR.svg" alt="Indian Railways">
           <div class="bp-brand-text">
             <div class="l1">Indian Railways</div>
             <div class="l2">Boarding Pass · ${legLabel}</div>
@@ -700,20 +708,6 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
     html += `</div>`;
 
     output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button></div>`;
-
-    // Wire a fallback for the logo image: if loading it in CORS mode
-    // fails outright (rather than just being canvas-tainted), swap in
-    // a small self-contained inline emblem so branding never vanishes
-    // — this never touches the network, so it always succeeds.
-    legsToRender.forEach(({qrId}) => {
-      const logoEl = document.getElementById('logo-' + qrId);
-      if(logoEl){
-        logoEl.addEventListener('error', function(){
-          this.onerror = null;
-          this.src = FALLBACK_LOGO_DATA_URI;
-        }, { once:true });
-      }
-    });
 
     // Render each leg's real QR code now that its container is in the DOM.
     legsToRender.forEach(({leg, qrId}) => {
