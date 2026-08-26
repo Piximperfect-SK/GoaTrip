@@ -164,22 +164,34 @@
     content:"";
     position:absolute; inset:0;
     background:linear-gradient(100deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0.94) 100%);
-    z-index:0;
+    z-index:1;
+  }
+  /* ---------- Travel-motif tiled pattern ----------
+     A repeating tile of rail track + a small train silhouette + a
+     palm tree, sitting ABOVE the white wash (z-index 2) so it stays
+     visibly textured instead of being dimmed back out by it — but
+     still below the actual ticket content (z-index 3), and at a low
+     enough opacity that text stays perfectly legible. */
+  .bp-pattern{
+    position:absolute; inset:0; z-index:2; pointer-events:none;
+    opacity:0.20; color:var(--bp-ink);
+    background-repeat:repeat; background-size:210px 210px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='210' height='210' viewBox='0 0 210 210'><g stroke='%230B2340' stroke-width='2' fill='none' stroke-linecap='round'><line x1='-10' y1='185' x2='220' y2='30'/><line x1='-10' y1='196' x2='220' y2='41'/><line x1='6' y1='189' x2='18' y2='176'/><line x1='34' y1='176' x2='46' y2='163'/><line x1='62' y1='163' x2='74' y2='150'/><line x1='90' y1='150' x2='102' y2='137'/><line x1='118' y1='137' x2='130' y2='124'/><line x1='146' y1='124' x2='158' y2='111'/><line x1='174' y1='111' x2='186' y2='98'/></g><g fill='%230B2340'><rect x='18' y='16' width='38' height='18' rx='5'/><circle cx='27' cy='36' r='4.5'/><circle cx='47' cy='36' r='4.5'/><rect x='30' y='6' width='7' height='12' rx='1.5'/></g><g stroke='%230B2340' stroke-width='2' fill='none' stroke-linecap='round'><line x1='158' y1='192' x2='158' y2='150'/><path d='M158 152 Q136 140 122 150'/><path d='M158 152 Q180 140 194 150'/><path d='M158 138 Q146 116 158 104'/><path d='M158 138 Q170 116 158 104'/></g><circle cx='96' cy='96' r='2.4' fill='%230B2340'/><circle cx='188' cy='176' r='2.4' fill='%230B2340'/></svg>");
   }
   /* ---------- Travel-motif watermark ----------
      Rail track + train silhouette + a small route-dot line, sitting
-     between the photo wash and the content (z-index 0), fixed at a
+     above the white wash (z-index 2) so it stays visible, fixed at a
      low opacity and pinned to a corner so it reads as texture rather
-     than competing with the data above it (z-index 1). */
+     than competing with the data above it (z-index 3). */
   .bp-watermark{
-    position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+    position:absolute; inset:0; z-index:2; overflow:hidden; pointer-events:none;
     opacity:0.16; color:var(--bp-ink);
   }
   .bp-watermark svg{
     position:absolute; right:-30px; bottom:-40px; width:300px; height:300px;
     transform:rotate(-10deg);
   }
-  .bp-main, .bp-stub{ position:relative; z-index:1; }
+  .bp-main, .bp-stub{ position:relative; z-index:3; }
 
   /* Bold, modern sans-serif treatment for the numbers that matter
      most at a glance: date, time, fare. */
@@ -271,11 +283,11 @@
     margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:8px;
   }
   .bp-qr-box{
-    background:var(--paper); border-radius:10px; padding:8px;
-    width:116px; height:116px; display:flex; align-items:center; justify-content:center;
+    background:var(--paper); border-radius:10px; padding:9px;
+    width:158px; height:158px; display:flex; align-items:center; justify-content:center;
     box-shadow:0 6px 14px -6px rgba(0,0,0,0.35);
   }
-  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{ width:100px !important; height:100px !important; }
+  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{ width:140px !important; height:140px !important; }
   .bp-qr-caption{
     font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; text-transform:uppercase;
     color:rgba(247,244,236,0.5); text-align:center;
@@ -585,6 +597,7 @@ function buildPassCard(leg, passenger, qrId){
 
   return `
   <div class="bp-pass">
+    <div class="bp-pattern"></div>
     <div class="bp-watermark">${WATERMARK_SVG}</div>
     <div class="bp-main">
       <div class="bp-head">
@@ -691,7 +704,7 @@ function renderQrSafely(el, text){
   el.innerHTML = '';
   const canvas = document.createElement('canvas');
   el.appendChild(canvas);
-  QRCode.toCanvas(canvas, text, { width: 100, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
+  QRCode.toCanvas(canvas, text, { width: 140, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
     if(err){
       console.warn('QR render failed, showing fallback instead:', err);
       el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
