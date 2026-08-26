@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --ink:#0F2622;
@@ -199,7 +200,6 @@
     height:var(--bp-design-h);
     background:var(--bp-cardbg);
     border-radius:18px;
-    overflow:hidden;
     border:1px solid rgba(11,35,64,0.08);
     font-family:'Inter', sans-serif;
     color:var(--bp-ink);
@@ -207,14 +207,14 @@
 
   .bp-pass::before{
     content:"";
-    position:absolute; inset:0;
+    position:absolute; inset:0; border-radius:18px;
     background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vagator%2C%20Goa%2C%20India%2C%20Coconut%20palm%20trees.jpg');
     background-size:cover; background-position:center 40%;
     opacity:0.20; filter:saturate(1.05); z-index:0;
   }
   .bp-pass::after{
     content:"";
-    position:absolute; inset:0;
+    position:absolute; inset:0; border-radius:18px;
     background:linear-gradient(100deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0.94) 100%);
     z-index:0;
   }
@@ -225,7 +225,7 @@
      than competing with the data above it (z-index 1). */
   .bp-watermark{
     position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
-    opacity:0.16; color:var(--bp-ink);
+    opacity:0.16; color:var(--bp-ink); border-radius:18px;
   }
   .bp-watermark svg{
     position:absolute; right:-30px; bottom:-40px; width:300px; height:300px;
@@ -244,7 +244,8 @@
     padding-bottom:12px; border-bottom:1.5px solid var(--bp-line);
   }
   .bp-brand{ display:flex; align-items:center; gap:14px; }
-  .bp-brand img{ height:34px; width:auto; flex-shrink:0; }
+  .bp-brand .bp-logo{ height:34px; width:auto; max-width:34px; flex-shrink:0; display:block; }
+  .bp-brand .bp-logo svg{ height:100%; width:100%; display:block; }
   .bp-brand-text .l1{ font-family:'Playfair Display', serif; font-weight:800; font-size:19px; color:var(--bp-ink); line-height:1.2; }
   .bp-brand-text .l2{
     font-family:'Space Mono', monospace; font-size:10px; letter-spacing:2.3px; text-transform:uppercase;
@@ -270,9 +271,9 @@
     text-transform:uppercase; letter-spacing:.5px; max-width:150px;
   }
   .bp-track{
-    flex:1; position:relative; height:2px;
-    background:repeating-linear-gradient(90deg, var(--bp-brass) 0 8px, transparent 8px 14px);
-    margin-top:19px;
+    flex:1; position:relative; height:0;
+    border-top:2px dashed var(--bp-brass);
+    margin-top:20px;
   }
   .bp-track::after{
     content:""; position:absolute; right:-2px; top:50%; width:11px; height:11px;
@@ -304,6 +305,7 @@
     background:var(--bp-ink); color:var(--bp-stubtext); padding:18px 20px;
     display:flex; flex-direction:column; justify-content:space-between;
     border-left:2px dashed rgba(247,244,236,0.25); height:100%;
+    border-radius:0 18px 18px 0;
   }
   .bp-stub::before, .bp-stub::after{
     content:""; position:absolute; left:-11px; width:22px; height:22px;
@@ -468,7 +470,11 @@ const ICONS = {
   fare: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h11"/><path d="M6 8h11"/><path d="M6 4c7 0 7 8 0 8h-1l6 8"/></svg>`,
   quota: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h12l-2.2 4L17 12H5"/></svg>`,
   ticket: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h14a2 2 0 012 2v1.5a2 2 0 000 3V15a2 2 0 01-2 2H5a2 2 0 01-2-2v-1.5a2 2 0 000-3V9z"/><path d="M9 7.5v9" stroke-dasharray="2 2.4"/></svg>`,
+  logo: `<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="19" fill="none" stroke="#0B2340" stroke-width="1.6"/><circle cx="20" cy="20" r="15" fill="none" stroke="#C9A227" stroke-width="1"/><g fill="#0B2340"><rect x="12" y="15" width="16" height="9" rx="3"/><circle cx="16" cy="26" r="2" fill="#0B2340"/><circle cx="24" cy="26" r="2" fill="#0B2340"/><rect x="17.5" y="10.5" width="5" height="5" rx="1"/><path d="M8 24h4M28 24h4" stroke="#0B2340" stroke-width="1.6" stroke-linecap="round"/></g><path d="M9 32c3-2 19-2 22 0" fill="none" stroke="#C9A227" stroke-width="1" stroke-linecap="round"/></svg>`,
 };
+// Referenced by the logo <img>'s onerror handler if MOR.svg can't be found,
+// so the brand mark degrades gracefully instead of leaving a blank gap.
+window.__BP_LOGO_FALLBACK__ = `<span class="bp-logo">${ICONS.logo}</span>`;
 
 /* Placeholder shown on the right before a lookup has run. */
 document.getElementById('previewPlaceholder').innerHTML = `
@@ -674,7 +680,7 @@ function buildPassCard(leg, passenger, qrId){
     <div class="bp-main">
       <div class="bp-head">
         <div class="bp-brand">
-          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways">
+          <img class="bp-logo" src="MOR.svg" alt="Indian Railways" crossorigin="anonymous" onerror="this.outerHTML=window.__BP_LOGO_FALLBACK__">
           <div class="bp-brand-text">
             <div class="l1">Indian Railways</div>
             <div class="l2">Boarding Pass · ${legLabel}</div>
@@ -820,7 +826,7 @@ async function runLookup(nameInput){
     legsToRender.forEach(({leg, qrId}) => { html += buildPassCard(leg, nameInput, qrId); });
     html += `</div>`;
 
-    output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button></div>`;
+    output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button><button class="btn-ghost" id="downloadPdfBtn" onclick="downloadPassPDF()">${ICONS.ticket}<span>Download pass as PDF</span></button></div>`;
 
     // Render each leg's real QR code now that its container is in the DOM.
     // The QR encodes a link back to this page (with the passenger's name
@@ -868,13 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* ---------- Download as a standalone ticket image ----------
-   Rendered off-screen inside a padded backdrop (rather than
-   captured straight off the live page) so the exported PNG reads
-   as its own printable ticket — full drop shadow, breathing room,
-   and webfonts guaranteed loaded — instead of a cropped screenshot
-   of a webpage. */
-/* ---------- Download as a fixed-size, print-ready image ----------
+/* ---------- Shared capture: each pass at exact print size ----------
    The boarding pass has one fixed size everywhere:
      - Print:  2475 x 975 px  (8.25in x 3.25in @ 300 DPI)
      - Screen: 792 x 312 px   (same aspect ratio, @96 DPI)
@@ -891,14 +891,17 @@ document.addEventListener('DOMContentLoaded', () => {
    against the live, transformed, overflow-clipped node was what
    produced the oversized "A4 page" export: html2canvas fell back to
    the ambient window/document size instead of the pass's own
-   dimensions. Cloning removes that ambiguity entirely. */
+   dimensions. Cloning removes that ambiguity entirely.
+
+   Shared by both the PNG and PDF download paths so they always
+   agree on exactly the same pixels, at exactly the same fixed size. */
 const PRINT_W = 2475, PRINT_H = 975, PRINT_GAP = 40;
 
-async function downloadPass(){
+async function captureCardCanvases(){
   const container = document.getElementById('passCard');
-  if(!container) return;
+  if(!container) return [];
   const passNodes = Array.from(container.querySelectorAll('.bp-pass'));
-  if(!passNodes.length) return;
+  if(!passNodes.length) return [];
 
   if(document.fonts && document.fonts.ready){
     try{ await document.fonts.ready; }catch(e){}
@@ -940,7 +943,19 @@ async function downloadPass(){
       });
       cardCanvases.push(canvas);
     }
+    return cardCanvases;
+  }finally{
+    document.body.removeChild(offscreen);
+  }
+}
 
+function passengerSlug(){
+  return (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'goa';
+}
+
+async function downloadPass(){
+  try{
+    const cardCanvases = await captureCardCanvases();
     if(!cardCanvases.length) return;
 
     const finalCanvas = document.createElement('canvas');
@@ -953,15 +968,50 @@ async function downloadPass(){
       ctx.drawImage(c, 0, 0, c.width, c.height, 0, i * (PRINT_H + PRINT_GAP), PRINT_W, PRINT_H);
     });
 
-    const nameSlug = (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     const link = document.createElement('a');
-    link.download = `boarding-pass-${nameSlug || 'goa'}.png`;
+    link.download = `boarding-pass-${passengerSlug()}.png`;
     link.href = finalCanvas.toDataURL('image/png');
     link.click();
   }catch(err){
-    console.error('Boarding pass download failed:', err);
+    console.error('Boarding pass PNG download failed:', err);
+  }
+}
+
+/* ---------- Download as a fixed-size, print-ready PDF ----------
+   Reuses the exact same per-card canvases as the PNG export (same
+   capture, same 2475x975px pixels) so the two downloads never drift
+   apart. Each leg gets its own PDF page sized to the pass's own
+   fixed dimensions — 8.25in x 3.25in — rather than dropping it onto
+   a generic A4/Letter page, so it prints edge-to-edge at the correct
+   physical size on any printer that accepts a custom page size. */
+async function downloadPassPDF(){
+  const btn = document.getElementById('downloadPdfBtn');
+  const prevLabel = btn ? btn.innerHTML : null;
+  if(btn){ btn.disabled = true; btn.innerHTML = 'Preparing PDF…'; }
+  try{
+    if(typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF){
+      throw new Error('PDF library failed to load — check your connection and try again.');
+    }
+    const cardCanvases = await captureCardCanvases();
+    if(!cardCanvases.length) return;
+
+    const { jsPDF } = window.jspdf;
+    const pageWIn = 8.25, pageHIn = 3.25;
+    const doc = new jsPDF({ orientation:'landscape', unit:'in', format:[pageWIn, pageHIn] });
+
+    cardCanvases.forEach((canvas, i) => {
+      if(i > 0) doc.addPage([pageWIn, pageHIn], 'landscape');
+      const imgData = canvas.toDataURL('image/png');
+      doc.addImage(imgData, 'PNG', 0, 0, pageWIn, pageHIn, undefined, 'FAST');
+    });
+
+    doc.save(`boarding-pass-${passengerSlug()}.pdf`);
+  }catch(err){
+    console.error('Boarding pass PDF download failed:', err);
+    const errEl = document.getElementById('lookupError');
+    if(errEl){ errEl.textContent = err.message || 'Could not generate the PDF. Please try again.'; errEl.style.display = 'block'; }
   }finally{
-    document.body.removeChild(offscreen);
+    if(btn){ btn.disabled = false; btn.innerHTML = prevLabel; }
   }
 }
 </script>
