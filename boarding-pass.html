@@ -832,19 +832,25 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
      - Screen: 792 x 312 px   (same aspect ratio, @96 DPI)
    The DOM node (.bp-pass) is authored once at a fixed "design" size
    (920 x 362.4px, same aspect ratio) and only ever scaled — via
-   .bp-pass-scaler's CSS transform — never resized/reflowed. This
-   captures that same untouched design-size node with html2canvas's
-   own `scale` option set so the output lands exactly on 2475x975px,
-   independent of whatever zoom level the screen preview happens to
-   be showing. Multiple legs (onward/return) are stacked into one
-   image, each still at the exact fixed print size. */
+   .bp-pass-scaler's CSS transform — never resized/reflowed.
+
+   To capture it, each .bp-pass is CLONED into a plain, fully
+   unclipped, off-screen wrapper sized to exactly that design size
+   (no ancestor overflow:hidden, no CSS transform, no position:
+   absolute) and html2canvas is pointed at that clone with no
+   width/height overrides — letting it auto-size the canvas to the
+   clone's own bounding box. Passing explicit width/height straight
+   against the live, transformed, overflow-clipped node was what
+   produced the oversized "A4 page" export: html2canvas fell back to
+   the ambient window/document size instead of the pass's own
+   dimensions. Cloning removes that ambiguity entirely. */
 const PRINT_W = 2475, PRINT_H = 975, PRINT_GAP = 40;
 
 async function downloadPass(){
   const container = document.getElementById('passCard');
   if(!container) return;
-  const fixedBoxes = Array.from(container.querySelectorAll('.bp-pass-fixed'));
-  if(!fixedBoxes.length) return;
+  const passNodes = Array.from(container.querySelectorAll('.bp-pass'));
+  if(!passNodes.length) return;
 
   if(document.fonts && document.fonts.ready){
     try{ await document.fonts.ready; }catch(e){}
@@ -853,30 +859,37 @@ async function downloadPass(){
   const designW = 920, designH = PRINT_H * (designW / PRINT_W); // preserves the exact print aspect ratio
   const captureScale = PRINT_W / designW;
 
+  const offscreen = document.createElement('div');
+  offscreen.style.cssText = `position:fixed; left:-99999px; top:0; width:${designW}px;`;
+  document.body.appendChild(offscreen);
+
   try{
     const cardCanvases = [];
-    for(const fixedBox of fixedBoxes){
-      const passNode = fixedBox.querySelector('.bp-pass');
-      const scaler = fixedBox.querySelector('.bp-pass-scaler');
-      if(!passNode) continue;
+    for(const passNode of passNodes){
+      const clone = passNode.cloneNode(true);
+      clone.style.position = 'static';
+      clone.style.transform = 'none';
+      clone.style.width = designW + 'px';
+      clone.style.height = designH + 'px';
+      clone.style.margin = '0';
 
-      // Capture the untouched, fixed-size .bp-pass node directly —
-      // bypass the on-screen preview transform entirely rather than
-      // trying to compensate for it, so the exported size is always
-      // exactly designW x designH * captureScale, regardless of the
-      // current viewport or preview zoom level.
-      const prevTransform = scaler ? scaler.style.transform : '';
-      if(scaler) scaler.style.transform = 'none';
+      // QRCode's generated <canvas> does not reliably survive a deep
+      // clone with its pixel data intact in every browser — rebuild
+      // it directly on the clone from the original's stored payload.
+      passNode.querySelectorAll('.bp-qr-box').forEach(orig => {
+        const cloneBox = clone.querySelector('#' + orig.id);
+        const text = orig.dataset.qrText;
+        if(cloneBox && text) renderQrSafely(cloneBox, text);
+      });
 
-      const canvas = await html2canvas(passNode, {
+      offscreen.innerHTML = '';
+      offscreen.appendChild(clone);
+
+      const canvas = await html2canvas(clone, {
         backgroundColor:'#ffffff',
-        width: designW,
-        height: Math.round(designH),
         scale: captureScale,
         useCORS:true
       });
-
-      if(scaler) scaler.style.transform = prevTransform;
       cardCanvases.push(canvas);
     }
 
@@ -889,7 +902,7 @@ async function downloadPass(){
     ctx.fillStyle = '#F7F4EC';
     ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
     cardCanvases.forEach((c, i) => {
-      ctx.drawImage(c, 0, i * (PRINT_H + PRINT_GAP), PRINT_W, PRINT_H);
+      ctx.drawImage(c, 0, 0, c.width, c.height, 0, i * (PRINT_H + PRINT_GAP), PRINT_W, PRINT_H);
     });
 
     const nameSlug = (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
@@ -899,6 +912,8 @@ async function downloadPass(){
     link.click();
   }catch(err){
     console.error('Boarding pass download failed:', err);
+  }finally{
+    document.body.removeChild(offscreen);
   }
 }
 </script>
