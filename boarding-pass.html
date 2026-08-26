@@ -514,17 +514,27 @@ const WATERMARK_SVG = `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/
 
 /* Formatted text block encoded into each pass's QR code — a plain,
    human-readable summary (not JSON) so a scan shows the same words
-   printed on the ticket. */
+   printed on the ticket. Each field is clamped defensively: the
+   qrcodejs build loaded from cdnjs only ships a capacity table up to
+   a modest QR version, so if a sheet cell ever contains something
+   unexpectedly long (wrapped text, a stray note, a merged cell) the
+   payload can blow past that ceiling and throw "code length
+   overflow" — clip() keeps the encoded text short no matter what the
+   sheet contains. */
+function clip(str, max){
+  str = String(str || '').replace(/\s+/g, ' ').trim();
+  return str.length > max ? str.slice(0, max - 1) + '…' : str;
+}
 function buildQrText(leg, passenger, dateDisplay, timeDisplay, fareDisplay, pnrGrouped){
   return [
-    `Passenger: ${passenger}`,
-    `PNR: ${pnrGrouped}`,
-    `Train: ${leg.trainno || ''} ${leg.trainname || ''}`.trim(),
-    `Route: ${leg.fromcode || ''} → ${leg.tocode || ''}`,
-    `Date: ${dateDisplay}`,
-    `Departure: ${timeDisplay}`,
-    `Seat: ${leg.seat || ''}`,
-    `Fare: ${fareDisplay}`
+    `Passenger: ${clip(passenger, 40)}`,
+    `PNR: ${clip(pnrGrouped, 20)}`,
+    `Train: ${clip(`${leg.trainno || ''} ${leg.trainname || ''}`.trim(), 40)}`,
+    `Route: ${clip(leg.fromcode, 8)} → ${clip(leg.tocode, 8)}`,
+    `Date: ${clip(dateDisplay, 20)}`,
+    `Departure: ${clip(timeDisplay, 20)}`,
+    `Seat: ${clip(leg.seat, 20)}`,
+    `Fare: ${clip(fareDisplay, 20)}`
   ].join('\n');
 }
 
@@ -659,6 +669,23 @@ function buildPassCard(leg, passenger, qrId){
   </div>`;
 }
 
+/* Renders a QR code into `el` without ever letting a failure escape —
+   a broken/oversized QR payload should degrade quietly (fallback
+   caption) instead of taking down the whole ticket render, which is
+   what happened when this call lived inside the main try/catch. */
+function renderQrSafely(el, text){
+  if(!el || typeof QRCode === 'undefined') return false;
+  try{
+    el.innerHTML = '';
+    new QRCode(el, { text, width:100, height:100, typeNumber:0, colorDark:'#0B2340', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L });
+    return true;
+  }catch(err){
+    console.warn('QR render failed, showing fallback instead:', err);
+    el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
+    return false;
+  }
+}
+
 document.getElementById('lookupForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const nameInput = document.getElementById('p-name').value.trim();
@@ -706,7 +733,7 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
       const fareDisplay = isNaN(fareNum) ? (leg.fare || '') : '₹' + fareNum.toFixed(2);
       const qrText = buildQrText(leg, nameInput, dateDisplay, timeDisplay, fareDisplay, groupPnr(leg.pnr));
       el.dataset.qrText = qrText;
-      new QRCode(el, { text: qrText, width: 100, height: 100, typeNumber: 0, colorDark:'#0B2340', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L });
+      renderQrSafely(el, qrText);
     });
 
     stopAnimation();
@@ -750,8 +777,7 @@ async function downloadPass(){
     if(!cloneBox || typeof QRCode === 'undefined') return;
     const text = orig.dataset.qrText;
     if(!text) return;
-    cloneBox.innerHTML = '';
-    new QRCode(cloneBox, { text, width:100, height:100, typeNumber: 0, colorDark:'#0B2340', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L });
+    renderQrSafely(cloneBox, text);
   });
   exportWrap.appendChild(clone);
   document.body.appendChild(exportWrap);
