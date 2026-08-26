@@ -329,10 +329,20 @@
   }
   .bp-qr-box{
     background:var(--paper); border-radius:10px; padding:6px;
-    width:98px; height:98px; display:flex; align-items:center; justify-content:center;
+    width:98px; height:98px; position:relative;
     box-shadow:0 6px 14px -6px rgba(0,0,0,0.35);
   }
-  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{ width:86px !important; height:86px !important; }
+  /* Absolute + translate centering instead of flex: html2canvas does
+     not reliably honor flexbox alignment for replaced elements like a
+     <canvas> child during export capture — it can fall back to the
+     canvas's default top-left inline placement, which is exactly the
+     "QR shifted toward one corner" artifact this replaces. Absolute
+     positioning with a transform is layout-engine-independent and
+     renders identically live and in the html2canvas export. */
+  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:86px !important; height:86px !important; display:block;
+  }
   .bp-qr-caption{
     font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; text-transform:uppercase;
     color:rgba(247,244,236,0.5); text-align:center;
@@ -638,27 +648,47 @@ const WATERMARK_SVG = `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/
   </g>
 </svg>`;
 
-/* The QR code on each pass encodes a URL back to THIS page with the
-   passenger's name (and which leg) pre-filled, e.g.:
-     https://.../boarding-pass.html?name=Shubham%20Kumar&leg=onward
-   Scanning it opens the page, which auto-runs the same live lookup
-   against the Google Sheet (see the DOMContentLoaded handler below)
-   — so the QR always shows the current data from the sheet at scan
-   time, not a static snapshot baked in when the pass was generated.
-   clip() keeps the name itself sane-length regardless of what's typed
-   in, though URLs don't have the same hard capacity ceiling that the
-   old plain-text QR payload did. */
+/* The QR code encodes the passenger's actual fetched ticket details
+   directly as plain text — PNR, train, route, date/time, class,
+   coach/berth, fare — pulled straight from the same Google Sheet row
+   used to build the rest of the pass. Scanning it shows those details
+   immediately, with no dependency on this page, the internet, or the
+   Apps Script backend being reachable at scan time (unlike a link
+   back to this page, which only works if all three of those are up).
+   clip() keeps any single field from blowing past a sane length if
+   the sheet has unexpectedly long data in it. */
 function clip(str, max){
   str = String(str || '').replace(/\s+/g, ' ').trim();
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }
-function buildQrUrl(passenger, legKey){
-  const base = window.location.origin + window.location.pathname;
-  const params = new URLSearchParams();
-  params.set('name', clip(passenger, 60));
-  if(legKey) params.set('leg', legKey);
-  return `${base}?${params.toString()}`;
+function buildQrPayload(leg, passenger){
+  const legLabel = (leg.leg || '').toLowerCase() === 'return' ? 'Return Journey' : 'Onward Journey';
+  const pnrGrouped = groupPnr(leg.pnr);
+  const dateDisplay = formatDate(leg.date);
+  const wk = weekdayOf(leg.date);
+  const timeDisplay = formatTime(leg.time);
+  const clsSub = classSub(leg.cls);
+  const fareNum = Number(leg.fare || 0);
+  const fareDisplay = isNaN(fareNum) ? (leg.fare || '') : '₹' + fareNum.toFixed(2);
+
+  const lines = [
+    'INDIAN RAILWAYS — BOARDING PASS',
+    legLabel,
+    `PNR: ${pnrGrouped}`,
+    `Passenger: ${clip(passenger, 60)}`,
+    `Train: ${leg.trainno || ''}${leg.trainname ? ' - ' + leg.trainname : ''}`,
+    `From: ${leg.fromcode || ''} (${leg.fromname || ''})`,
+    `To: ${leg.tocode || ''} (${leg.toname || ''})`,
+    `Date: ${dateDisplay}${wk ? ' (' + wk + ')' : ''}`,
+    `Departure: ${timeDisplay}`,
+    `Class: ${leg.cls || ''}${clsSub ? ' - ' + clsSub : ''}`,
+    `Coach/Berth: ${leg.seat || ''}`,
+    'Quota: General',
+    `Fare: ${fareDisplay} (incl. all taxes)`
+  ];
+  return lines.join('\n');
 }
+
 
 function classSub(cls){
   const c = (cls || '').toLowerCase();
@@ -796,7 +826,7 @@ function renderQrSafely(el, text){
   el.innerHTML = '';
   const canvas = document.createElement('canvas');
   el.appendChild(canvas);
-  QRCode.toCanvas(canvas, text, { width: 86, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
+  QRCode.toCanvas(canvas, text, { width: 86, margin: 0, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
     if(err){
       console.warn('QR render failed, showing fallback instead:', err);
       el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
@@ -841,15 +871,15 @@ async function runLookup(nameInput){
     output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button><button class="btn-ghost" id="downloadPdfBtn" onclick="downloadPassPDF()">${ICONS.ticket}<span>Download pass as PDF</span></button></div>`;
 
     // Render each leg's real QR code now that its container is in the DOM.
-    // The QR encodes a link back to this page (with the passenger's name
-    // and leg pre-filled) rather than a static text snapshot, so scanning
-    // it always re-fetches the live row from the Google Sheet.
-    legsToRender.forEach(({leg, qrId, legKey}) => {
+    // The QR encodes the actual fetched ticket details as text (see
+    // buildQrPayload) rather than a link, so scanning it works even
+    // offline and doesn't depend on this page or its backend.
+    legsToRender.forEach(({leg, qrId}) => {
       const el = document.getElementById(qrId);
       if(!el || typeof QRCode === 'undefined') return;
-      const qrUrl = buildQrUrl(nameInput, legKey);
-      el.dataset.qrText = qrUrl;
-      renderQrSafely(el, qrUrl);
+      const qrPayload = buildQrPayload(leg, nameInput);
+      el.dataset.qrText = qrPayload;
+      renderQrSafely(el, qrPayload);
     });
 
     stopAnimation();
@@ -872,11 +902,11 @@ document.getElementById('lookupForm').addEventListener('submit', function(e){
   if(nameInput) runLookup(nameInput);
 });
 
-/* Auto-run a lookup when the page is opened with ?name=... in the URL
-   — this is exactly what each pass's QR code links to, so scanning a
-   printed pass opens this page and immediately re-fetches that
-   passenger's current row from the Google Sheet, rather than just
-   showing whatever static text was baked in when the pass was made. */
+/* Auto-run a lookup when the page is opened with ?name=... in the URL.
+   The printed pass's QR code no longer links here (it now encodes the
+   ticket details directly — see buildQrPayload) — this stays purely
+   as a convenience for anyone manually sharing a direct link to their
+   own pass, e.g. bookmark it or paste it in a chat. */
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const nameFromUrl = params.get('name');
