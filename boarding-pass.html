@@ -135,30 +135,101 @@
 
   /* =====================================================
      BOARDING PASS — rectangular flight-style design
+
+     FIXED SIZE (per the standard boarding-pass template spec):
+       300 DPI print  -> 2475 x 975 px  (8.25in x 3.25in)
+       96 DPI screen  -> 792 x 312 px   (same 8.25:3.25 aspect ratio)
+
+     The pass is authored at a fixed "design" size (--bp-design-w /
+     --bp-design-h, same aspect ratio as the print size) and then
+     shown on screen inside a fixed 792x312 viewport via a CSS
+     transform:scale() — never via width:100%/flex sizing — so the
+     rendered pass can't stretch, shrink, or reflow with the
+     viewport. .bp-pass-fixed is the box whose dimensions never
+     change; .bp-pass-scaler only scales the design-size .bp-pass
+     down to fit it. Downloads temporarily neutralize that scale and
+     capture the untouched design-size node at a scale factor tuned
+     to land exactly on 2475x975 px, so preview and download always
+     agree on the same fixed dimensions.
      ===================================================== */
-  #passCard{ display:flex; flex-direction:column; }
+  :root{
+    --bp-print-w: 2475px;
+    --bp-print-h: 975px;
+    --bp-screen-w: 792px;
+    --bp-screen-h: 312px;
+    --bp-design-w: 920px;
+    --bp-design-h: 362.4px; /* 920 * (975/2475), keeps the exact print aspect ratio */
+  }
+  #passCard{ display:flex; flex-direction:column; align-items:center; }
+  .bp-pass-fixed{
+    position:relative;
+    width:var(--bp-screen-w);
+    height:var(--bp-screen-h);
+    max-width:100%;
+    overflow:hidden;
+    border-radius:18px;
+    box-shadow: 0 26px 60px -24px rgba(11,35,64,0.35), 0 0 0 1px rgba(11,35,64,0.06);
+    margin-bottom:26px;
+  }
+  .bp-pass-fixed:last-child{ margin-bottom:0; }
+  /* On very narrow phone screens the fixed box can be wider than the
+     viewport; scale the whole fixed box down visually (not the pass
+     itself) rather than letting it overflow or reflow. The box's own
+     width/height attributes — and what gets downloaded — stay fixed. */
+  @media (max-width:860px){
+    .pass-preview-col{ display:flex; justify-content:center; }
+    .bp-pass-fixed{
+      transform: scale(calc(min(1, (100vw - 40px) / 792)));
+      transform-origin: top center;
+      margin-bottom: calc(26px - 312px * (1 - min(1, (100vw - 40px) / 792)));
+    }
+  }
+  .bp-pass-scaler{
+    position:absolute; top:0; left:0;
+    width:var(--bp-design-w);
+    height:var(--bp-design-h);
+    transform: scale(calc(792 / 920));
+    transform-origin: top left;
+  }
   .bp-pass{
     position:relative;
     display:grid;
     grid-template-columns: 1fr 220px;
-    width:100%;
+    width:var(--bp-design-w);
+    height:var(--bp-design-h);
     background:var(--bp-cardbg);
     border-radius:18px;
     overflow:hidden;
     border:1px solid rgba(11,35,64,0.08);
-    box-shadow: 0 26px 60px -24px rgba(11,35,64,0.35), 0 0 0 1px rgba(11,35,64,0.06);
     font-family:'Inter', sans-serif;
     color:var(--bp-ink);
-    margin-bottom:26px;
   }
-  .bp-pass:last-child{ margin-bottom:0; }
 
   .bp-pass::before{
     content:"";
     position:absolute; inset:0;
-    background-image:url('background.jpg');
-    background-size:cover; background-position:center 55%; background-repeat:no-repeat;
-    opacity:0.15; z-index:0;
+    background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vagator%2C%20Goa%2C%20India%2C%20Coconut%20palm%20trees.jpg');
+    background-size:cover; background-position:center 40%;
+    opacity:0.20; filter:saturate(1.05); z-index:0;
+  }
+  .bp-pass::after{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.88) 55%, rgba(255,255,255,0.94) 100%);
+    z-index:0;
+  }
+  /* ---------- Travel-motif watermark ----------
+     Rail track + train silhouette + a small route-dot line, sitting
+     between the photo wash and the content (z-index 0), fixed at a
+     low opacity and pinned to a corner so it reads as texture rather
+     than competing with the data above it (z-index 1). */
+  .bp-watermark{
+    position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+    opacity:0.16; color:var(--bp-ink);
+  }
+  .bp-watermark svg{
+    position:absolute; right:-30px; bottom:-40px; width:300px; height:300px;
+    transform:rotate(-10deg);
   }
   .bp-main, .bp-stub{ position:relative; z-index:1; }
 
@@ -166,11 +237,11 @@
      most at a glance: date, time, fare. */
   .value-strong{ font-family:'Roboto', 'Inter', sans-serif; font-weight:700; letter-spacing:.1px; }
 
-  .bp-main{ padding:30px 34px 26px; display:flex; flex-direction:column; gap:22px; }
+  .bp-main{ padding:20px 28px 18px; display:flex; flex-direction:column; gap:14px; height:100%; }
 
   .bp-head{
     display:flex; align-items:center; justify-content:space-between; gap:16px;
-    padding-bottom:16px; border-bottom:1.5px solid var(--bp-line);
+    padding-bottom:12px; border-bottom:1.5px solid var(--bp-line);
   }
   .bp-brand{ display:flex; align-items:center; gap:14px; }
   .bp-brand img{ height:34px; width:auto; flex-shrink:0; }
@@ -193,15 +264,15 @@
 
   .bp-route{ display:flex; align-items:flex-start; gap:20px; }
   .bp-city{ flex-shrink:0; }
-  .bp-city .code{ font-family:'Playfair Display', serif; font-weight:800; font-size:44px; color:var(--bp-ink); line-height:1; }
+  .bp-city .code{ font-family:'Playfair Display', serif; font-weight:800; font-size:38px; color:var(--bp-ink); line-height:1; }
   .bp-city .name{
-    font-size:11.5px; font-weight:600; color:var(--bp-slate); margin-top:6px;
+    font-size:11px; font-weight:600; color:var(--bp-slate); margin-top:5px;
     text-transform:uppercase; letter-spacing:.5px; max-width:150px;
   }
   .bp-track{
     flex:1; position:relative; height:2px;
     background:repeating-linear-gradient(90deg, var(--bp-brass) 0 8px, transparent 8px 14px);
-    margin-top:22px;
+    margin-top:19px;
   }
   .bp-track::after{
     content:""; position:absolute; right:-2px; top:50%; width:11px; height:11px;
@@ -213,26 +284,26 @@
   }
   .bp-track .train-icon svg{ width:18px; height:18px; display:block; }
 
-  .bp-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px 18px; padding-top:4px; }
+  .bp-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px 16px; padding-top:2px; }
   .bp-field .label{
     font-family:'Space Mono', monospace; font-size:9px; letter-spacing:1.6px; text-transform:uppercase;
-    color:var(--bp-slate); margin-bottom:6px; display:flex; align-items:center; gap:5px;
+    color:var(--bp-slate); margin-bottom:5px; display:flex; align-items:center; gap:5px;
   }
   .bp-field .label svg{ width:12px; height:12px; flex-shrink:0; color:var(--bp-brass); }
-  .bp-field .value{ font-size:14.5px; font-weight:700; color:var(--bp-ink); line-height:1.3; }
-  .bp-field .value.mono{ font-family:'Space Mono', monospace; font-size:13.5px; letter-spacing:.2px; }
-  .bp-field .sub{ font-size:10.5px; color:var(--bp-slate); font-weight:500; margin-top:3px; }
+  .bp-field .value{ font-size:14px; font-weight:700; color:var(--bp-ink); line-height:1.25; }
+  .bp-field .value.mono{ font-family:'Space Mono', monospace; font-size:13px; letter-spacing:.2px; }
+  .bp-field .sub{ font-size:10px; color:var(--bp-slate); font-weight:500; margin-top:2px; }
 
   .bp-note{
-    display:flex; align-items:center; gap:9px; padding-top:14px; border-top:1px dashed var(--bp-line);
+    display:flex; align-items:center; gap:9px; padding-top:10px; border-top:1px dashed var(--bp-line); margin-top:auto;
   }
   .bp-note .dot{ width:6px; height:6px; border-radius:50%; background:var(--bp-brass); flex:none; }
   .bp-note p{ font-size:10.5px; color:var(--bp-slate); letter-spacing:.15px; margin:0; }
 
   .bp-stub{
-    background:var(--bp-ink); color:var(--bp-stubtext); padding:26px 22px;
+    background:var(--bp-ink); color:var(--bp-stubtext); padding:18px 20px;
     display:flex; flex-direction:column; justify-content:space-between;
-    border-left:2px dashed rgba(247,244,236,0.25);
+    border-left:2px dashed rgba(247,244,236,0.25); height:100%;
   }
   .bp-stub::before, .bp-stub::after{
     content:""; position:absolute; left:-11px; width:22px; height:22px;
@@ -245,18 +316,18 @@
     font-family:'Space Mono', monospace; font-size:9px; letter-spacing:2.3px; text-transform:uppercase;
     color:var(--bp-brass); font-weight:700;
   }
-  .bp-stub-route{ font-family:'Playfair Display', serif; font-size:23px; font-weight:700; margin:8px 0 2px; }
-  .bp-stub-route span{ color:var(--bp-brass); font-size:16px; margin:0 4px; }
+  .bp-stub-route{ font-family:'Playfair Display', serif; font-size:21px; font-weight:700; margin:6px 0 2px; }
+  .bp-stub-route span{ color:var(--bp-brass); font-size:15px; margin:0 4px; }
 
   .bp-qr-wrap{
-    margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:8px;
+    margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:6px;
   }
   .bp-qr-box{
-    background:var(--paper); border-radius:10px; padding:9px;
-    width:158px; height:158px; display:flex; align-items:center; justify-content:center;
+    background:var(--paper); border-radius:10px; padding:6px;
+    width:98px; height:98px; display:flex; align-items:center; justify-content:center;
     box-shadow:0 6px 14px -6px rgba(0,0,0,0.35);
   }
-  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{ width:140px !important; height:140px !important; }
+  .bp-qr-box img, .bp-qr-box canvas, .bp-qr-box table{ width:86px !important; height:86px !important; }
   .bp-qr-caption{
     font-family:'Space Mono', monospace; font-size:8px; letter-spacing:1.6px; text-transform:uppercase;
     color:rgba(247,244,236,0.5); text-align:center;
@@ -494,6 +565,30 @@ function formatTime(timeStr){
   return raw;
 }
 
+/* Rail track + train silhouette + route-dot line, reused as a
+   low-opacity watermark layer inside every pass card. */
+const WATERMARK_SVG = `<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="currentColor" stroke-width="2.2" fill="none">
+    <line x1="-20" y1="266" x2="320" y2="46"/>
+    <line x1="-12" y1="284" x2="328" y2="64"/>
+    ${Array.from({length:10}).map((_,i)=>{
+      const x = -6 + i*32, y = 272 - i*10.6;
+      return `<line x1="${x}" y1="${y}" x2="${x+14}" y2="${y-14}"/>`;
+    }).join('')}
+  </g>
+  <g fill="currentColor">
+    <path d="M150 34h58a14 14 0 0114 14v34a14 14 0 01-14 14h-58a14 14 0 01-14-14V48a14 14 0 0114-14z"/>
+    <circle cx="156" cy="104" r="8"/>
+    <circle cx="194" cy="104" r="8"/>
+    <rect x="140" y="24" width="10" height="16" rx="2"/>
+  </g>
+  <g fill="currentColor">
+    <circle cx="40" cy="250" r="4"/>
+    <circle cx="110" cy="215" r="4"/>
+    <circle cx="180" cy="180" r="4"/>
+  </g>
+</svg>`;
+
 /* Formatted text block encoded into each pass's QR code — a plain,
    human-readable summary (not JSON) so a scan shows the same words
    printed on the ticket. Each field is clamped defensively: the
@@ -503,37 +598,21 @@ function formatTime(timeStr){
    payload can blow past that ceiling and throw "code length
    overflow" — clip() keeps the encoded text short no matter what the
    sheet contains. */
-/* QR scanners generally assume Latin-1/ISO-8859-1 byte decoding per
-   the QR spec's default (this library doesn't set a UTF-8 ECI
-   header), so any multi-byte UTF-8 character — the rupee sign ₹, the
-   route arrow → — can come out garbled, or fail the scan outright on
-   stricter decoders. asciiSafe() swaps the handful we actually use
-   for plain ASCII equivalents, purely for the QR payload; the
-   on-screen ticket text is untouched and keeps the real symbols. */
-function asciiSafe(str){
-  return String(str || '')
-    .replace(/₹/g, 'Rs ')
-    .replace(/→/g, '->')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/–|—/g, '-')
-    .replace(/[^\x00-\x7F]/g, ''); // strip anything else non-ASCII as a last resort
-}
 function clip(str, max){
   str = String(str || '').replace(/\s+/g, ' ').trim();
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }
 function buildQrText(leg, passenger, dateDisplay, timeDisplay, fareDisplay, pnrGrouped){
-  return asciiSafe([
+  return [
     `Passenger: ${clip(passenger, 40)}`,
     `PNR: ${clip(pnrGrouped, 20)}`,
     `Train: ${clip(`${leg.trainno || ''} ${leg.trainname || ''}`.trim(), 40)}`,
-    `Route: ${clip(leg.fromcode, 8)} -> ${clip(leg.tocode, 8)}`,
+    `Route: ${clip(leg.fromcode, 8)} → ${clip(leg.tocode, 8)}`,
     `Date: ${clip(dateDisplay, 20)}`,
     `Departure: ${clip(timeDisplay, 20)}`,
     `Seat: ${clip(leg.seat, 20)}`,
     `Fare: ${clip(fareDisplay, 20)}`
-  ].join('\n'));
+  ].join('\n');
 }
 
 function classSub(cls){
@@ -557,11 +636,14 @@ function buildPassCard(leg, passenger, qrId){
   const fareDisplay = isNaN(fareNum) ? (leg.fare || '') : '₹' + fareNum.toFixed(2);
 
   return `
-  <div class="bp-pass">
+  <div class="bp-pass-fixed">
+   <div class="bp-pass-scaler">
+    <div class="bp-pass">
+    <div class="bp-watermark">${WATERMARK_SVG}</div>
     <div class="bp-main">
       <div class="bp-head">
         <div class="bp-brand">
-          <img src="MOR.svg" alt="Indian Railways">
+          <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Ministry%20of%20Railways%20India.svg" alt="Indian Railways">
           <div class="bp-brand-text">
             <div class="l1">Indian Railways</div>
             <div class="l2">Boarding Pass · ${legLabel}</div>
@@ -644,6 +726,8 @@ function buildPassCard(leg, passenger, qrId){
         <div class="bp-barcode-num">${pnrGrouped}</div>
       </div>
     </div>
+    </div>
+   </div>
   </div>`;
 }
 
@@ -663,7 +747,7 @@ function renderQrSafely(el, text){
   el.innerHTML = '';
   const canvas = document.createElement('canvas');
   el.appendChild(canvas);
-  QRCode.toCanvas(canvas, text, { width: 140, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
+  QRCode.toCanvas(canvas, text, { width: 86, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
     if(err){
       console.warn('QR render failed, showing fallback instead:', err);
       el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
@@ -688,7 +772,7 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
   btnLabel.textContent = 'Searching…';
 
   const stopAnimation = runFetchAnimation();
-  const minDelay = new Promise(r => setTimeout(r, 900));
+  const minDelay = new Promise(r => setTimeout(r, 1800));
 
   try{
     const [matches] = await Promise.all([ fetchTickets(nameInput), minDelay ]);
@@ -742,41 +826,79 @@ document.getElementById('lookupForm').addEventListener('submit', async function(
    as its own printable ticket — full drop shadow, breathing room,
    and webfonts guaranteed loaded — instead of a cropped screenshot
    of a webpage. */
+/* ---------- Download as a fixed-size, print-ready image ----------
+   The boarding pass has one fixed size everywhere:
+     - Print:  2475 x 975 px  (8.25in x 3.25in @ 300 DPI)
+     - Screen: 792 x 312 px   (same aspect ratio, @96 DPI)
+   The DOM node (.bp-pass) is authored once at a fixed "design" size
+   (920 x 362.4px, same aspect ratio) and only ever scaled — via
+   .bp-pass-scaler's CSS transform — never resized/reflowed. This
+   captures that same untouched design-size node with html2canvas's
+   own `scale` option set so the output lands exactly on 2475x975px,
+   independent of whatever zoom level the screen preview happens to
+   be showing. Multiple legs (onward/return) are stacked into one
+   image, each still at the exact fixed print size. */
+const PRINT_W = 2475, PRINT_H = 975, PRINT_GAP = 40;
+
 async function downloadPass(){
-  const node = document.getElementById('passCard');
-  if(!node) return;
+  const container = document.getElementById('passCard');
+  if(!container) return;
+  const fixedBoxes = Array.from(container.querySelectorAll('.bp-pass-fixed'));
+  if(!fixedBoxes.length) return;
 
   if(document.fonts && document.fonts.ready){
     try{ await document.fonts.ready; }catch(e){}
   }
 
-  const exportWrap = document.createElement('div');
-  exportWrap.style.cssText = 'position:fixed; left:-9999px; top:0; display:inline-block; padding:44px; border-radius:28px; background:linear-gradient(160deg,#EFEADE,#F7F4EC);';
-  const clone = node.cloneNode(true);
-  clone.style.margin = '0';
-  // Re-render each cloned QR box — QRCode's generated <canvas>/<img> did
-  // not get deep-cloned with reliable image data in every browser, so
-  // rebuild it directly against the clone to guarantee it's scannable
-  // in the exported PNG.
-  node.querySelectorAll('.bp-qr-box').forEach(orig => {
-    const cloneBox = clone.querySelector('#' + orig.id);
-    if(!cloneBox || typeof QRCode === 'undefined') return;
-    const text = orig.dataset.qrText;
-    if(!text) return;
-    renderQrSafely(cloneBox, text);
-  });
-  exportWrap.appendChild(clone);
-  document.body.appendChild(exportWrap);
+  const designW = 920, designH = PRINT_H * (designW / PRINT_W); // preserves the exact print aspect ratio
+  const captureScale = PRINT_W / designW;
 
   try{
-    const canvas = await html2canvas(exportWrap, { backgroundColor:null, scale:2, useCORS:true });
+    const cardCanvases = [];
+    for(const fixedBox of fixedBoxes){
+      const passNode = fixedBox.querySelector('.bp-pass');
+      const scaler = fixedBox.querySelector('.bp-pass-scaler');
+      if(!passNode) continue;
+
+      // Capture the untouched, fixed-size .bp-pass node directly —
+      // bypass the on-screen preview transform entirely rather than
+      // trying to compensate for it, so the exported size is always
+      // exactly designW x designH * captureScale, regardless of the
+      // current viewport or preview zoom level.
+      const prevTransform = scaler ? scaler.style.transform : '';
+      if(scaler) scaler.style.transform = 'none';
+
+      const canvas = await html2canvas(passNode, {
+        backgroundColor:'#ffffff',
+        width: designW,
+        height: Math.round(designH),
+        scale: captureScale,
+        useCORS:true
+      });
+
+      if(scaler) scaler.style.transform = prevTransform;
+      cardCanvases.push(canvas);
+    }
+
+    if(!cardCanvases.length) return;
+
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = PRINT_W;
+    finalCanvas.height = cardCanvases.length * PRINT_H + (cardCanvases.length - 1) * PRINT_GAP;
+    const ctx = finalCanvas.getContext('2d');
+    ctx.fillStyle = '#F7F4EC';
+    ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+    cardCanvases.forEach((c, i) => {
+      ctx.drawImage(c, 0, i * (PRINT_H + PRINT_GAP), PRINT_W, PRINT_H);
+    });
+
     const nameSlug = (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     const link = document.createElement('a');
     link.download = `boarding-pass-${nameSlug || 'goa'}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.href = finalCanvas.toDataURL('image/png');
     link.click();
-  } finally {
-    document.body.removeChild(exportWrap);
+  }catch(err){
+    console.error('Boarding pass download failed:', err);
   }
 }
 </script>
