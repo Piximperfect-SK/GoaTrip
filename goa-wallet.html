@@ -279,6 +279,7 @@
     #sidebar{ display:none; }
     #main{ margin-left:0; }
     #menuToggle{ display:none; }
+    #homeBackBtn{ display:inline-flex; } /* the only way back to the homepage once the sidebar is hidden on mobile */
 
     #topbar{
       padding:calc(10px + var(--sat)) 16px 10px; gap:10px;
@@ -335,7 +336,7 @@
       <div class="navitem" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
     <div class="foot">
-      <a href="goa-trip.html" class="hover:text-white">← Back to trip site</a>
+      <a href="index.html" class="hover:text-white">← Back to trip site</a>
     </div>
   </aside>
 
@@ -343,6 +344,7 @@
   <div id="main">
     <div id="topbar">
       <div class="flex items-center gap-3">
+        <a href="index.html" id="homeBackBtn" class="btn-icon" title="Back to trip site" style="text-decoration:none;">⌂</a>
         <span id="menuToggle" class="btn-icon" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</span>
         <div>
           <p class="section-eyebrow" id="pageEyebrow">Split the bill</p>
