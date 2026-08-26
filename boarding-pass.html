@@ -909,6 +909,56 @@ document.addEventListener('DOMContentLoaded', () => {
    agree on exactly the same pixels, at exactly the same fixed size. */
 const PRINT_W = 2475, PRINT_H = 975, PRINT_GAP = 40;
 
+/* ---------- Force-perfect rounding, at the pixel level ----------
+   html2canvas does not reliably respect border-radius on elements
+   built from layered pseudo-elements + grid children (exactly what
+   .bp-pass is) — in practice it can capture the whole card as a
+   plain sharp-cornered rectangle even though the live DOM renders
+   rounded. Relying on the browser to get this right during capture
+   isn't safe, so instead we clip the ALREADY-CAPTURED canvas
+   ourselves with a real 2D-canvas rounded-rect path. This can't fail
+   the way CSS border-radius capture can — canvas arc math is exact.
+
+   Also punches the two small perforation circles cut into the ticket
+   at the seam between the main stub and the ticket stub (the "torn
+   edge" look), for the same reason: those are CSS border-radius:50%
+   pseudo-elements that are just as capture-unreliable as the outer
+   corners. */
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+}
+
+function roundifyCardCanvas(srcCanvas, cornerRadiusPx, holes){
+  const out = document.createElement('canvas');
+  out.width = srcCanvas.width;
+  out.height = srcCanvas.height;
+  const ctx = out.getContext('2d');
+
+  ctx.save();
+  ctx.beginPath();
+  roundRectPath(ctx, 0, 0, out.width, out.height, cornerRadiusPx);
+  ctx.closePath();
+  ctx.clip();
+  ctx.drawImage(srcCanvas, 0, 0);
+  ctx.restore();
+
+  // Punch the perforation holes as true transparent circles.
+  ctx.globalCompositeOperation = 'destination-out';
+  (holes || []).forEach(h => {
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalCompositeOperation = 'source-over';
+
+  return out;
+}
+
+
 async function captureCardCanvases(){
   const container = document.getElementById('passCard');
   if(!container) return [];
@@ -958,12 +1008,38 @@ async function captureCardCanvases(){
       // non-white background (the tan PNG composite, print paper,
       // etc). Transparent corners let whatever sits underneath show
       // through instead, so the rounded shape reads as truly rounded.
+      // Measure the stub's real position/size in the clone BEFORE it's
+      // discarded, so the perforation holes and outer radius are
+      // computed from the actual live layout (grid column widths,
+      // border thickness, etc.) rather than hardcoded design-pixel
+      // guesses that would silently drift if the layout is ever
+      // tweaked.
+      const cardRect = clone.getBoundingClientRect();
+      const stubEl = clone.querySelector('.bp-stub');
+      const stubRect = stubEl ? stubEl.getBoundingClientRect() : null;
+
       const canvas = await html2canvas(clone, {
         backgroundColor: null,
         scale: captureScale,
         useCORS:true
       });
-      cardCanvases.push(canvas);
+
+      // Convert the measured CSS-pixel geometry into this canvas's own
+      // pixel space (captureScale may not exactly equal canvas.width /
+      // cardRect.width due to sub-pixel layout rounding, so derive the
+      // real ratio from the canvas html2canvas actually produced).
+      const pxScale = canvas.width / cardRect.width;
+      const outerRadiusPx = 18 * pxScale; // matches --bp-pass's own 18px border-radius
+      const holes = [];
+      if(stubRect){
+        const holeXCanvas = (stubRect.left - cardRect.left) * pxScale; // = stub's left edge = hole center x
+        const holeRadiusCanvas = 11 * pxScale; // matches the 22px-diameter perforation circles
+        holes.push({ x: holeXCanvas, y: 0, r: holeRadiusCanvas });                // top seam notch
+        holes.push({ x: holeXCanvas, y: canvas.height, r: holeRadiusCanvas });    // bottom seam notch
+      }
+
+      const roundedCanvas = roundifyCardCanvas(canvas, outerRadiusPx, holes);
+      cardCanvases.push(roundedCanvas);
     }
     return cardCanvases;
   }finally{
