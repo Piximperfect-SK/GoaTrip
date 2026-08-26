@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.4.4/qrcode.min.js"></script>
 <style>
   :root{
     --ink:#0F2622;
@@ -266,14 +266,6 @@
   }
   .bp-stub-route{ font-family:'Playfair Display', serif; font-size:23px; font-weight:700; margin:8px 0 2px; }
   .bp-stub-route span{ color:var(--bp-brass); font-size:16px; margin:0 4px; }
-
-  .bp-stub-fields{ display:flex; flex-direction:column; gap:13px; margin-top:20px; }
-  .bp-stub-fields .label{
-    font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:1.8px; text-transform:uppercase;
-    color:rgba(247,244,236,0.55); display:flex; align-items:center; gap:5px;
-  }
-  .bp-stub-fields .label svg{ width:10px; height:10px; }
-  .bp-stub-fields .value{ font-family:'Space Mono', monospace; font-size:13.5px; font-weight:700; margin-top:4px; letter-spacing:.2px; }
 
   .bp-qr-wrap{
     margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:8px;
@@ -641,25 +633,6 @@ function buildPassCard(leg, passenger, qrId){
         <div class="bp-stub-route">${leg.fromcode || ''}<span>→</span>${leg.tocode || ''}</div>
       </div>
 
-      <div class="bp-stub-fields">
-        <div>
-          <div class="label">${ICONS.train}<span>Train No.</span></div>
-          <div class="value">${leg.trainno || ''}</div>
-        </div>
-        <div>
-          <div class="label">${ICONS.calendar}<span>Date</span></div>
-          <div class="value value-strong">${dateDisplay}</div>
-        </div>
-        <div>
-          <div class="label">${ICONS.seat}<span>Coach · Berth</span></div>
-          <div class="value">${leg.seat || ''}</div>
-        </div>
-        <div>
-          <div class="label">${ICONS.clock}<span>Departs</span></div>
-          <div class="value value-strong">${timeDisplay}</div>
-        </div>
-      </div>
-
       <div class="bp-qr-wrap">
         <div class="bp-qr-box" id="${qrId}"></div>
         <div class="bp-qr-caption">Scan for full details</div>
@@ -670,20 +643,28 @@ function buildPassCard(leg, passenger, qrId){
 }
 
 /* Renders a QR code into `el` without ever letting a failure escape —
-   a broken/oversized QR payload should degrade quietly (fallback
-   caption) instead of taking down the whole ticket render, which is
-   what happened when this call lived inside the main try/catch. */
+   a broken QR payload should degrade quietly (fallback caption)
+   instead of taking down the whole ticket render, which is what
+   happened when this call lived inside the main try/catch.
+   Uses the soldair/qrcode canvas library (window.QRCode.toCanvas),
+   swapped in for the older davidshimjs qrcodejs build, which shipped
+   a very limited internal version/capacity table and could throw
+   "code length overflow" even on modest, already-clipped text. */
 function renderQrSafely(el, text){
-  if(!el || typeof QRCode === 'undefined') return false;
-  try{
-    el.innerHTML = '';
-    new QRCode(el, { text, width:100, height:100, typeNumber:0, colorDark:'#0B2340', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.L });
-    return true;
-  }catch(err){
-    console.warn('QR render failed, showing fallback instead:', err);
-    el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
+  if(!el || typeof QRCode === 'undefined' || typeof QRCode.toCanvas !== 'function') {
+    if(el) el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
     return false;
   }
+  el.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  el.appendChild(canvas);
+  QRCode.toCanvas(canvas, text, { width: 100, margin: 1, color: { dark: '#0B2340', light: '#ffffff' } }, function(err){
+    if(err){
+      console.warn('QR render failed, showing fallback instead:', err);
+      el.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#5B6472;padding:4px;">QR unavailable</div>';
+    }
+  });
+  return true;
 }
 
 document.getElementById('lookupForm').addEventListener('submit', async function(e){
