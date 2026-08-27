@@ -24,17 +24,38 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 #topbar{position:sticky; top:0; z-index:30; background:rgba(11,61,58,.94); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--sand); padding:calc(14px + var(--sat)) 20px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
 .btn-icon{width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--sand); text-decoration:none; flex-shrink:0;}
 .btn-icon:hover{background:rgba(255,255,255,.14);}
-.btn-primary{background:var(--mango); color:white; font-weight:600; border-radius:9999px; padding:10px 20px; transition:.2s; border:none; cursor:pointer; font-size:14px;}
-.btn-primary:hover{background:var(--mango-2);}
-.btn-primary:disabled{opacity:.5; cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg, var(--mango), var(--mango-2)); color:white; font-weight:600; border-radius:9999px; padding:10px 20px; transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; border:none; cursor:pointer; font-size:14px; box-shadow:0 8px 18px -8px rgba(232,93,42,.5);}
+.btn-primary:hover{filter:brightness(1.05); transform:translateY(-1px); box-shadow:0 12px 22px -8px rgba(232,93,42,.6);}
+.btn-primary:active{transform:scale(.97);}
+.btn-primary:disabled{opacity:.5; cursor:not-allowed; transform:none; box-shadow:none;}
 .btn-ghost{border:1.5px solid var(--line); border-radius:9999px; padding:9px 18px; font-weight:600; background:white; cursor:pointer; transition:.2s; font-size:13.5px;}
 .btn-ghost:hover{border-color:var(--ink);}
-.btn-danger{border:1.5px solid rgba(232,93,42,.35); color:var(--mango-2); border-radius:9999px; padding:7px 14px; font-weight:600; background:white; cursor:pointer; font-size:12.5px;}
+.btn-ghost:active{transform:scale(.97);}
+.btn-danger{border:1.5px solid rgba(232,93,42,.35); color:var(--mango-2); border-radius:9999px; padding:7px 14px; font-weight:600; background:white; cursor:pointer; font-size:12.5px; transition:.2s;}
 .btn-danger:hover{background:rgba(232,93,42,.08);}
-.card{background:white; border:1px solid var(--line); border-radius:16px;}
-input, select{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px 13px; background:var(--paper); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none;}
-input:focus, select:focus{border-color:var(--mango);}
-label{font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.8; display:block; margin-bottom:5px;}
+.btn-danger:active{transform:scale(.96);}
+.card{background:white; border:1px solid var(--line); border-radius:16px; transition:box-shadow .2s ease;}
+@media (hover:hover){ .day-editor.card:hover{box-shadow:0 18px 36px -26px rgba(15,38,34,.4);} }
+@media (max-width:640px){ input, select, textarea{font-size:16px;} }
+label{font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px;}
+input[type="text"], input[type="date"], input:not([type]), select, textarea{
+  width:100%; border:1.5px solid var(--line); border-radius:12px;
+  padding:12px 14px; background:white; color:var(--ink);
+  font-family:'Space Grotesk',sans-serif; font-size:14px; line-height:1.3;
+  outline:none; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  box-shadow:0 1px 2px rgba(15,38,34,.03);
+}
+input::placeholder, textarea::placeholder{color:var(--ink); opacity:.35;}
+input:hover:not(:focus):not(:disabled), select:hover:not(:focus):not(:disabled){border-color:rgba(15,38,34,.28);}
+input:focus, select:focus, textarea:focus{
+  border-color:var(--mango); background:white;
+  box-shadow:0 0 0 4px rgba(255,122,69,.14);
+}
+select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:38px; cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%230F2622' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center;
+}
+.field-row{display:flex; flex-direction:column; gap:6px;}
 .day-editor{position:relative; overflow:hidden;}
 .item-row{display:flex; align-items:center; gap:8px;}
 .sync-dot{width:9px; height:9px; border-radius:9999px; display:inline-block;}
@@ -62,7 +83,7 @@ body::after{content:"";position:fixed; inset:0; z-index:-1; background:linear-gr
 <body>
 
 <video id="pageVideo" autoplay muted loop playsinline preload="none" onerror="this.style.display='none'">
-  <source src="videos/4.mp4" type="video/mp4">
+  <source src="videos/3.mp4" type="video/mp4">
 </video>
 
 <div id="topbar">
@@ -195,9 +216,9 @@ function render(){
     <div class="card day-editor p-5">
       <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-[260px]">
-          <div><label>Day label</label><input value="${escAttr(d.day)}" oninput="update(${di},'day',this.value)"/></div>
-          <div><label>Date</label><input value="${escAttr(d.date)}" oninput="update(${di},'date',this.value)"/></div>
-          <div class="sm:col-span-2"><label>Tag</label>
+          <div class="field-row"><label>Day label</label><input value="${escAttr(d.day)}" oninput="update(${di},'day',this.value)"/></div>
+          <div class="field-row"><label>Date</label><input value="${escAttr(d.date)}" oninput="update(${di},'date',this.value)"/></div>
+          <div class="field-row sm:col-span-2"><label>Tag</label>
             <select onchange="update(${di},'tag',this.value)">
               <option value="TRAVEL" ${d.tag==='TRAVEL'?'selected':''}>TRAVEL</option>
               <option value="TBD" ${d.tag==='TBD'?'selected':''}>TBD</option>
@@ -208,7 +229,7 @@ function render(){
         </div>
         <button class="btn-danger" onclick="removeDay(${di})">Remove day</button>
       </div>
-      <div class="mb-4"><label>Title</label><input value="${escAttr(d.title)}" oninput="update(${di},'title',this.value)"/></div>
+      <div class="field-row mb-4"><label>Title</label><input value="${escAttr(d.title)}" oninput="update(${di},'title',this.value)"/></div>
       <label>Plan items</label>
       <div class="space-y-2 mb-2">
         ${(d.items||[]).map((it,ii)=>`
