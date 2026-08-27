@@ -219,7 +219,7 @@
   .bp-pass::before{
     content:"";
     position:absolute; inset:0; border-radius:18px;
-    background-image:url('https://commons.wikimedia.org/wiki/Special:FilePath/Vagator%2C%20Goa%2C%20India%2C%20Coconut%20palm%20trees.jpg');
+    background-image:url('pictures/background.jpg');
     background-size:cover; background-position:center 40%;
     opacity:0.20; filter:saturate(1.05); z-index:0;
   }
@@ -417,7 +417,7 @@
 
 <section>
   <div class="bp-page-video">
-    <video autoplay muted loop playsinline preload="metadata" onerror="this.style.display='none'">
+    <video autoplay muted loop playsinline preload="none" loading="lazy" onerror="this.style.display='none'">
       <source src="videos/4.mp4" type="video/mp4">
     </video>
   </div>
