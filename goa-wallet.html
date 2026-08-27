@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -93,7 +93,7 @@
 
   #main{ margin-left:var(--sidebar-w); flex:1; min-width:0; }
   #topbar{
-    position:sticky; top:0; z-index:30; background:rgba(251,246,236,.92); backdrop-filter:blur(8px);
+    position:sticky; top:0; z-index:30; background:rgba(251,246,236,.92); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--line); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
   }
   #topbar::after{
@@ -220,7 +220,7 @@
   .banner.ok{ background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4; }
 
   /* ---------- Modals ---------- */
-  .app-modal{ position:fixed; inset:0; z-index:200; display:none; align-items:flex-start; justify-content:center; background:rgba(15,38,34,0.55); backdrop-filter:blur(4px); padding:16px; overflow-y:auto; animation:modalBgIn .2s ease; }
+  .app-modal{ position:fixed; inset:0; z-index:200; display:none; align-items:flex-start; justify-content:center; background:rgba(15,38,34,0.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); padding:16px; overflow-y:auto; animation:modalBgIn .2s ease; }
   .app-modal.open{ display:flex; }
   @keyframes modalBgIn{ from{ opacity:0; } to{ opacity:1; } }
   .modal-panel{ background:var(--paper); border-radius:18px; width:100%; max-width:560px; margin:40px auto; box-shadow:0 40px 90px -30px rgba(0,0,0,.5); animation:modalPanelIn .25s cubic-bezier(.22,1,.36,1); }
@@ -286,7 +286,7 @@
   /* ---------- App-like mobile nav: bottom tab bar + FAB ---------- */
   #tabbar{
     display:none; position:fixed; left:0; right:0; bottom:0; z-index:100;
-    background:rgba(11,61,58,.96); backdrop-filter:blur(14px);
+    background:rgba(11,61,58,.96); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
     border-top:1px solid rgba(255,255,255,.08);
     padding:6px calc(4px + var(--sar)) calc(6px + var(--sab)) calc(4px + var(--sal));
     box-shadow:0 -8px 24px rgba(0,0,0,.12);
