@@ -54,7 +54,7 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 /* ---------- Hero (cinematic photo, kudanil-style) ---------- */
 .hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; color:var(--sand);}
 .hero-bg{position:absolute; inset:0; background-size:cover; background-position:center 68%; animation:kenburns 26s ease-in-out infinite alternate; z-index:0;}
-.hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0;}
+.hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0; background-color:#0B3D3A;}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
 .team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.28;}
 .team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.55), rgba(11,61,58,.88) 70%, var(--teal-900) 100%);}
@@ -272,7 +272,7 @@ textarea:focus{border-color:var(--mango);}
 <!-- ============ HERO ============ -->
 <header class="hero">
   <!--<div class="hero-bg" style="background-image:url('pictures/background.jpg')"></div>-->
-  <video class="hero-video" autoplay muted loop playsinline preload="metadata" poster="pictures/background.jpg" onerror="this.style.display='none'">
+  <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3E%3Crect fill='%230B3D3A' width='1920' height='1080'/%3E%3C/svg%3E" onerror="this.style.display='none'">
     <source src="videos/1.mp4" type="video/mp4">
   </video>
   <div class="hero-scrim"></div>
@@ -323,29 +323,29 @@ textarea:focus{border-color:var(--mango);}
   </div>
   <div class="gallery-track" id="galleryTrack">
     <div class="gallery-item">
-      <img src="pictures/scene1.jpg" alt="Aerial view of a secluded Goa cove, turquoise water meeting golden sand">
+      <img src="https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop" alt="Aerial view of a secluded Goa cove, turquoise water meeting golden sand">
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">01 — COASTLINE</p><p class="display text-lg font-semibold">Coves you can't reach by road.</p></div>
     </div>
     <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="pictures/scene2.jpg" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))" style="width:100%;height:100%;object-fit:cover;">
+      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))" style="width:100%;height:100%;object-fit:cover;">
         <source src="videos/4.mp4" type="video/mp4">
       </video>
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">02 — PALMS</p><p class="display text-lg font-semibold">Shade for the slow afternoons.</p></div>
     </div>
     <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="pictures/scene1.jpg" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Car threading through jungle road toward the coast'}))" style="width:100%;height:100%;object-fit:cover;">
+      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',alt:'Car threading through jungle road toward the coast'}))" style="width:100%;height:100%;object-fit:cover;">
         <source src="videos/3.mp4" type="video/mp4">
       </video>
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE DRIVE</p><p class="display text-lg font-semibold">Jungle roads to the shore.</p></div>
     </div>
     <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="pictures/background.jpg" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Golden sunset sky with birds in flight over the sea'}))" style="width:100%;height:100%;object-fit:cover;">
+      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',alt:'Golden sunset sky with birds in flight over the sea'}))" style="width:100%;height:100%;object-fit:cover;">
         <source src="videos/2.mp4" type="video/mp4">
       </video>
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">04 — TIDE LINE</p><p class="display text-lg font-semibold">Sunset walk, every evening.</p></div>
     </div>
     <div class="gallery-item">
-      <img src="pictures/scene2.jpg" alt="Coastal grove overlooking the Arabian Sea near a Goan fort">
+      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop" alt="Coastal grove overlooking the Arabian Sea near a Goan fort">
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">05 — LOOKOUT</p><p class="display text-lg font-semibold">Cliffside views, first morning.</p></div>
     </div>
   </div>
@@ -379,7 +379,7 @@ textarea:focus{border-color:var(--mango);}
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
       <div class="leg-card" id="leg1">
-        <div class="leg-photo"><img src="pictures/scene1.jpg" alt="Railway line through the Western Ghats"></div>
+        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=600&h=600&fit=crop" alt="Railway line through the Western Ghats"></div>
         <div class="p-7">
           <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL · 2 OCT</span>
           <h3 class="display text-2xl font-semibold mt-2 mb-3">Pune Jn → Londa Jn</h3>
@@ -392,7 +392,7 @@ textarea:focus{border-color:var(--mango);}
         </div>
       </div>
       <div class="leg-card" id="leg2">
-        <div class="leg-photo"><img src="pictures/scene2.jpg" alt="Coastal road toward Goa lined with palm trees"></div>
+        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=600&fit=crop" alt="Coastal road toward Goa lined with palm trees"></div>
         <div class="p-7">
           <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD · 2 OCT</span>
           <h3 class="display text-2xl font-semibold mt-2 mb-3">Londa Jn → Villa</h3>
@@ -405,7 +405,7 @@ textarea:focus{border-color:var(--mango);}
         </div>
       </div>
       <div class="leg-card" id="leg3">
-        <div class="leg-photo"><img src="pictures/background.jpg" alt="Goa coastline at golden hour"></div>
+        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=600&fit=crop" alt="Goa coastline at golden hour"></div>
         <div class="p-7">
           <span class="mono text-xs" style="color:var(--palm)">LEG 03 — RETURN · 5 OCT</span>
           <h3 class="display text-2xl font-semibold mt-2 mb-3">Villa → Londa Jn → Pune</h3>
