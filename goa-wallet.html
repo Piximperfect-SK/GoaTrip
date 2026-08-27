@@ -229,6 +229,47 @@
   .wtab-chip{ font-size:12.5px; font-weight:600; padding:6px 13px; border-radius:9999px; cursor:pointer; border:1px solid var(--line); background:white; transition:.15s; }
   .wtab-chip.active{ background:var(--teal-900); color:var(--sand); border-color:var(--teal-900); }
 
+  /* ---------- Add/Edit Expense: rail-progress wizard ---------- */
+  .exwiz-rail-wrap{ padding:16px 24px 20px; background:var(--teal-900); }
+  .exwiz-rail-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .exwiz-rail-label{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(239,230,214,.55); }
+  .exwiz-rail-count{ font-family:'Space Mono',monospace; font-size:11px; color:var(--sand); opacity:.85; }
+  .exwiz-rail{ position:relative; height:24px; }
+  .exwiz-rail svg{ width:100%; height:100%; overflow:visible; display:block; }
+  .exwiz-track{ stroke:rgba(239,230,214,.22); stroke-width:2; stroke-dasharray:1 9; stroke-linecap:round; }
+  .exwiz-progress{ stroke:var(--mango); stroke-width:2.5; stroke-linecap:round; transition:stroke-dashoffset .45s cubic-bezier(.65,0,.35,1); }
+
+  .exwiz-body{ padding:26px 24px 6px; }
+  .exwiz-step{ display:none; }
+  .exwiz-step.active{ display:block; animation:exwizIn .4s cubic-bezier(.22,1,.36,1); }
+  @keyframes exwizIn{ from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);} }
+  .exwiz-q{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; margin-bottom:16px; letter-spacing:-.01em; }
+  .exwiz-hint{ font-size:12px; opacity:.5; font-weight:400; text-transform:none; letter-spacing:0; }
+
+  .chip-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .opt-chip{ border:1.5px solid var(--line); border-radius:9999px; padding:8px 15px; font-size:13px; font-weight:600; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .opt-chip:hover{ border-color:var(--mango); }
+  .opt-chip.selected{ background:var(--mango); color:white; border-color:var(--mango); }
+
+  .cat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
+  .cat-card{ border:1.5px solid var(--line); border-radius:13px; padding:13px 8px; text-align:center; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .cat-card:hover{ border-color:var(--mango); transform:translateY(-1px); }
+  .cat-card.selected{ border-color:var(--mango); background:rgba(255,122,69,.08); box-shadow:0 0 0 1px var(--mango) inset; }
+  .cat-card .em{ font-size:19px; display:block; margin-bottom:3px; }
+  .cat-card .tt{ font-size:11.5px; font-weight:600; }
+
+  .exwiz-nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px 22px; gap:12px; border-top:1px solid var(--line); margin-top:14px; }
+  .exwiz-back{ background:none; border:none; font-weight:600; font-size:13px; color:var(--ink); opacity:.55; cursor:pointer; padding:9px 4px; }
+  .exwiz-back:hover{ opacity:1; }
+  .exwiz-back:disabled{ visibility:hidden; }
+  .exwiz-error{ font-size:12px; color:var(--mango-2); margin-top:10px; display:none; }
+  .exwiz-error.show{ display:block; }
+  .exwiz-review{ border:1.5px dashed var(--line); border-radius:14px; padding:16px 18px; background:linear-gradient(135deg, rgba(255,122,69,.04), rgba(30,96,145,.04)); }
+  .exwiz-review-row{ display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .exwiz-review-row:last-child{ border-bottom:none; }
+  .exwiz-review-row .k{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; opacity:.5; padding-top:2px; }
+  .exwiz-review-row .v{ font-weight:600; text-align:right; max-width:65%; }
+
   .settle-member-chip{ display:flex; align-items:center; gap:8px; border:1.5px solid var(--line); border-radius:10px; padding:9px 11px; cursor:pointer; font-size:13px; font-weight:500; transition:.15s; user-select:none; }
   .settle-member-chip:hover{ border-color:rgba(15,38,34,.3); }
   .settle-member-chip.checked{ border-color:var(--mango); background:rgba(255,122,69,.08); }
@@ -511,36 +552,82 @@
       <h3 class="display text-xl font-semibold" id="expenseModalTitle">Add expense</h3>
       <span class="modal-close" onclick="closeModal('expenseModal')">✕</span>
     </div>
-    <form id="expenseForm" class="p-6 grid grid-cols-2 gap-5">
+
+    <div class="exwiz-rail-wrap">
+      <div class="exwiz-rail-top">
+        <span class="exwiz-rail-label">Logging a spend</span>
+        <span class="exwiz-rail-count" id="exwizCount">Step 1 of 4</span>
+      </div>
+      <div class="exwiz-rail">
+        <svg viewBox="0 0 600 24" preserveAspectRatio="none">
+          <path d="M 14 12 L 586 12" class="exwiz-track"/>
+          <path id="exwizProgressPath" d="M 14 12 L 586 12" class="exwiz-progress" stroke-dasharray="572" stroke-dashoffset="572"/>
+          <g id="exwizDots"></g>
+        </svg>
+      </div>
+    </div>
+
+    <form id="expenseForm">
       <input type="hidden" id="e-editing-id" value=""/>
-      <div class="col-span-2"><label>What was it for?</label><input id="e-title" placeholder="e.g. Beach shack dinner" required/></div>
-      <div><label>Amount (₹)</label><input type="number" step="0.01" id="e-amount" placeholder="0.00" required oninput="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"/></div>
-      <div><label>Category</label>
-        <select id="e-category" required>
-          <option>Travel</option><option>Stay</option><option>Food</option>
-          <option>Activities</option><option>Shopping</option><option>Misc</option>
-        </select>
-      </div>
-      <div><label>Paid by</label><select id="e-payer" required></select></div>
-      <div><label>Date</label><input type="date" id="e-date" required/></div>
-      <div class="col-span-2"><label>Split with</label>
-        <select id="e-split" class="w-full" multiple size="6" onchange="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"></select>
-        <p class="text-xs opacity-50 mt-1">Cmd/Ctrl‑click to choose who shares this expense. Leave unselected to split across all 11.</p>
-      </div>
-      <div class="col-span-2">
-        <label>Split method</label>
-        <div class="flex gap-2 p-1 rounded-full w-fit mb-3" style="background:var(--sand)">
-          <span class="wtab-chip active" data-splitmode="equal" onclick="setSplitMode('equal')">Equal — divide amount evenly</span>
-          <span class="wtab-chip" data-splitmode="individual" onclick="setSplitMode('individual')">Individual — enter each amount</span>
+      <!-- source-of-truth fields, kept in sync with the chip pickers below and untouched by the rest of the app's logic -->
+      <select id="e-category" style="display:none;">
+        <option>Travel</option><option>Stay</option><option>Food</option>
+        <option>Activities</option><option>Shopping</option><option>Misc</option>
+      </select>
+      <select id="e-payer" style="display:none;"></select>
+      <select id="e-split" multiple style="display:none;"></select>
+
+      <div class="exwiz-body">
+        <!-- Step 0: what + how much -->
+        <div class="exwiz-step active" data-exstep="0">
+          <p class="exwiz-q">What was it for, and how much?</p>
+          <div class="grid grid-cols-1 gap-4">
+            <div><label>What was it for?</label><input id="e-title" placeholder="e.g. Beach shack dinner"/></div>
+            <div><label>Amount (₹)</label><input type="number" step="0.01" id="e-amount" placeholder="0.00" oninput="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"/></div>
+          </div>
+          <p class="exwiz-error" id="exwiz-err-0">⚠ Add a title and an amount to continue</p>
         </div>
-        <div id="individualSplitBox" style="display:none;">
-          <div id="individualSplitInputs" class="border rounded-xl divide-y" style="border-color:var(--line)"></div>
-          <p class="text-xs mt-2" id="individualSplitTotalNote"></p>
+
+        <!-- Step 1: category, payer, date -->
+        <div class="exwiz-step" data-exstep="1">
+          <p class="exwiz-q">What category, and who paid?</p>
+          <label class="mb-2 block">Category</label>
+          <div class="cat-grid mb-5" id="catChips"></div>
+          <label class="mb-2 block">Paid by</label>
+          <div class="chip-grid mb-5" id="payerChips"></div>
+          <label class="mb-2 block">Date</label>
+          <input type="date" id="e-date" style="max-width:220px;"/>
+          <p class="exwiz-error" id="exwiz-err-1">⚠ Pick who paid to continue</p>
+        </div>
+
+        <!-- Step 2: split -->
+        <div class="exwiz-step" data-exstep="2">
+          <p class="exwiz-q">Who's splitting this?</p>
+          <label class="mb-2 block">Split with <span class="exwiz-hint">— tap to toggle, none picked = everyone</span></label>
+          <div class="chip-grid mb-5" id="splitChips"></div>
+
+          <label class="mb-2 block">Split method</label>
+          <div class="flex gap-2 p-1 rounded-full w-fit mb-3" style="background:var(--sand)">
+            <span class="wtab-chip active" data-splitmode="equal" onclick="setSplitMode('equal')">Equal — divide amount evenly</span>
+            <span class="wtab-chip" data-splitmode="individual" onclick="setSplitMode('individual')">Individual — enter each amount</span>
+          </div>
+          <div id="individualSplitBox" style="display:none;">
+            <div id="individualSplitInputs" class="border rounded-xl divide-y" style="border-color:var(--line)"></div>
+            <p class="text-xs mt-2" id="individualSplitTotalNote"></p>
+          </div>
+        </div>
+
+        <!-- Step 3: review -->
+        <div class="exwiz-step" data-exstep="3">
+          <p class="exwiz-q">Ready to log this?</p>
+          <div class="exwiz-review" id="exwizReview"></div>
         </div>
       </div>
-      <div class="col-span-2 flex gap-3 mt-2">
-        <button type="submit" class="btn-primary flex-1" id="expenseFormSubmit">Add expense</button>
-        <button type="button" class="btn-ghost" onclick="closeModal('expenseModal')">Cancel</button>
+
+      <div class="exwiz-nav">
+        <button type="button" class="exwiz-back" id="exwizBack">← Back</button>
+        <button type="button" class="btn-primary" id="exwizNext">Continue →</button>
+        <button type="submit" class="btn-primary" id="expenseFormSubmit" style="display:none;">Add expense</button>
       </div>
     </form>
   </div>
@@ -658,7 +745,7 @@
 =============================================================*/
 const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw-REsFBC-1cveEfv8SxTP49ff2iGt_S_YGaklYXslldB0xCYqxSkZ8ZD_SLJi41pVPDg/exec";
 const PARTICIPANTS = [
-  "Shubham Kumar","Divya Tanu Raj","Apoorv Pratik","Nikhil Agrawal","Tanmay Singh",
+  "Shubham Kumar","Divya Tanu Raj","Apoorv Pratik","Nikhil Agrawal","Tanmay Singh","Niranjan Chougule",
   "Pratiksha K","Ritu","Rudra","Vikash Kumar","Hritik Saho","Divya Kumari"
 ];
 const CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
@@ -864,6 +951,153 @@ function populateSelects(){
 }
 populateSelects();
 
+/* ============================================================
+   EXPENSE WIZARD — chip pickers that mirror the hidden selects
+   (#e-category, #e-payer, #e-split) so every existing balance /
+   split calc that reads those selects keeps working untouched.
+=============================================================*/
+const CATEGORY_EMOJI = {Travel:'🚆', Stay:'🏡', Food:'🍛', Activities:'🏖️', Shopping:'🛍️', Misc:'✨'};
+
+function renderCategoryChips(){
+  const box = document.getElementById('catChips');
+  const sel = document.getElementById('e-category');
+  box.innerHTML = CATEGORIES.map(c=>`
+    <div class="cat-card" data-value="${c}"><span class="em">${CATEGORY_EMOJI[c]||'✨'}</span><span class="tt">${c}</span></div>
+  `).join('');
+  Array.from(box.children).forEach(card=>{
+    card.addEventListener('click', ()=>{
+      sel.value = card.dataset.value;
+      Array.from(box.children).forEach(c=>c.classList.toggle('selected', c===card));
+    });
+  });
+}
+function syncCategoryChips(){
+  const box = document.getElementById('catChips');
+  const val = document.getElementById('e-category').value;
+  Array.from(box.children).forEach(c=>c.classList.toggle('selected', c.dataset.value===val));
+}
+
+function renderPayerChips(){
+  const box = document.getElementById('payerChips');
+  const sel = document.getElementById('e-payer');
+  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${p}">${p}</div>`).join('');
+  Array.from(box.children).forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      sel.value = chip.dataset.value;
+      Array.from(box.children).forEach(c=>c.classList.toggle('selected', c===chip));
+      document.getElementById('exwiz-err-1').classList.remove('show');
+    });
+  });
+}
+function syncPayerChips(){
+  const box = document.getElementById('payerChips');
+  const val = document.getElementById('e-payer').value;
+  Array.from(box.children).forEach(c=>c.classList.toggle('selected', c.dataset.value===val));
+}
+
+function renderSplitChips(){
+  const box = document.getElementById('splitChips');
+  const sel = document.getElementById('e-split');
+  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${p}">${p}</div>`).join('');
+  Array.from(box.children).forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const opt = Array.from(sel.options).find(o=>o.value===chip.dataset.value);
+      if(opt) opt.selected = !opt.selected;
+      chip.classList.toggle('selected', opt ? opt.selected : false);
+      if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
+    });
+  });
+}
+function syncSplitChips(){
+  const box = document.getElementById('splitChips');
+  const selected = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
+  Array.from(box.children).forEach(c=>c.classList.toggle('selected', selected.includes(c.dataset.value)));
+}
+renderCategoryChips();
+renderPayerChips();
+renderSplitChips();
+
+/* ---- step navigation ---- */
+const EXWIZ_STEPS = 4;
+const EXWIZ_RAIL_LEN = 572;
+let exwizCurrentStep = 0;
+const exwizDotXs = [];
+(function buildExwizDots(){
+  const g = document.getElementById('exwizDots');
+  for(let i=0;i<EXWIZ_STEPS;i++){
+    const x = 14 + (EXWIZ_RAIL_LEN * i/(EXWIZ_STEPS-1));
+    exwizDotXs.push(x);
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', 12); c.setAttribute('r', 3.2);
+    c.setAttribute('id', 'exwizDot'+i);
+    g.appendChild(c);
+  }
+})();
+function exwizUpdateRail(){
+  const pct = exwizCurrentStep/(EXWIZ_STEPS-1);
+  document.getElementById('exwizProgressPath').setAttribute('stroke-dashoffset', String(EXWIZ_RAIL_LEN - EXWIZ_RAIL_LEN*pct));
+  exwizDotXs.forEach((x,i)=>{
+    const dot = document.getElementById('exwizDot'+i);
+    if(!dot) return;
+    dot.setAttribute('fill', i < exwizCurrentStep ? 'var(--mango)' : i===exwizCurrentStep ? 'var(--paper)' : 'rgba(239,230,214,.35)');
+    dot.setAttribute('stroke', i===exwizCurrentStep ? 'var(--mango)' : 'none');
+    dot.setAttribute('stroke-width', i===exwizCurrentStep ? '2' : '0');
+    dot.setAttribute('r', i===exwizCurrentStep ? '4' : '3.2');
+  });
+  document.getElementById('exwizCount').textContent = `Step ${exwizCurrentStep+1} of ${EXWIZ_STEPS}`;
+}
+function exwizShowStep(i){
+  exwizCurrentStep = i;
+  document.querySelectorAll('.exwiz-step').forEach(p=>p.classList.toggle('active', Number(p.dataset.exstep)===i));
+  document.getElementById('exwizBack').disabled = i===0;
+  const isLast = i === EXWIZ_STEPS-1;
+  document.getElementById('exwizNext').style.display = isLast ? 'none' : 'inline-flex';
+  document.getElementById('expenseFormSubmit').style.display = isLast ? 'inline-flex' : 'none';
+  if(isLast) exwizRenderReview();
+  exwizUpdateRail();
+}
+function exwizValidateStep(i){
+  if(i===0){
+    const ok = !!document.getElementById('e-title').value.trim() && Number(document.getElementById('e-amount').value) > 0;
+    document.getElementById('exwiz-err-0').classList.toggle('show', !ok);
+    return ok;
+  }
+  if(i===1){
+    const ok = !!document.getElementById('e-payer').value;
+    document.getElementById('exwiz-err-1').classList.toggle('show', !ok);
+    return ok;
+  }
+  return true;
+}
+function exwizRenderReview(){
+  const title = document.getElementById('e-title').value.trim();
+  const amount = Number(document.getElementById('e-amount').value)||0;
+  const category = document.getElementById('e-category').value;
+  const payer = document.getElementById('e-payer').value;
+  const date = document.getElementById('e-date').value;
+  let split = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
+  const splitLabel = split.length === 0 ? 'Everyone (11)' : `${split.length} people`;
+  const rows = [
+    ['What', title || '—'],
+    ['Amount', `₹${amount.toFixed(2)}`],
+    ['Category', category],
+    ['Paid by', payer],
+    ['Date', date || '—'],
+    ['Split with', splitLabel],
+    ['Method', currentSplitMode()==='individual' ? 'Individual amounts' : 'Equal split'],
+  ];
+  document.getElementById('exwizReview').innerHTML = rows.map(([k,v])=>`
+    <div class="exwiz-review-row"><span class="k">${k}</span><span class="v">${v}</span></div>
+  `).join('');
+}
+document.getElementById('exwizNext').addEventListener('click', ()=>{
+  if(!exwizValidateStep(exwizCurrentStep)) return;
+  if(exwizCurrentStep < EXWIZ_STEPS-1) exwizShowStep(exwizCurrentStep+1);
+});
+document.getElementById('exwizBack').addEventListener('click', ()=>{
+  if(exwizCurrentStep > 0) exwizShowStep(exwizCurrentStep-1);
+});
+
 function currentSplitMode(){
   const active = document.querySelector('[data-splitmode].active');
   return active ? active.dataset.splitmode : 'equal';
@@ -911,7 +1145,15 @@ function openExpenseModal(){
   document.getElementById('e-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('expenseModalTitle').textContent = 'Add expense';
   document.getElementById('expenseFormSubmit').textContent = 'Add expense';
+  document.getElementById('e-category').value = CATEGORIES[0];
+  document.getElementById('e-payer').value = PARTICIPANTS[0];
+  syncCategoryChips();
+  syncPayerChips();
+  syncSplitChips();
+  document.getElementById('exwiz-err-0').classList.remove('show');
+  document.getElementById('exwiz-err-1').classList.remove('show');
   setSplitMode('equal');
+  exwizShowStep(0);
   openModal('expenseModal');
 }
 function startEditExpense(id){
@@ -926,8 +1168,14 @@ function startEditExpense(id){
   Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   document.getElementById('expenseModalTitle').textContent = 'Edit expense';
   document.getElementById('expenseFormSubmit').textContent = 'Save changes';
+  syncCategoryChips();
+  syncPayerChips();
+  syncSplitChips();
+  document.getElementById('exwiz-err-0').classList.remove('show');
+  document.getElementById('exwiz-err-1').classList.remove('show');
   setSplitMode(ex.splitType === 'individual' ? 'individual' : 'equal');
   if(ex.splitType === 'individual' && ex.splitAmounts) refreshIndividualSplitInputs(ex.splitAmounts);
+  exwizShowStep(0);
   closeModal('detailModal');
   openModal('expenseModal');
 }

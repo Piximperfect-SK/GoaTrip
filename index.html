@@ -149,13 +149,76 @@ label{font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--teal-80
 .reg-status.pending{color:#8A7326;}
 #registerClosedNote{display:none;}
 #registerClosedNote.show{display:block;}
-#registerFormWrap.hidden-by-toggle{display:none;}
+#registerForm.hidden-by-toggle{display:none;}
 .reg-banner{border-radius:12px; padding:12px 16px; font-size:13px;}
 .reg-banner.err{background:#FBEAE4; color:#8A2E12; border:1px solid #F0BCA7;}
 .reg-banner.ok{background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4;}
 .field-row{display:flex; flex-direction:column; gap:6px;}
 textarea{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; background:var(--paper); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; transition:.15s; resize:vertical; min-height:80px;}
 textarea:focus{border-color:var(--mango);}
+
+/* ---------- Register: rail-progress wizard ---------- */
+#registerWizard{max-width:640px; margin:0 auto; background:var(--paper); border:1px solid var(--line); border-radius:20px; overflow:hidden; box-shadow:0 30px 70px -35px rgba(15,38,34,.4);}
+.wiz-rail-wrap{background:var(--teal-900); padding:22px 26px 26px;}
+.wiz-rail-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.wiz-rail-label{font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:rgba(239,230,214,.55);}
+.wiz-rail-count{font-family:'Space Mono',monospace; font-size:11px; color:var(--sand); opacity:.85;}
+.wiz-rail{position:relative; height:30px;}
+.wiz-rail svg{width:100%; height:100%; overflow:visible; display:block;}
+.wiz-rail-track{stroke:rgba(239,230,214,.22); stroke-width:2; stroke-dasharray:1 9; stroke-linecap:round;}
+.wiz-rail-progress{stroke:var(--mango); stroke-width:2.5; stroke-linecap:round; transition:stroke-dashoffset .5s cubic-bezier(.65,0,.35,1);}
+.wiz-rail-dot{transition:.35s cubic-bezier(.65,0,.35,1);}
+.wiz-rail-loco{transition:offset-distance .5s cubic-bezier(.65,0,.35,1); offset-rotate:0deg;}
+
+.wiz-body{padding:34px 26px 26px;}
+@media (min-width:640px){ .wiz-body{padding:44px 44px 32px;} }
+.wiz-step-panel{display:none;}
+.wiz-step-panel.active{display:block; animation:wizIn .5s cubic-bezier(.22,1,.36,1);}
+@keyframes wizIn{from{opacity:0; transform:translateX(26px);} to{opacity:1; transform:translateX(0);}}
+.wiz-eyebrow{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--mango-2); margin-bottom:8px;}
+.wiz-question{font-family:'Fraunces',serif; font-size:26px; font-weight:600; letter-spacing:-0.01em; line-height:1.25; margin-bottom:22px;}
+@media (min-width:640px){ .wiz-question{font-size:30px;} }
+.wiz-input{width:100%; font-size:21px; padding:10px 2px 12px; border:none; border-bottom:2px solid var(--line); border-radius:0; background:transparent; font-family:'Space Grotesk',sans-serif; outline:none; transition:.2s;}
+.wiz-input:focus{border-color:var(--mango);}
+.wiz-input::placeholder{color:rgba(15,38,34,.32);}
+.wiz-hint{font-size:12.5px; opacity:.55; margin-top:10px;}
+.wiz-error{font-size:12.5px; color:var(--mango-2); margin-top:10px; display:none; align-items:center; gap:6px;}
+.wiz-error.show{display:flex;}
+
+.choice-grid{display:grid; gap:10px;}
+.choice-card{border:1.5px solid var(--line); border-radius:13px; padding:15px 16px; cursor:pointer; transition:.18s ease; display:flex; align-items:center; gap:12px; background:white;}
+.choice-card:hover{border-color:var(--mango); transform:translateY(-1px);}
+.choice-card .em{font-size:19px; flex-shrink:0; width:24px; text-align:center;}
+.choice-card .tx{flex:1;}
+.choice-card .tt{font-weight:600; font-size:14.5px;}
+.choice-card .ss{font-size:12px; opacity:.55; margin-top:1px;}
+.choice-card .ck{width:19px; height:19px; border-radius:9999px; border:1.5px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:.18s;}
+.choice-card.selected{border-color:var(--mango); background:rgba(255,122,69,.07); box-shadow:0 0 0 1px var(--mango) inset;}
+.choice-card.selected .ck{background:var(--mango); border-color:var(--mango);}
+.choice-card.selected .ck::after{content:''; width:7px; height:7px; border-radius:9999px; background:white;}
+
+.wiz-textarea{width:100%; min-height:110px; border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; background:white; font-family:'Space Grotesk',sans-serif; font-size:14.5px; outline:none; resize:vertical; transition:.15s;}
+.wiz-textarea:focus{border-color:var(--mango);}
+
+.wiz-review{border:1.5px dashed var(--line); border-radius:14px; padding:18px 20px; margin-top:4px; background:linear-gradient(135deg, rgba(255,122,69,.04), rgba(30,96,145,.04));}
+.wiz-review-row{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+.wiz-review-row:last-child{border-bottom:none;}
+.wiz-review-row .k{font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; opacity:.5; padding-top:2px;}
+.wiz-review-row .v{font-weight:600; text-align:right; max-width:60%;}
+.wiz-review-row .v.empty{opacity:.35; font-weight:400; font-style:italic;}
+.wiz-edit{font-family:'Space Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--azulejo); cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+
+.wiz-nav{display:flex; align-items:center; justify-content:space-between; padding:20px 26px 28px; gap:14px;}
+@media (min-width:640px){ .wiz-nav{padding:20px 44px 34px;} }
+.wiz-btn-back{background:none; border:none; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink); opacity:.55; cursor:pointer; padding:10px 6px; transition:.15s;}
+.wiz-btn-back:hover{opacity:1;}
+.wiz-btn-back:disabled{visibility:hidden;}
+.wiz-btn-next{background:var(--mango); color:white; font-weight:600; border-radius:9999px; padding:13px 28px; border:none; cursor:pointer; transition:.2s; font-size:14px; display:inline-flex; align-items:center; gap:8px;}
+.wiz-btn-next:hover{background:var(--mango-2); transform:translateY(-1px);}
+.wiz-btn-next:disabled{background:#B8B0A2; cursor:not-allowed; transform:none;}
+.wiz-success{padding:50px 26px 46px; text-align:center;}
+.wiz-success .stampwrap{width:64px; height:64px; border-radius:9999px; background:rgba(62,124,89,.12); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; font-size:28px; animation:wizPop .5s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes wizPop{from{transform:scale(0); opacity:0;} to{transform:scale(1); opacity:1;}}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important; scroll-behavior:auto !important; animation:none !important;}}
 
@@ -379,44 +442,108 @@ textarea:focus{border-color:var(--mango);}
 
     <div id="registerBanner"></div>
 
-    <form id="registerForm" class="card p-6 md:p-8 grid sm:grid-cols-2 gap-5">
-      <div class="field-row sm:col-span-2">
-        <label>Full name *</label>
-        <input type="text" id="reg-name" required placeholder="As you'd like it on the boarding pass" />
+    <form id="registerForm" novalidate>
+      <div id="registerWizard">
+        <!-- rail progress -->
+        <div class="wiz-rail-wrap">
+          <div class="wiz-rail-top">
+            <span class="wiz-rail-label">Pune → Londa → Goa</span>
+            <span class="wiz-rail-count" id="wizCount">Step 1 of 5</span>
+          </div>
+          <div class="wiz-rail">
+            <svg viewBox="0 0 600 30" preserveAspectRatio="none">
+              <path id="wizTrackPath" d="M 16 15 L 584 15" class="wiz-rail-track"/>
+              <path id="wizProgressPath" d="M 16 15 L 584 15" class="wiz-rail-progress" stroke-dasharray="568" stroke-dashoffset="568"/>
+              <g id="wizDots"></g>
+              <text id="wizLoco" x="16" y="6" font-size="14" text-anchor="middle" class="wiz-rail-loco">🚂</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="wiz-body">
+          <!-- Step 0: name -->
+          <div class="wiz-step-panel active" data-step="0">
+            <p class="wiz-eyebrow">01 · Introductions</p>
+            <p class="wiz-question">What's your name?</p>
+            <input type="text" id="reg-name" class="wiz-input" placeholder="Full name, as on your boarding pass" autocomplete="name"/>
+            <p class="wiz-error" id="err-name">⚠ Please enter your name to continue</p>
+            <p class="wiz-hint">This is exactly how it'll print on your generated boarding pass.</p>
+          </div>
+
+          <!-- Step 1: phone + email -->
+          <div class="wiz-step-panel" data-step="1">
+            <p class="wiz-eyebrow">02 · Stay reachable</p>
+            <p class="wiz-question">What's the best number to reach you on?</p>
+            <input type="tel" id="reg-phone" class="wiz-input" placeholder="10-digit mobile number" autocomplete="tel"/>
+            <p class="wiz-error" id="err-phone">⚠ We need a phone number for the cab / room plan</p>
+            <label class="wiz-hint block mt-6 mb-2" style="text-transform:none; font-size:12.5px; opacity:.6;">Email (optional)</label>
+            <input type="email" id="reg-email" class="wiz-input" placeholder="you@example.com" autocomplete="email" style="font-size:16px;"/>
+          </div>
+
+          <!-- Step 2: travelling from -->
+          <div class="wiz-step-panel" data-step="2">
+            <p class="wiz-eyebrow">03 · Route</p>
+            <p class="wiz-question">Where are you joining from?</p>
+            <div class="choice-grid" id="choiceFrom">
+              <div class="choice-card" data-value="Pune (with the group train)">
+                <span class="em">🚆</span>
+                <span class="tx"><span class="tt">Pune, with the group train</span><span class="ss block">Boarding together at Pune station</span></span>
+                <span class="ck"></span>
+              </div>
+              <div class="choice-card" data-value="Joining directly in Goa">
+                <span class="em">📍</span>
+                <span class="tx"><span class="tt">Joining directly in Goa</span><span class="ss block">Meeting the group at the villa</span></span>
+                <span class="ck"></span>
+              </div>
+              <div class="choice-card" data-value="Other / TBD">
+                <span class="em">❓</span>
+                <span class="tx"><span class="tt">Other / still figuring it out</span><span class="ss block">We'll follow up with you</span></span>
+                <span class="ck"></span>
+              </div>
+            </div>
+            <input type="hidden" id="reg-from" value="Pune (with the group train)"/>
+          </div>
+
+          <!-- Step 3: food -->
+          <div class="wiz-step-panel" data-step="3">
+            <p class="wiz-eyebrow">04 · Meals</p>
+            <p class="wiz-question">Any food preference for the group orders?</p>
+            <div class="choice-grid" id="choiceFood">
+              <div class="choice-card" data-value="No preference"><span class="em">🍽️</span><span class="tx"><span class="tt">No preference</span></span><span class="ck"></span></div>
+              <div class="choice-card" data-value="Vegetarian"><span class="em">🥗</span><span class="tx"><span class="tt">Vegetarian</span></span><span class="ck"></span></div>
+              <div class="choice-card" data-value="Non-vegetarian"><span class="em">🍗</span><span class="tx"><span class="tt">Non-vegetarian</span></span><span class="ck"></span></div>
+              <div class="choice-card" data-value="Vegan"><span class="em">🌱</span><span class="tx"><span class="tt">Vegan</span></span><span class="ck"></span></div>
+              <div class="choice-card" data-value="Jain"><span class="em">🍋</span><span class="tx"><span class="tt">Jain</span></span><span class="ck"></span></div>
+            </div>
+            <input type="hidden" id="reg-food" value="No preference"/>
+          </div>
+
+          <!-- Step 4: notes + review -->
+          <div class="wiz-step-panel" data-step="4">
+            <p class="wiz-eyebrow">05 · Last stop</p>
+            <p class="wiz-question">Anything organisers should know?</p>
+            <textarea id="reg-notes" class="wiz-textarea" placeholder="Allergies, arrival time, sharing a room with someone specific, etc. — optional"></textarea>
+
+            <div class="wiz-review mt-6" id="wizReview"></div>
+          </div>
+        </div>
+
+        <div class="wiz-nav">
+          <button type="button" class="wiz-btn-back" id="wizBack">← Back</button>
+          <button type="button" class="wiz-btn-next" id="wizNext">Continue →</button>
+          <button type="submit" id="regSubmitBtn" class="wiz-btn-next" style="display:none;">Confirm & submit 🎟️</button>
+        </div>
       </div>
-      <div class="field-row">
-        <label>Phone *</label>
-        <input type="text" id="reg-phone" required placeholder="For the group cab / room plan" />
-      </div>
-      <div class="field-row">
-        <label>Email</label>
-        <input type="email" id="reg-email" placeholder="Optional" />
-      </div>
-      <div class="field-row">
-        <label>Travelling from</label>
-        <select id="reg-from">
-          <option value="Pune (with the group train)">Pune (with the group train)</option>
-          <option value="Joining directly in Goa">Joining directly in Goa</option>
-          <option value="Other / TBD">Other / TBD</option>
-        </select>
-      </div>
-      <div class="field-row">
-        <label>Food preference</label>
-        <select id="reg-food">
-          <option>No preference</option>
-          <option>Vegetarian</option>
-          <option>Non-vegetarian</option>
-          <option>Vegan</option>
-          <option>Jain</option>
-        </select>
-      </div>
-      <div class="field-row sm:col-span-2">
-        <label>Anything organisers should know</label>
-        <textarea id="reg-notes" placeholder="Allergies, arrival time, sharing a room with someone specific, etc."></textarea>
-      </div>
-      <div class="sm:col-span-2 flex flex-wrap items-center gap-4 mt-1">
-        <button type="submit" id="regSubmitBtn" class="btn-primary">Submit registration</button>
-        <span id="regSubmitStatus" class="mono text-xs opacity-60"></span>
+      <p id="regSubmitStatus" class="mono text-xs opacity-60 text-center mt-4"></p>
+
+      <div id="wizSuccess" class="wiz-success" style="display:none;">
+        <div class="stampwrap">✅</div>
+        <p class="display text-2xl font-semibold mb-2">You're on the list<span id="wizSuccessName"></span>.</p>
+        <p class="opacity-70 text-sm max-w-sm mx-auto mb-6">Head over to the Boarding Pass page next to generate your own pass to keep or screenshot.</p>
+        <div class="flex items-center justify-center gap-3 flex-wrap">
+          <a href="boarding-pass.html" class="btn-primary inline-block">Go to Boarding Pass →</a>
+          <button type="button" class="btn-ghost" id="wizAnotherBtn">Register someone else</button>
+        </div>
       </div>
     </form>
 
@@ -632,8 +759,141 @@ async function loadRegistrationStatus(){
 }
 loadRegistrationStatus();
 
+/* ============================================================
+   REGISTRATION WIZARD — rail-progress, one question at a time
+=============================================================*/
+const wizPanels = Array.from(document.querySelectorAll('.wiz-step-panel'));
+const wizNextBtn = document.getElementById('wizNext');
+const wizBackBtn = document.getElementById('wizBack');
+const wizSubmitBtn = document.getElementById('regSubmitBtn');
+const wizCount = document.getElementById('wizCount');
+const wizDotsG = document.getElementById('wizDots');
+const wizProgressPath = document.getElementById('wizProgressPath');
+const wizLoco = document.getElementById('wizLoco');
+const wizReview = document.getElementById('wizReview');
+const wizSuccess = document.getElementById('wizSuccess');
+const wizAnotherBtn = document.getElementById('wizAnotherBtn');
+const TOTAL_STEPS = wizPanels.length;
+const RAIL_LEN = 568;
+let currentStep = 0;
+
+const dotXs = [];
+for(let i=0;i<TOTAL_STEPS;i++){
+  const x = 16 + (RAIL_LEN * i/(TOTAL_STEPS-1));
+  dotXs.push(x);
+  const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx', x); c.setAttribute('cy', 15); c.setAttribute('r', 3.5);
+  c.setAttribute('id', 'wizDot'+i);
+  wizDotsG.appendChild(c);
+}
+
+function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function updateRail(){
+  const pct = TOTAL_STEPS>1 ? currentStep/(TOTAL_STEPS-1) : 0;
+  wizProgressPath.setAttribute('stroke-dashoffset', String(RAIL_LEN - RAIL_LEN*pct));
+  wizLoco.setAttribute('x', String(dotXs[currentStep]));
+  dotXs.forEach((x,i)=>{
+    const dot = document.getElementById('wizDot'+i);
+    if(!dot) return;
+    dot.setAttribute('fill', i < currentStep ? 'var(--mango)' : i===currentStep ? 'var(--paper)' : 'rgba(239,230,214,.35)');
+    dot.setAttribute('stroke', i===currentStep ? 'var(--mango)' : 'none');
+    dot.setAttribute('stroke-width', i===currentStep ? '2' : '0');
+    dot.setAttribute('r', i===currentStep ? '4.5' : '3.5');
+  });
+  wizCount.textContent = `Step ${currentStep+1} of ${TOTAL_STEPS}`;
+}
+
+function showStep(i){
+  wizPanels.forEach(p=>p.classList.toggle('active', Number(p.dataset.step)===i));
+  wizBackBtn.disabled = i===0;
+  const isLast = i === TOTAL_STEPS-1;
+  wizNextBtn.style.display = isLast ? 'none' : 'inline-flex';
+  wizSubmitBtn.style.display = isLast ? 'inline-flex' : 'none';
+  if(isLast) renderReview();
+  updateRail();
+  const panel = wizPanels[i];
+  const input = panel.querySelector('input[type=text], input[type=tel], input[type=email], textarea');
+  if(input) setTimeout(()=>input.focus({preventScroll:true}), 60);
+}
+
+function validateStep(i){
+  if(i===0){
+    const ok = !!document.getElementById('reg-name').value.trim();
+    document.getElementById('err-name').classList.toggle('show', !ok);
+    return ok;
+  }
+  if(i===1){
+    const ok = !!document.getElementById('reg-phone').value.trim();
+    document.getElementById('err-phone').classList.toggle('show', !ok);
+    return ok;
+  }
+  return true;
+}
+
+wizNextBtn.addEventListener('click', ()=>{
+  if(!validateStep(currentStep)) return;
+  if(currentStep < TOTAL_STEPS-1){ currentStep++; showStep(currentStep); }
+});
+wizBackBtn.addEventListener('click', ()=>{
+  if(currentStep>0){ currentStep--; showStep(currentStep); }
+});
+document.querySelectorAll('#registerWizard .wiz-input').forEach(inp=>{
+  inp.addEventListener('keydown', e=>{
+    if(e.key==='Enter'){ e.preventDefault(); wizNextBtn.click(); }
+  });
+});
+
+function wireChoiceGroup(groupId, hiddenId){
+  const group = document.getElementById(groupId);
+  const hidden = document.getElementById(hiddenId);
+  const cards = Array.from(group.querySelectorAll('.choice-card'));
+  function select(card){
+    cards.forEach(c=>c.classList.toggle('selected', c===card));
+    hidden.value = card.dataset.value;
+  }
+  cards.forEach(c=>c.addEventListener('click', ()=>select(c)));
+  select(cards[0]);
+}
+wireChoiceGroup('choiceFrom','reg-from');
+wireChoiceGroup('choiceFood','reg-food');
+
+function renderReview(){
+  const rows = [
+    ['Name', document.getElementById('reg-name').value.trim()],
+    ['Phone', document.getElementById('reg-phone').value.trim()],
+    ['Email', document.getElementById('reg-email').value.trim()],
+    ['From', document.getElementById('reg-from').value],
+    ['Food', document.getElementById('reg-food').value],
+  ];
+  wizReview.innerHTML = rows.map(([k,v])=>`
+    <div class="wiz-review-row"><span class="k">${k}</span><span class="v ${v?'':'empty'}">${v ? escapeHtml(v) : '—'}</span></div>
+  `).join('');
+}
+
+function resetWizard(){
+  registerForm.reset();
+  document.querySelectorAll('#choiceFrom .choice-card, #choiceFood .choice-card').forEach(c=>c.classList.remove('selected'));
+  wireChoiceGroup('choiceFrom','reg-from');
+  wireChoiceGroup('choiceFood','reg-food');
+  document.getElementById('err-name').classList.remove('show');
+  document.getElementById('err-phone').classList.remove('show');
+  currentStep = 0;
+  showStep(0);
+  document.getElementById('registerWizard').style.display = '';
+  wizSuccess.style.display = 'none';
+}
+wizAnotherBtn?.addEventListener('click', resetWizard);
+
+showStep(0);
+
 registerForm?.addEventListener('submit', async (e)=>{
   e.preventDefault();
+  if(!validateStep(0) || !validateStep(1)){
+    currentStep = !document.getElementById('reg-name').value.trim() ? 0 : 1;
+    showStep(currentStep);
+    return;
+  }
   if(!registrationOpen){ setRegBanner('err','Registration is closed right now.'); return; }
   const payload = {
     name: document.getElementById('reg-name').value.trim(),
@@ -643,10 +903,10 @@ registerForm?.addEventListener('submit', async (e)=>{
     food: document.getElementById('reg-food').value,
     notes: document.getElementById('reg-notes').value.trim(),
   };
-  if(!payload.name || !payload.phone){ setRegBanner('err','Name and phone are required.'); return; }
-  const btn = document.getElementById('regSubmitBtn');
+  const btn = wizSubmitBtn;
   const status = document.getElementById('regSubmitStatus');
-  btn.disabled = true; status.textContent = 'Submitting…';
+  const originalLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Submitting…'; status.textContent = '';
   try{
     const res = await fetch(BACKEND_ENDPOINT, {
       method:'POST',
@@ -655,12 +915,12 @@ registerForm?.addEventListener('submit', async (e)=>{
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-    setRegBanner('ok', `Thanks, ${payload.name.split(' ')[0]} — you're on the list. Head over to the Boarding Pass page next.`);
-    registerForm.reset();
-    status.textContent = '';
+    document.getElementById('registerWizard').style.display = 'none';
+    document.getElementById('wizSuccessName').textContent = `, ${payload.name.split(' ')[0]}`;
+    wizSuccess.style.display = 'block';
   }catch(err){
     setRegBanner('err', `Couldn't submit — ${err.message}. Please try again in a moment.`);
-    status.textContent = '';
+    btn.textContent = originalLabel;
   }
   btn.disabled = false;
 });
