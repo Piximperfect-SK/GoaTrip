@@ -46,6 +46,11 @@ label{font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppe
 .banner.err{background:#FBEAE4; color:#8A2E12; border:1px solid #F0BCA7;}
 .banner.ok{background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4;}
 .banner.warn{background:#FBF3DC; color:#7A5A05; border:1px solid #EFD98C;}
+.itin-hero{position:relative; height:180px; border-radius:0 0 22px 22px; overflow:hidden; margin-bottom:22px;}
+.itin-hero video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+.itin-hero::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.35), rgba(11,61,58,.85));}
+.itin-hero .itin-hero-text{position:absolute; left:20px; right:20px; bottom:16px; z-index:1; color:var(--sand);}
+@media(max-width:640px){.itin-hero{height:140px;}}
 </style>
 </head>
 <body>
@@ -65,7 +70,16 @@ label{font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppe
   </div>
 </div>
 
-<div class="max-w-4xl mx-auto px-5 md:px-8 py-8 pb-28">
+<div class="max-w-4xl mx-auto px-5 md:px-8 pb-28">
+  <div class="itin-hero">
+    <video autoplay muted loop playsinline preload="metadata" onerror="this.style.display='none'">
+      <source src="videos/3.mp4" type="video/mp4">
+    </video>
+    <div class="itin-hero-text">
+      <p class="mono text-[10px] tracking-widest opacity-80">ROUTE · PUNE → LONDA → GOA</p>
+      <p class="display text-xl font-semibold">Plan the days on the ground.</p>
+    </div>
+  </div>
   <div id="bannerZone" class="mb-5"></div>
 
   <p class="opacity-70 max-w-xl mb-6 text-sm">

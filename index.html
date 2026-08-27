@@ -54,6 +54,10 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 /* ---------- Hero (cinematic photo, kudanil-style) ---------- */
 .hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; color:var(--sand);}
 .hero-bg{position:absolute; inset:0; background-size:cover; background-position:center 68%; animation:kenburns 26s ease-in-out infinite alternate; z-index:0;}
+.hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0;}
+.team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
+.team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.28;}
+.team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.55), rgba(11,61,58,.88) 70%, var(--teal-900) 100%);}
 @keyframes kenburns{from{transform:scale(1.06) translate(0,0);} to{transform:scale(1.16) translate(-1.5%,-1%);}}
 .hero-scrim{position:absolute; inset:0; z-index:1; background:
   linear-gradient(180deg, rgba(6,26,24,.55) 0%, rgba(6,26,24,.15) 30%, rgba(6,26,24,.35) 62%, rgba(6,26,24,.92) 100%);}
@@ -268,6 +272,9 @@ textarea:focus{border-color:var(--mango);}
 <!-- ============ HERO ============ -->
 <header class="hero">
   <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=1800&auto=format&fit=crop&q=80')"></div>
+  <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=1800&auto=format&fit=crop&q=80" onerror="this.style.display='none'">
+    <source src="videos/1.mp4" type="video/mp4">
+  </video>
   <div class="hero-scrim"></div>
   <div class="hero-blob hero-blob-a"></div>
   <div class="hero-blob hero-blob-b"></div>
@@ -320,15 +327,21 @@ textarea:focus{border-color:var(--mango);}
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">01 — COASTLINE</p><p class="display text-lg font-semibold">Coves you can't reach by road.</p></div>
     </div>
     <div class="gallery-item">
-      <img src="https://images.unsplash.com/photo-1695411560235-595738c0dbda?w=900&auto=format&fit=crop&q=80" alt="Coconut palm trees silhouetted at a quiet South Goa beach">
+      <video autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1695411560235-595738c0dbda?w=900&auto=format&fit=crop&q=80" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))" style="width:100%;height:100%;object-fit:cover;">
+        <source src="videos/4.mp4" type="video/mp4">
+      </video>
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">02 — PALMS</p><p class="display text-lg font-semibold">Shade for the slow afternoons.</p></div>
     </div>
     <div class="gallery-item">
-      <img src="https://images.unsplash.com/photo-1581274303758-ac1a191cea4a?w=900&auto=format&fit=crop&q=80" alt="Railway tracks disappearing toward the horizon, an Indian overnight-train route">
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE RAILS</p><p class="display text-lg font-semibold">Sleep through the Ghats.</p></div>
+      <video autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1581274303758-ac1a191cea4a?w=900&auto=format&fit=crop&q=80" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Car threading through jungle road toward the coast'}))" style="width:100%;height:100%;object-fit:cover;">
+        <source src="videos/3.mp4" type="video/mp4">
+      </video>
+      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE DRIVE</p><p class="display text-lg font-semibold">Jungle roads to the shore.</p></div>
     </div>
     <div class="gallery-item">
-      <img src="https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=900&h=1100&auto=format&fit=crop&crop=bottom&q=80" alt="Waves meeting the shoreline at sunset on the Goan coast">
+      <video autoplay muted loop playsinline preload="metadata" poster="https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=900&h=1100&auto=format&fit=crop&crop=bottom&q=80" onerror="this.replaceWith(Object.assign(new Image(),{src:this.poster,alt:'Golden sunset sky with birds in flight over the sea'}))" style="width:100%;height:100%;object-fit:cover;">
+        <source src="videos/2.mp4" type="video/mp4">
+      </video>
       <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">04 — TIDE LINE</p><p class="display text-lg font-semibold">Sunset walk, every evening.</p></div>
     </div>
     <div class="gallery-item">
@@ -565,8 +578,13 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ TEAM ============ -->
-<section id="team" class="py-24 px-5 md:px-10" style="background:var(--teal-900); color:var(--sand)">
-  <div class="max-w-5xl mx-auto">
+<section id="team" class="py-24 px-5 md:px-10" style="background:var(--teal-900); color:var(--sand); position:relative; overflow:hidden;">
+  <div class="team-video-wrap">
+    <video autoplay muted loop playsinline preload="metadata" onerror="this.style.display='none'">
+      <source src="videos/5.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="max-w-5xl mx-auto" style="position:relative; z-index:1;">
     <div class="section-num mb-4"><span>05</span><span class="rule"></span><span>Who's running this</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12">The crew.</h2>
     <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
