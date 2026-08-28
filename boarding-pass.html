@@ -10,28 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
-  :root{
-    --ink:#0F2622;
-    --teal-900:#0B3D3A;
-    --teal-800:#123F3C;
-    --teal-700:#1A544F;
-    --sand:#EFE6D6;
-    --sand-2:#E4D8C2;
-    --paper:#FBF6EC;
-    --mango:#FF7A45;
-    --mango-2:#E85D2A;
-    --line: rgba(15,38,34,0.14);
-
-    /* boarding pass tokens */
-    --bp-ink:#0B2340;
-    --bp-brass:#C9A227;
-    --bp-rust:#B4472F;
-    --bp-slate:#5B6472;
-    --bp-line:#D8D2C2;
-    --bp-cardbg:#FFFFFF;
-    --bp-stubtext:#F7F4EC;
-  }
+  /* shared :root design tokens now live in shared.css */
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; }
   h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
@@ -469,6 +450,7 @@
 </section>
 </div>
 
+<script src="shared.js"></script>
 <script>
 /* ============================================================
    GOOGLE SHEET SETUP (Apps Script backend)

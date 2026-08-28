@@ -13,26 +13,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
-:root{
-  --ink:#0F2622;
-  --teal-900:#0B3D3A;
-  --teal-800:#123F3C;
-  --teal-700:#1A544F;
-  --sand:#EFE6D6;
-  --sand-2:#E4D8C2;
-  --paper:#FBF6EC;
-  --mango:#FF7A45;
-  --mango-2:#E85D2A;
-  --azulejo:#1E6091;
-  --azulejo-2:#3B82C4;
-  --palm:#3E7C59;
-  --line: rgba(15,38,34,0.14);
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
-  --sal: env(safe-area-inset-left, 0px);
-  --sar: env(safe-area-inset-right, 0px);
-}
+/* shared :root design tokens now live in shared.css */
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{scroll-behavior:smooth; overscroll-behavior-y:none;}
 body{margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;}
@@ -597,6 +580,7 @@ textarea:focus{border-color:var(--mango);}
   Pune → Londa → Goa · built for the crew, edit freely.
 </footer>
 
+<script src="shared.js"></script>
 <script>
 /* ============================================================
    NAV: active link tracking + hide-on-scroll-down
@@ -807,7 +791,7 @@ for(let i=0;i<TOTAL_STEPS;i++){
   wizDotsG.appendChild(c);
 }
 
-function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* escapeHtml now lives in shared.js */
 
 function updateRail(){
   const pct = TOTAL_STEPS>1 ? currentStep/(TOTAL_STEPS-1) : 0;
