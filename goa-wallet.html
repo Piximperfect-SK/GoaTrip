@@ -2166,7 +2166,6 @@ function renderWallet(){
 
   // Per-person cards: only for people who have any deposits/withdrawals
   // logged, showing their net balance (deposits minus withdrawals).
-  const allWithRecords = PARTICIPANTS.filter(p => (wallet.deposits||[]).filter(d=>d.person===p).length > 0);
   document.getElementById('walletPersonGrid').innerHTML = allWithRecords.map(p=>{
     const net = depositedByPerson(p);
     const count = (wallet.deposits||[]).filter(d=>d.person===p).length;
