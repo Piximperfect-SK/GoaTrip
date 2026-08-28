@@ -802,6 +802,28 @@
   </div>
 </div>
 
+<!-- ============ MODAL: Person deposits (view/edit/delete one person's deposits) ============ -->
+<div id="personDepositsModal" class="app-modal">
+  <div class="modal-panel wide">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <div>
+        <h3 class="display text-xl font-semibold" id="pdModalTitle">Deposits</h3>
+        <p class="text-xs opacity-50 mt-0.5">Only this person's deposit records — nothing else in the wallet is affected.</p>
+      </div>
+      <span class="modal-close" onclick="closeModal('personDepositsModal')">✕</span>
+    </div>
+    <div class="p-6">
+      <div id="pdSummary" class="grid grid-cols-3 gap-3 mb-6"></div>
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-semibold">Their deposits</h4>
+        <button class="btn-primary" id="pdAddBtn">+ Add deposit</button>
+      </div>
+      <div id="pdList" class="divide-y" style="border-color:var(--line)"></div>
+      <p class="text-sm opacity-50 text-center py-6" id="pdEmptyState" style="display:none;">No deposits logged for this person yet.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: Add / Edit Deposit ============ -->
 <div id="depositModal" class="app-modal">
   <div class="modal-panel">
@@ -1952,13 +1974,13 @@ function renderWallet(){
   document.getElementById('walletPersonGrid').innerHTML = PARTICIPANTS.map(p=>{
     const dep = depositedByPerson(p);
     const net = dep - fairShare;
-    return `<div class="panel p-5">
+    return `<div class="panel p-5 cursor-pointer" onclick="viewPersonDeposits('${p.replace(/'/g,"\\'")}')">
       <div class="flex items-center gap-3 mb-3">
         <span class="avatar">${initials(p)}</span>
         <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Deposited ₹${dep.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
       </div>
       <p class="mono text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0? '+₹'+net.toFixed(2) : '−₹'+Math.abs(net).toFixed(2)}</p>
-      <p class="text-xs opacity-50">${net>=0? 'credit left in the pool' : 'still owes the pool'}</p>
+      <p class="text-xs opacity-50">${net>=0? 'credit left in the pool' : 'still owes the pool'} · tap to view/edit</p>
     </div>`;
   }).join('');
 
@@ -1980,16 +2002,25 @@ function renderWallet(){
 }
 
 let depositEditingId = null;
-function openDepositModal(){
+// Tracks which person's modal to refresh (and re-open) after a deposit
+// add/edit/delete started from viewPersonDeposits() — kept separate from
+// the deposit form itself so the flow works the same whether it was
+// launched from the "All deposits" table or from a person's own modal.
+let pdReturnPerson = null;
+
+function openDepositModal(forPerson){
   depositEditingId = null;
   document.getElementById('depositModalTitle').textContent = 'Add deposit';
   document.getElementById('depositSubmitBtn').textContent = 'Add deposit';
   document.getElementById('depositForm').reset();
   document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(forPerson) document.getElementById('d-person').value = forPerson;
   document.getElementById('d-date').value = new Date().toISOString().slice(0,10);
+  pdReturnPerson = forPerson || null;
+  if(forPerson) closeModal('personDepositsModal');
   openModal('depositModal');
 }
-function editDeposit(id){
+function editDeposit(id, forPerson){
   const d = (wallet.deposits||[]).find(x=>x.id===id);
   if(!d) return;
   depositEditingId = id;
@@ -2000,6 +2031,8 @@ function editDeposit(id){
   document.getElementById('d-amount').value = d.amount;
   document.getElementById('d-date').value = d.date || new Date().toISOString().slice(0,10);
   document.getElementById('d-note').value = d.note || '';
+  pdReturnPerson = forPerson || null;
+  if(forPerson) closeModal('personDepositsModal');
   openModal('depositModal');
 }
 document.getElementById('depositForm').addEventListener('submit', async e=>{
@@ -2031,8 +2064,9 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     renderAll();
     showBanner(synced ? 'ok' : 'warn', `✅ Deposit of ₹${amount.toFixed(2)} logged for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
   }
+  if(pdReturnPerson){ const rp = pdReturnPerson; pdReturnPerson = null; viewPersonDeposits(rp); }
 });
-async function removeDeposit(id){
+async function removeDeposit(id, forPerson){
   const d = (wallet.deposits||[]).find(x=>x.id===id);
   if(!d) return;
   confirmAction('Delete this deposit?', `This removes ₹${Number(d.amount).toFixed(2)} logged for ${d.person} from the pool total.`, async ()=>{
@@ -2043,7 +2077,49 @@ async function removeDeposit(id){
     const synced = await pushToSheet('deleteDeposit', {id}, actor);
     renderAll();
     showBanner(synced ? 'ok' : 'warn', `Deposit removed.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    if(forPerson) viewPersonDeposits(forPerson);
   });
+}
+
+/* ============================================================
+   PERSON DEPOSITS MODAL — a focused view of just one person's
+   deposit records, opened by tapping their card in "Deposits by
+   person". Reuses the same admin-gated add/edit/delete flow as the
+   "All deposits" table (openDepositModal/editDeposit/removeDeposit),
+   just pre-scoped to this person and re-opened afterward so editing
+   feels contained instead of dropping the user back at the full list.
+   Entirely wallet-local — doesn't touch Expenses/Settlements/Overview.
+=============================================================*/
+function viewPersonDeposits(person){
+  const deposited = depositedByPerson(person);
+  const spent = totalSpent();
+  const fairShare = PARTICIPANTS.length ? spent / PARTICIPANTS.length : 0;
+  const net = deposited - fairShare;
+
+  document.getElementById('pdModalTitle').textContent = person;
+  document.getElementById('pdSummary').innerHTML = `
+    <div class="kpi"><p class="lbl">Deposited</p><p class="val text-lg">₹${deposited.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    <div class="kpi"><p class="lbl">Fair share</p><p class="val text-lg">₹${fairShare.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    <div class="kpi"><p class="lbl">Net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+  `;
+
+  const rows = (wallet.deposits||[]).filter(d=>d.person===person)
+    .slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
+  document.getElementById('pdList').innerHTML = rows.map(d=>`
+    <div class="py-3 flex items-center justify-between gap-3">
+      <div>
+        <p class="mono font-semibold text-sm">₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+        <p class="text-xs opacity-50">${d.date||'—'}${d.note ? ' · '+escapeHtml(d.note) : ''} · logged by ${escapeHtml(d.loggedBy||'—')}</p>
+      </div>
+      <div class="flex gap-1.5">
+        <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✕</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('pdEmptyState').style.display = rows.length ? 'none' : 'block';
+
+  document.getElementById('pdAddBtn').onclick = ()=> openDepositModal(person);
+  openModal('personDepositsModal');
 }
 
 /* ============================================================
