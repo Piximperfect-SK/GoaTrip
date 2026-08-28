@@ -599,7 +599,7 @@
     <div class="exwiz-rail-wrap">
       <div class="exwiz-rail-top">
         <span class="exwiz-rail-label">Logging a spend</span>
-        <span class="exwiz-rail-count" id="exwizCount">Step 1 of 4</span>
+        <span class="exwiz-rail-count" id="exwizCount">Step 1 of 5</span>
       </div>
       <div class="exwiz-rail">
         <svg viewBox="0 0 600 24" preserveAspectRatio="none">
@@ -626,7 +626,7 @@
           <p class="exwiz-q">What was it for, and how much?</p>
           <div class="grid grid-cols-1 gap-4">
             <div><label>What was it for?</label><input id="e-title" placeholder="e.g. Beach shack dinner"/></div>
-            <div><label>Amount (₹)</label><input type="number" step="0.01" id="e-amount" placeholder="0.00" oninput="if(currentSplitMode()==='individual') refreshIndividualSplitInputs();"/></div>
+            <div><label>Amount (₹)</label><input type="number" step="0.01" id="e-amount" placeholder="0.00" oninput="if(currentSplitMode()==='individual') refreshIndividualSplitInputs(); updateDepositPreview();"/></div>
           </div>
           <p class="exwiz-error" id="exwiz-err-0">⚠ Add a title and an amount to continue</p>
         </div>
@@ -643,8 +643,24 @@
           <p class="exwiz-error" id="exwiz-err-1">⚠ Pick who paid to continue</p>
         </div>
 
-        <!-- Step 2: split -->
+        <!-- Step 2: paid from deposit? -->
         <div class="exwiz-step" data-exstep="2">
+          <p class="exwiz-q">Was this paid from someone's deposit?</p>
+          <label class="mb-3 block">
+            <input type="checkbox" id="e-paid-from-deposit" onchange="toggleDepositPayment()"/> 
+            <span class="font-medium">Yes, this was paid from the deposited pool</span>
+          </label>
+          <div id="depositPaymentBox" style="display:none;">
+            <label class="mb-2 block">From whose deposit?</label>
+            <select id="e-deposit-from" style="max-width:280px;">
+              <option value="">Select person…</option>
+            </select>
+            <p class="text-xs opacity-50 mt-2">Their deposit will be automatically reduced by ₹<span id="e-amount-preview">0</span> when you save.</p>
+          </div>
+        </div>
+
+        <!-- Step 3: split -->
+        <div class="exwiz-step" data-exstep="3">
           <p class="exwiz-q">Who's splitting this?</p>
           <label class="mb-2 block">Split with <span class="exwiz-hint">— tap to toggle, none picked = everyone</span></label>
           <div class="chip-grid mb-5" id="splitChips"></div>
@@ -660,8 +676,8 @@
           </div>
         </div>
 
-        <!-- Step 3: review -->
-        <div class="exwiz-step" data-exstep="3">
+        <!-- Step 4: review -->
+        <div class="exwiz-step" data-exstep="4">
           <p class="exwiz-q">Ready to log this?</p>
           <div class="exwiz-review" id="exwizReview"></div>
         </div>
@@ -797,10 +813,19 @@
 
     <!-- ---- MODE 2: Manual settlement — type it in directly ---- -->
     <form id="settlementForm" class="p-6 grid grid-cols-2 gap-5" style="display:none;">
-      <div><label>From (paid)</label><select id="s-from" required></select></div>
+      <div><label>From (paid)</label><select id="s-from" required onchange="updateSettlementDepositOption()"></select></div>
       <div><label>To (received)</label><select id="s-to" required></select></div>
       <div><label>Amount (₹)</label><input type="number" step="0.01" id="s-amount" required/></div>
       <div><label>Note (optional)</label><input id="s-note" placeholder="UPI, cash…"/></div>
+      
+      <div id="settlementDepositBox" class="col-span-2" style="display:none;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:8px;">
+          <input type="checkbox" id="s-use-deposit" onchange="toggleSettlementDeposit()"/>
+          <span class="font-medium">Pay using their available deposit · <span id="s-deposit-avail" class="mono text-sm">₹0</span></span>
+        </label>
+        <p class="text-xs opacity-50">A withdrawal will be created automatically from their deposit pool.</p>
+      </div>
+      
       <div class="col-span-2 flex gap-3 mt-2">
         <button type="submit" class="btn-primary flex-1">Record settlement</button>
         <button type="button" class="btn-ghost" onclick="closeModal('settlementModal')">Cancel</button>
@@ -841,6 +866,13 @@
       </div>
       <span class="modal-close" onclick="closeModal('depositModal')">✕</span>
     </div>
+    <div class="px-6 pt-5 pb-2">
+      <div class="flex gap-2 p-1 rounded-full w-fit" style="background:var(--sand)">
+        <span class="wtab-chip active" data-deptype="deposit" onclick="setDepositMode('deposit')">Deposit (money in)</span>
+        <span class="wtab-chip" data-deptype="withdrawal" onclick="setDepositMode('withdrawal')">Withdrawal (money out)</span>
+      </div>
+    </div>
+
     <form id="depositForm" class="p-6 grid grid-cols-2 gap-5">
       <div class="col-span-2"><label>Person</label><select id="d-person" required></select></div>
       <div><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" id="d-amount" required/></div>
@@ -1202,7 +1234,7 @@ renderPayerChips();
 renderSplitChips();
 
 /* ---- step navigation ---- */
-const EXWIZ_STEPS = 4;
+const EXWIZ_STEPS = 5;
 const EXWIZ_RAIL_LEN = 572;
 let exwizCurrentStep = 0;
 const exwizDotXs = [];
@@ -1261,11 +1293,15 @@ function exwizRenderReview(){
   const date = document.getElementById('e-date').value;
   let split = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
   const splitLabel = split.length === 0 ? 'Everyone (11)' : `${split.length} people`;
+  const paidFromDeposit = document.getElementById('e-paid-from-deposit').checked;
+  const depositFrom = document.getElementById('e-deposit-from').value;
+  
   const rows = [
     ['What', title || '—'],
     ['Amount', `₹${amount.toFixed(2)}`],
     ['Category', category],
     ['Paid by', payer],
+    ...(paidFromDeposit && depositFrom ? [['Paid from deposit', `${depositFrom}'s pool (−₹${amount.toFixed(2)})`]] : []),
     ['Date', date || '—'],
     ['Split with', splitLabel],
     ['Method', currentSplitMode()==='individual' ? 'Individual amounts' : 'Equal split'],
@@ -1290,6 +1326,21 @@ function setSplitMode(mode){
   document.querySelectorAll('[data-splitmode]').forEach(t=> t.classList.toggle('active', t.dataset.splitmode===mode));
   document.getElementById('individualSplitBox').style.display = mode==='individual' ? 'block' : 'none';
   if(mode === 'individual') refreshIndividualSplitInputs();
+}
+
+function toggleDepositPayment(){
+  const checked = document.getElementById('e-paid-from-deposit').checked;
+  document.getElementById('depositPaymentBox').style.display = checked ? 'block' : 'none';
+  if(checked){
+    const sel = document.getElementById('e-deposit-from');
+    sel.innerHTML = '<option value="">Select person…</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    updateDepositPreview();
+  }
+}
+
+function updateDepositPreview(){
+  const amount = Number(document.getElementById('e-amount').value) || 0;
+  document.getElementById('e-amount-preview').textContent = amount.toFixed(0);
 }
 // Rebuilds the per-person amount fields whenever the split mode, the
 // selected members, or the total amount changes — pre-filling an even
@@ -1331,6 +1382,8 @@ function openExpenseModal(){
   document.getElementById('expenseFormSubmit').textContent = 'Add expense';
   document.getElementById('e-category').value = CATEGORIES[0];
   document.getElementById('e-payer').value = PARTICIPANTS[0];
+  document.getElementById('e-paid-from-deposit').checked = false;
+  document.getElementById('depositPaymentBox').style.display = 'none';
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
@@ -1349,6 +1402,13 @@ function startEditExpense(id){
   document.getElementById('e-category').value = ex.category || 'Misc';
   document.getElementById('e-payer').value = ex.payer;
   document.getElementById('e-date').value = ex.date || new Date().toISOString().slice(0,10);
+  document.getElementById('e-paid-from-deposit').checked = ex.paidFromDeposit || false;
+  if(ex.paidFromDeposit){
+    document.getElementById('e-deposit-from').innerHTML = '<option value="">Select person…</option>' + PARTICIPANTS.map(p=>`<option value="${p}" ${p === ex.depositUsedFrom ? 'selected' : ''}>${p}</option>`).join('');
+    document.getElementById('depositPaymentBox').style.display = 'block';
+  } else {
+    document.getElementById('depositPaymentBox').style.display = 'none';
+  }
   Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   document.getElementById('expenseModalTitle').textContent = 'Edit expense';
   document.getElementById('expenseFormSubmit').textContent = 'Save changes';
@@ -1371,9 +1431,17 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
   const category = document.getElementById('e-category').value;
   const payer = document.getElementById('e-payer').value;
   const date = document.getElementById('e-date').value;
+  const paidFromDeposit = document.getElementById('e-paid-from-deposit').checked;
+  const depositUsedFrom = paidFromDeposit ? document.getElementById('e-deposit-from').value : '';
+  
   let split = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
   if(split.length === 0) split = [...PARTICIPANTS];
   if(!title || !amount || !payer) return;
+  
+  if(paidFromDeposit && !depositUsedFrom){
+    showBanner('warn', '⚠️ Select which person\'s deposit to use, or uncheck the box.');
+    return;
+  }
 
   const splitType = currentSplitMode();
   let splitAmounts = null;
@@ -1391,18 +1459,44 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     const actor = await requestActor("Who's editing this expense?", `Confirm your name to save changes to "${title}".`);
     if(!actor) return;
     const local = wallet.expenses.find(x=>x.id===editingId);
-    if(local) Object.assign(local, {title, amount, category, payer, split, date, splitType, splitAmounts, updatedBy:actor, updatedAt:new Date().toISOString()});
+    if(local) Object.assign(local, {title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, updatedBy:actor, updatedAt:new Date().toISOString()});
     persistLocal(); closeModal('expenseModal'); renderAll();
-    await pushToSheet('editExpense', {id:editingId, title, amount, category, payer, split, date, splitType, splitAmounts}, actor);
+    await pushToSheet('editExpense', {id:editingId, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom}, actor);
     renderAll();
   }else{
     const actor = await requestActor("Who's adding this expense?", `Confirm your name to log "${title}".`);
     if(!actor) return;
     const id = 'e'+Date.now();
-    wallet.expenses.push({id, title, amount, category, payer, split, date, splitType, splitAmounts, createdBy:actor, createdAt:new Date().toISOString()});
+    wallet.expenses.push({id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, createdBy:actor, createdAt:new Date().toISOString()});
+    
+    // If paid from deposit, automatically create a withdrawal entry
+    if(paidFromDeposit && depositUsedFrom){
+      const withdrawalId = 'dep'+Date.now();
+      wallet.deposits = wallet.deposits || [];
+      wallet.deposits.push({
+        id: withdrawalId, 
+        person: depositUsedFrom, 
+        amount: Number(amount), 
+        type: 'withdrawal',
+        date,
+        note: `Paid for: ${title}`,
+        loggedBy: actor, 
+        ts: new Date().toISOString()
+      });
+      // Log in activity
+      wallet.activity = wallet.activity || [];
+      wallet.activity.push({
+        action: 'expenseWithDeposit',
+        detail: `Expense "${title}" (₹${amount}) logged and paid from ${depositUsedFrom}'s deposit (auto-withdrawal created)`,
+        actor,
+        ts: new Date().toISOString()
+      });
+    }
+    
     persistLocal(); closeModal('expenseModal'); renderAll();
-    await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts}, actor);
+    await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom}, actor);
     renderAll();
+    showBanner('ok', `✅ Expense "${title}" logged${paidFromDeposit ? ` and paid from ${depositUsedFrom}'s deposit` : ''}.`);
   }
 });
 async function removeExpense(id){
@@ -1441,6 +1535,12 @@ function viewExpense(id){
       <div><p class="mono text-[11px] opacity-50">SPLIT METHOD</p><p class="font-semibold">${isIndividual ? 'Individual amounts' : 'Equal'}</p></div>
       <div><p class="mono text-[11px] opacity-50">SPLIT COUNT</p><p class="font-semibold">${ex.split.length} people</p></div>
     </div>
+    ${ex.paidFromDeposit && ex.depositUsedFrom ? `
+    <div class="mb-4 p-3 rounded-lg" style="background:rgba(62,124,89,.08); border:1px solid rgba(62,124,89,.2)">
+      <p class="mono text-[11px] opacity-70 mb-1">💰 PAID FROM DEPOSIT</p>
+      <p class="text-sm font-semibold">${ex.depositUsedFrom}'s deposited pool</p>
+      <p class="text-xs opacity-50 mt-1">Automatic withdrawal created for ₹${Number(ex.amount).toFixed(0)}</p>
+    </div>` : ''}
     <div class="mb-5">
       <p class="mono text-[11px] opacity-50 mb-1">SPLIT WITH</p>
       ${isIndividual
@@ -1495,6 +1595,8 @@ function switchSettlementMode(mode){
 }
 function openSettlementModal(){
   document.getElementById('settlementForm').reset();
+  document.getElementById('s-use-deposit').checked = false;
+  document.getElementById('settlementDepositBox').style.display = 'none';
   document.getElementById('equalResults').innerHTML = '';
   document.getElementById('equalWarning').style.display = 'none';
   equalCalcState = { payments: [], note: '' };
@@ -1616,21 +1718,86 @@ async function recordAllEqualSettlementsFromState(){
   closeModal('settlementModal');
   showBanner(allSynced ? 'ok' : 'warn', `✅ Recorded ${payments.length} settlements.${allSynced ? '' : ' Some may only be saved locally — check the sync status and hit Refresh.'}`);
 }
+function updateSettlementDepositOption(){
+  const fromPerson = document.getElementById('s-from').value;
+  const depositBox = document.getElementById('settlementDepositBox');
+  const checkbox = document.getElementById('s-use-deposit');
+  
+  if(!fromPerson){
+    depositBox.style.display = 'none';
+    checkbox.checked = false;
+    return;
+  }
+  
+  const balance = depositedByPerson(fromPerson);
+  const hasDeposits = balance > 0;
+  
+  if(hasDeposits){
+    depositBox.style.display = 'block';
+    document.getElementById('s-deposit-avail').textContent = '₹' + balance.toFixed(0);
+  } else {
+    depositBox.style.display = 'none';
+    checkbox.checked = false;
+  }
+}
+
+function toggleSettlementDeposit(){
+  const checkbox = document.getElementById('s-use-deposit').checked;
+  const amountInput = document.getElementById('s-amount');
+  const fromPerson = document.getElementById('s-from').value;
+  
+  if(checkbox && fromPerson){
+    const balance = depositedByPerson(fromPerson);
+    if(balance > 0){
+      amountInput.value = balance.toFixed(2);
+    }
+  }
+}
+
 document.getElementById('settlementForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const from = document.getElementById('s-from').value;
   const to = document.getElementById('s-to').value;
   const amount = document.getElementById('s-amount').value;
   const note = document.getElementById('s-note').value.trim();
+  const useDeposit = document.getElementById('s-use-deposit').checked;
+  
   if(!from || !to || !amount || from===to) return;
+  
   const actor = await requestActor("Who's recording this settlement?", `Confirm your name to log ${from} → ${to}.`);
   if(!actor) return;
+  
   const id = 's'+Date.now();
-  wallet.settlements.push({id, from, to, amount, note, actor, ts:new Date().toISOString()});
+  wallet.settlements.push({id, from, to, amount, note, usedDeposit: useDeposit, actor, ts:new Date().toISOString()});
+  
+  // If settling via deposit, create automatic withdrawal
+  if(useDeposit){
+    const withdrawalId = 'dep'+Date.now();
+    wallet.deposits = wallet.deposits || [];
+    wallet.deposits.push({
+      id: withdrawalId,
+      person: from,
+      amount: Number(amount),
+      type: 'withdrawal',
+      note: `Settlement to ${to}: ${note || 'payment'}`,
+      loggedBy: actor,
+      ts: new Date().toISOString()
+    });
+    // Log in activity
+    wallet.activity = wallet.activity || [];
+    wallet.activity.push({
+      action: 'settlementWithDeposit',
+      detail: `Settlement: ${from} → ${to} (₹${Number(amount).toFixed(0)}) paid using ${from}'s deposit (auto-withdrawal created)`,
+      actor,
+      ts: new Date().toISOString()
+    });
+  }
+  
   persistLocal(); closeModal('settlementModal'); renderAll();
-  const synced = await pushToSheet('addSettlement', {id, from, to, amount, note}, actor);
+  const synced = await pushToSheet('addSettlement', {id, from, to, amount, note, usedDeposit: useDeposit}, actor);
   renderAll();
-  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  const method = useDeposit ? ` via ${from}'s deposit` : '';
+  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
 });
 async function removeSettlement(id){
   confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
@@ -1972,42 +2139,60 @@ function renderParticipants(){
    treasurer) log cash/UPI they've actually received.
 =============================================================*/
 function totalDeposited(){
-  return (wallet.deposits||[]).reduce((s,d)=> s + Number(d.amount||0), 0);
+  return (wallet.deposits||[]).reduce((s,d)=> {
+    const amt = Number(d.amount||0);
+    const sign = (d.type === 'withdrawal') ? -1 : 1;
+    return s + (amt * sign);
+  }, 0);
 }
 function depositedByPerson(person){
-  return (wallet.deposits||[]).filter(d=>d.person===person).reduce((s,d)=> s + Number(d.amount||0), 0);
+  return (wallet.deposits||[]).filter(d=>d.person===person).reduce((s,d)=> {
+    const amt = Number(d.amount||0);
+    const sign = (d.type === 'withdrawal') ? -1 : 1;
+    return s + (amt * sign);
+  }, 0);
 }
 function renderWallet(){
   const deposited = totalDeposited();
-  const peopleWithDeposits = PARTICIPANTS.filter(p => depositedByPerson(p) > 0);
+  const allWithRecords = PARTICIPANTS.filter(p => (wallet.deposits||[]).filter(d=>d.person===p).length > 0);
 
-  document.getElementById('wkpi-deposited').textContent = '₹' + deposited.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('wkpi-count').textContent = peopleWithDeposits.length;
+  const depositedClass = deposited >= 0 ? 'balance-pos' : 'balance-neg';
+  const sign = deposited >= 0 ? '+' : '−';
+  document.getElementById('wkpi-deposited').classList.add(depositedClass);
+  document.getElementById('wkpi-deposited').textContent = sign + '₹' + Math.abs(deposited).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('wkpi-count').textContent = allWithRecords.length;
   document.getElementById('wkpi-count-sub').textContent = `of ${PARTICIPANTS.length} participants`;
   document.getElementById('wkpi-entries').textContent = (wallet.deposits||[]).length;
 
-  // Per-person cards: only for people who actually have a deposit
-  // logged, and showing nothing but the raw amount they've deposited —
-  // no comparison to spend, no fair-share math, no "still owes" verdict.
-  document.getElementById('walletPersonGrid').innerHTML = peopleWithDeposits.map(p=>{
-    const dep = depositedByPerson(p);
+  // Per-person cards: only for people who have any deposits/withdrawals
+  // logged, showing their net balance (deposits minus withdrawals).
+  const allWithRecords = PARTICIPANTS.filter(p => (wallet.deposits||[]).filter(d=>d.person===p).length > 0);
+  document.getElementById('walletPersonGrid').innerHTML = allWithRecords.map(p=>{
+    const net = depositedByPerson(p);
+    const count = (wallet.deposits||[]).filter(d=>d.person===p).length;
+    const isNegative = net < 0;
     return `<div class="panel p-5 cursor-pointer" onclick="viewPersonDeposits('${p.replace(/'/g,"\\'")}')">
       <div class="flex items-center gap-3 mb-3">
         <span class="avatar">${initials(p)}</span>
-        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">${(wallet.deposits||[]).filter(d=>d.person===p).length} deposit${(wallet.deposits||[]).filter(d=>d.person===p).length===1?'':'s'} logged</p></div>
+        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">${count} record${count===1?'':'s'} logged</p></div>
       </div>
-      <p class="mono text-lg">₹${dep.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
-      <p class="text-xs opacity-50">total deposited · tap to view/edit</p>
+      <p class="mono text-lg ${isNegative ? 'balance-neg' : 'balance-pos'}">${isNegative ? '−' : '+'}₹${Math.abs(net).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+      <p class="text-xs opacity-50">net balance · tap to view/edit</p>
     </div>`;
   }).join('');
-  document.getElementById('walletPersonEmptyState').style.display = peopleWithDeposits.length ? 'none' : 'block';
+  document.getElementById('walletPersonEmptyState').style.display = allWithRecords.length ? 'none' : 'block';
 
   // All-deposits table
   const sorted = (wallet.deposits||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
-  document.getElementById('depositTableBody').innerHTML = sorted.map(d=>`
-    <tr>
+  document.getElementById('depositTableBody').innerHTML = sorted.map(d=>{
+    const isWithdrawal = d.type === 'withdrawal';
+    const amountClass = isWithdrawal ? 'balance-neg' : 'balance-pos';
+    const sign = isWithdrawal ? '−' : '+';
+    const typeLabel = isWithdrawal ? 'Withdrawal' : 'Deposit';
+    return `<tr>
       <td>${escapeHtml(d.person)}</td>
-      <td class="mono">₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td><span class="pill">${typeLabel}</span></td>
+      <td class="mono ${amountClass}">${sign}₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.note||'—')}</td>
       <td class="text-sm">${d.date||'—'}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.loggedBy||'—')}</td>
@@ -2015,7 +2200,8 @@ function renderWallet(){
         <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
         <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   document.getElementById('depositEmptyState').style.display = sorted.length ? 'none' : 'block';
 }
 
@@ -2026,8 +2212,18 @@ let depositEditingId = null;
 // launched from the "All deposits" table or from a person's own modal.
 let pdReturnPerson = null;
 
+let depositMode = 'deposit'; // 'deposit' or 'withdrawal'
+
+function setDepositMode(mode){
+  depositMode = mode;
+  document.querySelectorAll('[data-deptype]').forEach(t=> t.classList.toggle('active', t.dataset.deptype===mode));
+  document.getElementById('depositSubmitBtn').textContent = (depositEditingId ? 'Save changes' : (mode==='deposit' ? 'Add deposit' : 'Record withdrawal'));
+}
+
 function openDepositModal(forPerson){
   depositEditingId = null;
+  depositMode = 'deposit';
+  setDepositMode('deposit');
   document.getElementById('depositModalTitle').textContent = 'Add deposit';
   document.getElementById('depositSubmitBtn').textContent = 'Add deposit';
   document.getElementById('depositForm').reset();
@@ -2042,8 +2238,9 @@ function editDeposit(id, forPerson){
   const d = (wallet.deposits||[]).find(x=>x.id===id);
   if(!d) return;
   depositEditingId = id;
-  document.getElementById('depositModalTitle').textContent = 'Edit deposit';
-  document.getElementById('depositSubmitBtn').textContent = 'Save changes';
+  depositMode = d.type || 'deposit';
+  setDepositMode(depositMode);
+  document.getElementById('depositModalTitle').textContent = 'Edit ' + (depositMode==='deposit' ? 'deposit' : 'withdrawal');
   document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('d-person').value = d.person;
   document.getElementById('d-amount').value = d.amount;
@@ -2059,28 +2256,32 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
   const amount = parseFloat(document.getElementById('d-amount').value);
   const date = document.getElementById('d-date').value;
   const note = document.getElementById('d-note').value.trim();
+  const type = depositMode;
   if(!person || !amount || amount <= 0) return;
 
   const editing = depositEditingId;
-  const actor = await checkWalletAdmin(editing ? 'edit deposits' : 'add deposits');
+  const actor = await checkWalletAdmin(editing ? (type==='deposit' ? 'edit deposits' : 'edit withdrawals') : (type==='deposit' ? 'add deposits' : 'add withdrawals'));
   if(!actor) return;
+
+  const isDeposit = type === 'deposit';
+  const typeLabel = isDeposit ? 'Deposit' : 'Withdrawal';
 
   if(editing){
     const d = (wallet.deposits||[]).find(x=>x.id===editing);
     if(!d) return;
-    Object.assign(d, {person, amount, date, note});
+    Object.assign(d, {person, amount, date, note, type});
     persistLocal(); closeModal('depositModal'); renderAll();
-    const synced = await pushToSheet('editDeposit', {id:editing, person, amount, date, note}, actor);
+    const synced = await pushToSheet('editDeposit', {id:editing, person, amount, date, note, type}, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `✅ Deposit updated for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} updated for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
   } else {
     const id = 'dep'+Date.now();
     wallet.deposits = wallet.deposits || [];
-    wallet.deposits.push({id, person, amount, date, note, loggedBy:actor, ts:new Date().toISOString()});
+    wallet.deposits.push({id, person, amount, date, note, type, loggedBy:actor, ts:new Date().toISOString()});
     persistLocal(); closeModal('depositModal'); renderAll();
-    const synced = await pushToSheet('addDeposit', {id, person, amount, date, note}, actor);
+    const synced = await pushToSheet('addDeposit', {id, person, amount, date, note, type}, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `✅ Deposit of ₹${amount.toFixed(2)} logged for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} of ₹${amount.toFixed(2)} logged for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
   }
   if(pdReturnPerson){ const rp = pdReturnPerson; pdReturnPerson = null; viewPersonDeposits(rp); }
 });
@@ -2111,25 +2312,34 @@ async function removeDeposit(id, forPerson){
 function viewPersonDeposits(person){
   const deposited = depositedByPerson(person);
   const entries = (wallet.deposits||[]).filter(d=>d.person===person);
+  const isNegative = deposited < 0;
 
   document.getElementById('pdModalTitle').textContent = person;
   document.getElementById('pdSummary').innerHTML = `
-    <div class="kpi"><p class="lbl">Total deposited</p><p class="val text-lg">₹${deposited.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    <div class="kpi"><p class="lbl">Net balance</p><p class="val text-lg ${isNegative ? 'balance-neg' : 'balance-pos'}">${isNegative ? '−' : '+'}₹${Math.abs(deposited).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
     <div class="kpi"><p class="lbl">Entries logged</p><p class="val text-lg">${entries.length}</p></div>
   `;
 
   const rows = entries.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
-  document.getElementById('pdList').innerHTML = rows.map(d=>`
-    <div class="py-3 flex items-center justify-between gap-3">
+  document.getElementById('pdList').innerHTML = rows.map(d=>{
+    const isWithdrawal = d.type === 'withdrawal';
+    const amountClass = isWithdrawal ? 'balance-neg' : 'balance-pos';
+    const sign = isWithdrawal ? '−' : '+';
+    const typeLabel = isWithdrawal ? 'Withdrawal' : 'Deposit';
+    return `<div class="py-3 flex items-center justify-between gap-3">
       <div>
-        <p class="mono font-semibold text-sm">₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="pill">${typeLabel}</span>
+          <p class="mono font-semibold text-sm ${amountClass}">${sign}₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+        </div>
         <p class="text-xs opacity-50">${d.date||'—'}${d.note ? ' · '+escapeHtml(d.note) : ''} · logged by ${escapeHtml(d.loggedBy||'—')}</p>
       </div>
       <div class="flex gap-1.5">
         <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✎</span>
         <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✕</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('pdEmptyState').style.display = rows.length ? 'none' : 'block';
 
   document.getElementById('pdAddBtn').onclick = ()=> openDepositModal(person);
@@ -2335,13 +2545,15 @@ function renderSettlements(){
   }).join('') : '<p class="text-sm opacity-50">Everyone is settled up 🎉</p>';
 
   const body = document.getElementById('settlementTableBody');
-  body.innerHTML = wallet.settlements.slice().reverse().map(s=>`
-    <tr>
+  body.innerHTML = wallet.settlements.slice().reverse().map(s=>{
+    const method = s.usedDeposit ? '<span class="pill" style="background:rgba(62,124,89,.1); color:var(--palm); border:1px solid rgba(62,124,89,.2);">💰 via deposit</span>' : '';
+    return `<tr>
       <td>${s.from}</td><td>${s.to}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
-      <td class="text-xs opacity-60">${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
+      <td class="text-xs opacity-60">${method} ${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
       <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
       <td><span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   document.getElementById('settlementEmptyState').style.display = wallet.settlements.length ? 'none' : 'block';
 }
 
@@ -2354,6 +2566,7 @@ function quickRecordSettlement(from, to, amount){
   document.getElementById('s-from').value = from;
   document.getElementById('s-to').value = to;
   document.getElementById('s-amount').value = amount.toFixed(2);
+  updateSettlementDepositOption();
 }
 
 /* ============================================================
