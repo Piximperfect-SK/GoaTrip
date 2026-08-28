@@ -663,6 +663,67 @@
   </div>
 </div>
 
+<!-- ============ MODAL: Edit participant (rename + manual balance correction) ============ -->
+<div id="participantEditModal" class="app-modal">
+  <div class="modal-panel wide">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <div>
+        <h3 class="display text-xl font-semibold">Edit <span id="peName"></span></h3>
+        <p class="text-xs opacity-50 mt-0.5">Rename this person, or manually correct their balance if Splitwise‑style math didn't land right.</p>
+      </div>
+      <span class="modal-close" onclick="closeModal('participantEditModal')">✕</span>
+    </div>
+
+    <div class="p-6">
+      <div id="peCurrentNet" class="grid grid-cols-3 gap-3 mb-6"></div>
+
+      <!-- ---- Rename ---- -->
+      <div class="panel p-5 mb-5">
+        <h4 class="font-semibold mb-1">Rename</h4>
+        <p class="text-xs opacity-50 mb-3">Updates this name across every expense, settlement and activity entry. Saved on this device only — not pushed to the shared sheet.</p>
+        <form id="renameForm" class="flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[180px]">
+            <label>New name</label>
+            <input id="pe-newname" required/>
+          </div>
+          <button type="submit" class="btn-primary">Save name</button>
+        </form>
+      </div>
+
+      <!-- ---- Manual balance adjustment ---- -->
+      <div class="panel p-5">
+        <h4 class="font-semibold mb-1">Manual balance adjustment</h4>
+        <p class="text-xs opacity-50 mb-4">Nudges this person's net balance directly — up (they're owed more / owe less) or down — without touching any expense or its split. Use this to clear up a mismatch instead of re‑editing every expense. Saved on this device only, same as renaming.</p>
+        <form id="adjustmentForm" class="grid grid-cols-2 gap-4">
+          <div>
+            <label>Direction</label>
+            <select id="pe-adj-direction">
+              <option value="add">They're owed more (+)</option>
+              <option value="subtract">They owe more (−)</option>
+            </select>
+          </div>
+          <div>
+            <label>Amount (₹)</label>
+            <input type="number" step="0.01" min="0" id="pe-adj-amount" required/>
+          </div>
+          <div class="col-span-2">
+            <label>Reason</label>
+            <input id="pe-adj-note" placeholder="e.g. Splitwise missed the cab fare on Day 3" required/>
+          </div>
+          <div class="col-span-2">
+            <button type="submit" class="btn-primary w-full">Apply adjustment</button>
+          </div>
+        </form>
+
+        <div class="mt-5">
+          <p class="text-xs font-semibold opacity-60 mb-2">Adjustments applied so far</p>
+          <div id="peAdjustmentList" class="divide-y" style="border-color:var(--line)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: Record settlement ============ -->
 <div id="settlementModal" class="app-modal">
   <div class="modal-panel wide">
@@ -766,6 +827,27 @@ function loadParticipants(){
 function persistParticipants(){ localStorage.setItem('goaWalletParticipants', JSON.stringify(PARTICIPANTS)); }
 let PARTICIPANTS = loadParticipants();
 const CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
+
+/* People allowed to rename participants or apply manual balance
+   corrections — the same admin gate as before, just reused for both. */
+const WALLET_ADMINS = ["Shubham Kumar","Nikhil Agrawal"];
+
+/* ---------------------------------------------------------------
+   MANUAL BALANCE ADJUSTMENTS — a local-only correction ledger, kept
+   completely separate from expenses/settlements (and from the Sheet
+   sync, same as participant renaming above). Each entry just nudges
+   one person's own net balance by a fixed amount with a reason on
+   record — it never touches an expense's split, so nothing else's
+   math shifts. Meant as an escape hatch for "Splitwise math didn't
+   land right, here's the correction" without hunting down which
+   expense to re-edit.
+------------------------------------------------------------------*/
+function loadAdjustments(){
+  try{ const saved = JSON.parse(localStorage.getItem('goaWalletAdjustments')); return Array.isArray(saved) ? saved : []; }
+  catch(e){ return []; }
+}
+function persistAdjustments(){ localStorage.setItem('goaWalletAdjustments', JSON.stringify(adjustments)); }
+let adjustments = loadAdjustments();
 
 /* ---------------------------------------------------------------
    Split-share helper — single place all balance/chart code reads
@@ -1493,6 +1575,12 @@ function computeNetBalances(){
     net[s.from] = (net[s.from]||0) + Number(s.amount); // paid off debt
     net[s.to] = (net[s.to]||0) - Number(s.amount);     // received money
   });
+  // Manual corrections — applied last, directly to the one person's
+  // own net, so they never ripple into anyone else's balance.
+  adjustments.forEach(a=>{
+    if(net[a.person]===undefined) net[a.person]=0;
+    net[a.person] += Number(a.amount);
+  });
   return net;
 }
 
@@ -1763,37 +1851,83 @@ function renderParticipants(){
           <span class="avatar">${initials(p)}</span>
           <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
         </div>
-        <span class="btn-icon" title="Edit ${p}" onclick="event.stopPropagation(); editParticipant('${p}')">✎</span>
+        <span class="btn-icon" title="Edit ${p}" onclick="event.stopPropagation(); openParticipantEditModal('${p}')">✎</span>
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
-      <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}</p>
+      <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
     </div>`;
   }).join('');
 }
 
-/* ---------- Edit participant (Shubham Kumar only) ----------
-   Reuses the same "who's making this change?" identity modal every
-   other write action goes through (requestActor) — the dropdown
-   always lists every participant, but the rename only actually runs
-   if the person selected is "Shubham Kumar". Anyone else selected
-   just gets a banner explaining why nothing happened, so the control
-   itself is visible/usable by the whole group without granting them
-   edit rights. */
-async function editParticipant(oldName){
-  const actor = await requestActor('Confirm your identity', 'Only Shubham Kumar can edit participant names.');
-  if(!actor) return;
-  if(actor !== 'Shubham Kumar'){
-    showBanner('err', `Only <b>Shubham Kumar</b> can edit participant names — you selected <b>${actor}</b>, so no changes were made.`);
-    return;
+/* ============================================================
+   EDIT PARTICIPANT MODAL — rename + manual balance adjustment
+   Both actions gate behind the same "who's making this change?"
+   identity check (requestActor), restricted to WALLET_ADMINS —
+   anyone can open the modal and see the numbers, but only an admin
+   selection actually commits a change. Both are local-only (not
+   pushed to the shared Sheet), same as the original rename-only
+   behaviour this replaces.
+=============================================================*/
+let peCurrentPerson = null;
+
+function renderPeAdjustmentList(person){
+  const mine = adjustments.filter(a=>a.person===person).slice().reverse();
+  document.getElementById('peAdjustmentList').innerHTML = mine.length ? mine.map(a=>`
+    <div class="py-2.5 flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p class="text-sm font-medium truncate">${a.note}</p>
+        <p class="text-xs opacity-50">${a.actor} · ${(a.ts||'').slice(0,10)}</p>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="mono text-sm ${a.amount>=0?'balance-pos':'balance-neg'}">${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}</span>
+        <span class="btn-icon" title="Remove" onclick="removeAdjustment('${a.id}')">✕</span>
+      </div>
+    </div>`).join('') : '<p class="text-sm opacity-50 py-3">No manual adjustments for this person yet.</p>';
+}
+
+function openParticipantEditModal(person){
+  peCurrentPerson = person;
+  document.getElementById('peName').textContent = person;
+  document.getElementById('pe-newname').value = person;
+  document.getElementById('adjustmentForm').reset();
+
+  let paid=0, share=0;
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer===person) paid += Number(ex.amount);
+    if(ex.split.includes(person)) share += expenseShare(ex, person);
+  });
+  const adjTotal = adjustments.filter(a=>a.person===person).reduce((s,a)=>s+Number(a.amount),0);
+  const net = (computeNetBalances()[person]) || 0;
+  document.getElementById('peCurrentNet').innerHTML = `
+    <div class="kpi"><p class="lbl">Paid − share</p><p class="val text-lg">₹${(paid-share).toFixed(0)}</p></div>
+    <div class="kpi"><p class="lbl">Manual adjustments</p><p class="val text-lg ${adjTotal>=0?'balance-pos':'balance-neg'}">${adjTotal>=0?'+':'−'}₹${Math.abs(adjTotal).toFixed(0)}</p></div>
+    <div class="kpi"><p class="lbl">Current net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toFixed(0)}</p></div>
+  `;
+  renderPeAdjustmentList(person);
+  openModal('participantEditModal');
+}
+
+async function checkWalletAdmin(actionLabel){
+  const actor = await requestActor('Confirm your identity', `Only ${WALLET_ADMINS.join(' or ')} can ${actionLabel}.`);
+  if(!actor) return null;
+  if(!WALLET_ADMINS.includes(actor)){
+    showBanner('err', `Only <b>${WALLET_ADMINS.join(' or ')}</b> can ${actionLabel} — you selected <b>${actor}</b>, so no changes were made.`);
+    return null;
   }
-  const newName = prompt(`Edit name for "${oldName}":`, oldName);
-  if(newName === null) return;
-  const trimmed = newName.trim();
-  if(!trimmed || trimmed === oldName) return;
+  return actor;
+}
+
+document.getElementById('renameForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const oldName = peCurrentPerson;
+  const trimmed = document.getElementById('pe-newname').value.trim();
+  if(!oldName || !trimmed || trimmed === oldName) return;
   if(PARTICIPANTS.some(p => p.toLowerCase() === trimmed.toLowerCase())){
     showBanner('err', `"${trimmed}" is already a participant name.`);
     return;
   }
+  const actor = await checkWalletAdmin('rename participants');
+  if(!actor) return;
 
   const idx = PARTICIPANTS.indexOf(oldName);
   if(idx === -1) return;
@@ -1815,11 +1949,48 @@ async function editParticipant(oldName){
   wallet.activity.forEach(a=>{
     if(a.actor === oldName) a.actor = trimmed;
   });
+  adjustments.forEach(a=>{ if(a.person === oldName) a.person = trimmed; });
+  persistAdjustments();
 
   persistLocal();
+  closeModal('participantEditModal');
   renderAll();
   showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
+});
+
+document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const person = peCurrentPerson;
+  if(!person) return;
+  const direction = document.getElementById('pe-adj-direction').value;
+  const rawAmount = Number(document.getElementById('pe-adj-amount').value);
+  const note = document.getElementById('pe-adj-note').value.trim();
+  if(!rawAmount || rawAmount <= 0 || !note) return;
+
+  const actor = await checkWalletAdmin('apply manual balance adjustments');
+  if(!actor) return;
+
+  const signedAmount = direction === 'subtract' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+  const id = 'adj'+Date.now();
+  adjustments.push({id, person, amount:signedAmount, note, actor, ts:new Date().toISOString()});
+  persistAdjustments();
+  renderAll();
+  openParticipantEditModal(person); // refresh the modal's own numbers in place
+  showBanner('ok', `Applied a ${signedAmount>=0?'+':'−'}₹${Math.abs(signedAmount).toFixed(0)} adjustment to <b>${person}</b>. Saved on this device — it isn't pushed to the shared sheet.`);
+});
+
+function removeAdjustment(id){
+  const a = adjustments.find(x=>x.id===id);
+  confirmAction('Remove this adjustment?', a ? `"${a.note}" (${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}) will be undone.` : 'This adjustment will be removed.', ()=>{
+    const person = a ? a.person : peCurrentPerson;
+    adjustments = adjustments.filter(x=>x.id!==id);
+    persistAdjustments();
+    renderAll();
+    if(peCurrentPerson) openParticipantEditModal(peCurrentPerson);
+    showBanner('ok', 'Adjustment removed.');
+  });
 }
+
 function viewPerson(person){
   let paid=0, share=0; const rows=[];
   wallet.expenses.forEach(ex=>{
@@ -1827,9 +1998,11 @@ function viewPerson(person){
     const isPayer = ex.payer===person, isSplit = ex.split.includes(person);
     if(isPayer) paid += amt;
     if(isSplit) share += per;
-    if(isPayer || isSplit) rows.push({title:ex.title, role:isPayer?'Paid':'Owes share', amt:isPayer?amt:per, date:ex.date});
+    if(isPayer || isSplit) rows.push({title:ex.title, role:isPayer?'Paid':'Owes share', amt:isPayer?amt:per, date:ex.date, sortKey:ex.date||ex.createdAt||''});
   });
-  const net = paid - share;
+  const personAdjustments = adjustments.filter(a=>a.person===person);
+  const adjTotal = personAdjustments.reduce((s,a)=>s+Number(a.amount),0);
+  const net = paid - share + adjTotal;
   document.getElementById('personModalTitle').textContent = person;
   document.getElementById('personModalBody').innerHTML = `
     <div class="grid grid-cols-3 gap-3 mb-6">
@@ -1837,12 +2010,18 @@ function viewPerson(person){
       <div class="kpi"><p class="lbl">Total share</p><p class="val text-lg">₹${share.toFixed(0)}</p></div>
       <div class="kpi"><p class="lbl">Net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toFixed(0)}</p></div>
     </div>
+    ${personAdjustments.length ? `
+    <div class="banner warn mb-5">Includes ${personAdjustments.length} manual adjustment${personAdjustments.length===1?'':'s'} totalling ${adjTotal>=0?'+':'−'}₹${Math.abs(adjTotal).toFixed(0)} — see below, or manage them via the ✎ edit icon on the Participants page.</div>` : ''}
     <h4 class="font-semibold mb-2">Itemised breakdown</h4>
     <div class="divide-y" style="border-color:var(--line)">
       ${rows.reverse().map(r=>`<div class="py-3 flex items-center justify-between">
         <div><p class="font-semibold text-sm">${r.title}</p><p class="text-xs opacity-50">${r.role} · ${r.date||'—'}</p></div>
         <p class="mono text-sm ${r.role==='Paid'?'balance-pos':'balance-neg'}">₹${r.amt.toFixed(0)}</p>
       </div>`).join('') || '<p class="text-sm opacity-50 py-4">No expenses involve this person yet.</p>'}
+      ${personAdjustments.slice().reverse().map(a=>`<div class="py-3 flex items-center justify-between">
+        <div><p class="font-semibold text-sm">${a.note}</p><p class="text-xs opacity-50">Manual adjustment · ${(a.ts||'').slice(0,10)} · by ${a.actor}</p></div>
+        <p class="mono text-sm ${a.amount>=0?'balance-pos':'balance-neg'}">${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}</p>
+      </div>`).join('')}
     </div>`;
   openModal('personModal');
 }
