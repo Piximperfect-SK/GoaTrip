@@ -463,6 +463,7 @@
       </div>
 
       <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6" id="walletPersonGrid"></div>
+      <p class="text-sm opacity-50 text-center py-6 mb-6" id="walletPersonEmptyState" style="display:none;">No deposits logged yet — cards will appear here as people pay in.</p>
 
       <div class="panel p-6">
         <h3 class="font-semibold mb-1">All deposits</h3>
@@ -1970,8 +1971,13 @@ function renderWallet(){
   document.getElementById('wkpi-fairshare').textContent = '₹' + fairShare.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
   document.getElementById('wkpi-fairshare-sub').textContent = `₹${spent.toFixed(2)} spent ÷ ${PARTICIPANTS.length} people`;
 
-  // Per-person cards: deposited vs. fair share of total spend
-  document.getElementById('walletPersonGrid').innerHTML = PARTICIPANTS.map(p=>{
+  // Per-person cards: only for people who actually have a deposit
+  // logged — the full 12-person roster used to render regardless,
+  // which made "Deposits by person" noisy before anyone had paid in.
+  // Cards appear here automatically as soon as their first deposit
+  // is added elsewhere (via "+ Add deposit" or the modal below).
+  const peopleWithDeposits = PARTICIPANTS.filter(p => depositedByPerson(p) > 0);
+  document.getElementById('walletPersonGrid').innerHTML = peopleWithDeposits.map(p=>{
     const dep = depositedByPerson(p);
     const net = dep - fairShare;
     return `<div class="panel p-5 cursor-pointer" onclick="viewPersonDeposits('${p.replace(/'/g,"\\'")}')">
@@ -1983,6 +1989,7 @@ function renderWallet(){
       <p class="text-xs opacity-50">${net>=0? 'credit left in the pool' : 'still owes the pool'} · tap to view/edit</p>
     </div>`;
   }).join('');
+  document.getElementById('walletPersonEmptyState').style.display = peopleWithDeposits.length ? 'none' : 'block';
 
   // All-deposits table
   const sorted = (wallet.deposits||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
