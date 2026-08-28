@@ -920,7 +920,7 @@ async function runLookup(nameInput){
     legsToRender.forEach(({leg, qrId}) => { html += buildPassCard(leg, nameInput, qrId); });
     html += `</div>`;
 
-    output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>${legsToRender.length > 1 ? 'Download passes as images' : 'Download pass as image'}</span></button><button class="btn-ghost" id="downloadPdfBtn" onclick="downloadPassPDF()">${ICONS.ticket}<span>Download pass as PDF</span></button></div>`;
+    output.innerHTML = html + `<div class="download-row"><button class="btn-ghost" onclick="downloadPass()">${ICONS.ticket}<span>Download pass as image</span></button><button class="btn-ghost" id="downloadPdfBtn" onclick="downloadPassPDF()">${ICONS.ticket}<span>Download pass as PDF</span></button></div>`;
 
     // Render each leg's real QR code now that its container is in the DOM.
     // The QR encodes the actual fetched ticket details as text (see
@@ -1155,43 +1155,32 @@ function passengerSlug(){
   return (document.getElementById('p-name').value || 'goa').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'goa';
 }
 
-/* Produces one PNG file per leg — same pixel dimensions and same
-   card content as the matching PDF page — rather than stitching every
-   leg into a single tall composite image. Keeps "download as image"
-   and "download as PDF" visually and structurally consistent: for a
-   round trip you get two image files (onward/return) just as you get
-   two PDF pages, instead of one download type splitting legs across
-   pages and the other cramming them into one long picture. */
+/* Produces a single PNG containing every leg stacked in one sheet
+   (onward, then return) — one file, matching the single-page PDF. */
 async function downloadPass(){
   try{
     const cardCanvases = await captureCardCanvases();
     if(!cardCanvases.length) return;
-    const legLabels = cardCanvases.length > 1 ? ['onward', 'return'] : [''];
 
-    for(let i = 0; i < cardCanvases.length; i++){
-      const c = cardCanvases[i];
-      const finalCanvas = document.createElement('canvas');
-      finalCanvas.width = PRINT_W;
-      finalCanvas.height = PRINT_H;
-      const ctx = finalCanvas.getContext('2d');
-      // Matches --paper exactly (not an approximation) so the stub's
-      // punched "tear" circles — which are painted solid var(--paper) —
-      // blend seamlessly into this backdrop instead of leaving a visible
-      // color seam around each hole.
-      ctx.fillStyle = '#FBF6EC';
-      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-      ctx.drawImage(c, 0, 0, c.width, c.height, 0, 0, PRINT_W, PRINT_H);
+    const gap = 32;
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = PRINT_W;
+    finalCanvas.height = cardCanvases.length * PRINT_H + (cardCanvases.length - 1) * gap;
+    const ctx = finalCanvas.getContext('2d');
+    // Matches --paper exactly (not an approximation) so the stub's
+    // punched "tear" circles — which are painted solid var(--paper) —
+    // blend seamlessly into this backdrop instead of leaving a visible
+    // color seam around each hole.
+    ctx.fillStyle = '#FBF6EC';
+    ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+    cardCanvases.forEach((c, i) => {
+      ctx.drawImage(c, 0, 0, c.width, c.height, 0, i * (PRINT_H + gap), PRINT_W, PRINT_H);
+    });
 
-      const suffix = legLabels[i] ? `-${legLabels[i]}` : '';
-      const link = document.createElement('a');
-      link.download = `boarding-pass-${passengerSlug()}${suffix}.png`;
-      link.href = finalCanvas.toDataURL('image/png');
-      link.click();
-      // Stagger multi-file downloads slightly — firing several
-      // link.click() downloads in the same tick makes some mobile
-      // browsers silently drop all but the first.
-      if(i < cardCanvases.length - 1) await new Promise(r => setTimeout(r, 400));
-    }
+    const link = document.createElement('a');
+    link.download = `boarding-pass-${passengerSlug()}.png`;
+    link.href = finalCanvas.toDataURL('image/png');
+    link.click();
   }catch(err){
     console.error('Boarding pass PNG download failed:', err);
   }
@@ -1200,16 +1189,13 @@ async function downloadPass(){
 /* ---------- Download as a fixed-size, print-ready PDF ----------
    Reuses the exact same per-card canvases as the PNG export (same
    capture, same 1980x780px pixels) so the two downloads never drift
-   apart. Each leg gets its own standard A4 landscape page with the
-   pass centered and printed at a modest, deliberately-smaller size
-   (6.5in wide) rather than stretched edge-to-edge on a custom page
-   size. Two reasons for standard A4 pages specifically:
-     1. Third-party print pipelines (e.g. the print-on-demand features
-        inside apps like Zepto/Blinkit) are built around standard
-        paper sizes; a custom per-page size was silently collapsing
-        a 2-page round-trip PDF down to a single printed page.
-     2. It keeps the printed ticket a normal, easy-to-handle size
-        instead of filling the entire sheet edge-to-edge. */
+   apart. All legs are stacked onto a single standard A4 landscape
+   page (one sheet, not one page per leg), each printed at a modest,
+   deliberately-smaller size (6.5in wide) rather than stretched
+   edge-to-edge on a custom page size. Standard A4 also just prints
+   more reliably through third-party print pipelines (e.g. the
+   print-on-demand features inside apps like Zepto/Blinkit) than a
+   custom page size does. */
 async function downloadPassPDF(){
   const btn = document.getElementById('downloadPdfBtn');
   const prevLabel = btn ? btn.innerHTML : null;
@@ -1226,21 +1212,24 @@ async function downloadPassPDF(){
     const pageWIn = doc.internal.pageSize.getWidth();
     const pageHIn = doc.internal.pageSize.getHeight();
 
-    // Pass image size + centered position on the standard A4 page.
+    // Both legs stacked as one centered block on a single page.
     const passWIn = 6.5;
     const passHIn = passWIn * (PRINT_H / PRINT_W);
+    const gapIn = 0.3;
+    const blockHIn = cardCanvases.length * passHIn + (cardCanvases.length - 1) * gapIn;
     const xIn = (pageWIn - passWIn) / 2;
-    const yIn = (pageHIn - passHIn) / 2;
+    const blockTopIn = (pageHIn - blockHIn) / 2;
+
+    // Fill the page with the same paper tone the punched stub circles
+    // are painted with, so the transparent corners left by the
+    // (now-transparent-background) card capture blend cleanly into
+    // the page instead of leaving white squares behind the rounded
+    // edges.
+    doc.setFillColor('#FBF6EC');
+    doc.rect(0, 0, pageWIn, pageHIn, 'F');
 
     cardCanvases.forEach((canvas, i) => {
-      if(i > 0) doc.addPage('a4', 'landscape');
-      // Fill the page with the same paper tone the punched stub
-      // circles are painted with, so the transparent corners left by
-      // the (now-transparent-background) card capture blend cleanly
-      // into the page instead of leaving white squares behind the
-      // rounded edges.
-      doc.setFillColor('#FBF6EC');
-      doc.rect(0, 0, pageWIn, pageHIn, 'F');
+      const yIn = blockTopIn + i * (passHIn + gapIn);
       const imgData = canvas.toDataURL('image/png');
       doc.addImage(imgData, 'PNG', xIn, yIn, passWIn, passHIn, undefined, 'FAST');
     });
