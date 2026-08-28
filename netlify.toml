@@ -7,34 +7,16 @@
 # merges header blocks that match the same request, so this doesn't
 # touch caching behaviour for /videos/* or /*.html.
 #
-#   Content-Security-Policy — only allows scripts/styles/fonts/images
-#     from the exact domains the site actually uses (Tailwind CDN,
-#     cdnjs, jsdelivr, unpkg, Google Fonts, Unsplash, api.qrserver.com)
-#     plus fetches to script.google.com (the Apps Script backend).
-#     'unsafe-inline' is required for script-src because every page
-#     uses onclick="..." attributes extensively — removing that would
-#     need a larger refactor to addEventListener-based event handling.
-#   frame-ancestors 'none' + X-Frame-Options: DENY — nobody can embed
-#     this site in an iframe (clickjacking protection). This directive
-#     only takes effect via a real HTTP header (here) — a <meta> CSP
-#     tag can't carry it, which is why this file matters even though
-#     each HTML page also has its own <meta> CSP as a fallback.
-#   X-Content-Type-Options: nosniff — stops the browser from guessing
-#     a file's type in a way that could turn a data file into a script.
-#   Referrer-Policy — don't leak full page URLs (which can carry query
-#     params) to third-party domains like Google Fonts.
-#   Permissions-Policy — disables browser APIs (camera/mic/geolocation/
-#     payment) this site never uses, so they can't be abused even by
-#     injected code.
-#
-# If you ever add a new CDN or external API to any HTML file, add its
-# domain to the matching directive below AND to that file's own <meta>
-# CSP tag, or the new resource will be silently blocked.
+# connect-src includes BOTH script.google.com and
+# script.googleusercontent.com — Apps Script Web App responses are
+# actually served from script.googleusercontent.com under the hood
+# (a redirect from the script.google.com URL you call), so both are
+# needed or every fetch to the backend gets blocked.
 # ============================================================
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
