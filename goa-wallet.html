@@ -1751,6 +1751,7 @@ function renderOverview(){
   const count = wallet.expenses.length;
   const avg = total / PARTICIPANTS.length;
   const settlements = pairwiseSettlements();
+  const net = computeNetBalances(); // still needed below for the balance chart
 
   animateValue(document.getElementById('kpi-total'), total, '₹');
   document.getElementById('kpi-total-sub').textContent = `${count} transaction${count===1?'':'s'}`;
@@ -2370,13 +2371,18 @@ function renderActivity(){
 /* ============================================================
    RENDER ALL
 =============================================================*/
+// Each section renders independently — a bug in one (e.g. a stray
+// undefined variable in a chart call) used to throw and silently
+// abort every render after it, which is exactly what made Expenses/
+// Participants/Settlements/Activity all show empty despite a
+// perfectly good Sheet sync. Isolating each call means a broken
+// piece just logs to console and leaves its own section stale,
+// instead of taking the whole page down with it.
 function renderAll(){
-  renderOverview();
-  renderWallet();
-  renderExpensesTable();
-  renderParticipants();
-  renderSettlements();
-  renderActivity();
+  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderSettlements, renderActivity];
+  sections.forEach(fn=>{
+    try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
+  });
 }
 try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
 pullFromSheet();
