@@ -400,7 +400,6 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="kpi"><p class="lbl">Total expenses</p><p class="val" id="kpi-total">₹0</p><p class="sub" id="kpi-total-sub">across the trip</p></div>
         <div class="kpi"><p class="lbl">Total contributions</p><p class="val" id="kpi-contrib">₹0</p><p class="sub">sum of all amounts paid in</p></div>
-        <div class="kpi"><p class="lbl">Remaining balance</p><p class="val" id="kpi-remaining">₹0</p><p class="sub">still to be settled</p></div>
         <div class="kpi"><p class="lbl">Average spend / person</p><p class="val" id="kpi-avg">₹0</p><p class="sub">across 11 participants</p></div>
         <div class="kpi"><p class="lbl">Transactions</p><p class="val" id="kpi-count">0</p><p class="sub">expenses logged</p></div>
         <div class="kpi"><p class="lbl">Outstanding settlements</p><p class="val" id="kpi-outstanding">0</p><p class="sub">payments needed to settle up</p></div>
@@ -437,27 +436,27 @@
     </div>
 
     <!-- ============ WALLET (deposit pool) ============
-         Separate from the Splitwise-style Expenses/Settlements ledger.
-         Members volunteer deposits into a shared pool up front; the
-         group's total expenses are then divided evenly across everyone
-         (deposited − fair share = still owed to the pool, or owed back).
+         Fully manual and self-contained — this is just a record of who
+         has physically deposited money into the pool. It does NOT read
+         from, or feed into, Expenses/Settlements/Overview in any way:
+         no fair-share math, no "total spent" pulled from the Expenses
+         tab, no linkage to who paid for what. Every number here starts
+         at 0 and moves only when someone explicitly logs a deposit.
          Add/edit/delete are admin-gated (checkWalletAdmin), same as
-         participant renaming and manual adjustments — this models one
-         or two people acting as treasurer and logging cash/UPI they've
-         actually received, not a self-service ledger every member edits.
+         participant renaming — this models one or two people acting as
+         treasurer and logging cash/UPI they've actually received.
     -->
     <div class="page" id="page-wallet">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="kpi"><p class="lbl">Total in pool</p><p class="val" id="wkpi-deposited">₹0</p><p class="sub">sum of all deposits</p></div>
-        <div class="kpi"><p class="lbl">Total spent</p><p class="val" id="wkpi-spent">₹0</p><p class="sub">from the Expenses tab</p></div>
-        <div class="kpi"><p class="lbl">Pool balance</p><p class="val" id="wkpi-balance">₹0</p><p class="sub">deposited − spent</p></div>
-        <div class="kpi"><p class="lbl">Fair share / person</p><p class="val" id="wkpi-fairshare">₹0</p><p class="sub" id="wkpi-fairshare-sub">total spend ÷ participants</p></div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div class="kpi"><p class="lbl">Total in pool</p><p class="val" id="wkpi-deposited">₹0</p><p class="sub">sum of all deposits logged</p></div>
+        <div class="kpi"><p class="lbl">People who've deposited</p><p class="val" id="wkpi-count">0</p><p class="sub" id="wkpi-count-sub">of 12 participants</p></div>
+        <div class="kpi"><p class="lbl">Deposit entries</p><p class="val" id="wkpi-entries">0</p><p class="sub">logged so far</p></div>
       </div>
 
       <div class="flex items-center justify-between mb-5">
         <div>
           <h3 class="font-semibold">Deposits by person</h3>
-          <p class="text-xs opacity-50 mt-0.5">Deposited vs. their fair share of total spend — positive means credit left in the pool, negative means they still owe it.</p>
+          <p class="text-xs opacity-50 mt-0.5">Purely manual record-keeping — not linked to expenses, splits, or balances elsewhere in the app.</p>
         </div>
         <button class="btn-primary" onclick="openDepositModal()">+ Add deposit</button>
       </div>
@@ -532,9 +531,16 @@
       <div class="flex items-center justify-between mb-5">
         <div>
           <h3 class="font-semibold">Settlements</h3>
-          <p class="text-xs opacity-50 mt-0.5">Only what's actually recorded below counts — nothing here is auto-suggested or pre-matched between people.</p>
+          <p class="text-xs opacity-50 mt-0.5">"Who owes whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
         </div>
         <button class="btn-primary" onclick="openSettlementModal()">+ Record a settlement</button>
+      </div>
+
+      <div class="panel p-6 mb-6">
+        <h3 class="font-semibold mb-1">Who owes whom</h3>
+        <p class="text-xs opacity-50 mb-4">Direct payments, computed from actual expense splits (not a global reshuffle) — this is exactly who should pay whom to settle up.</p>
+        <div id="whoOwesWhomList" class="divide-y" style="border-color:var(--line)"></div>
+        <p class="text-sm opacity-50 text-center py-6" id="whoOwesWhomEmpty" style="display:none;">Everyone is settled up 🎉</p>
       </div>
 
       <div class="panel p-6 mb-6">
@@ -1415,6 +1421,14 @@ function viewExpense(id){
   if(!ex) return;
   const isIndividual = ex.splitType === 'individual';
   const per = Number(ex.amount)/ex.split.length; // only meaningful for equal splits
+
+  // Who-owes-whom for THIS expense specifically: everyone in the split
+  // except the payer owes the payer their share. This is scoped to the
+  // single expense — it doesn't net against other expenses/settlements,
+  // it's just "for this one payment, who needs to pay the payer back".
+  const owers = ex.split.filter(s => s !== ex.payer);
+  const oweRows = owers.map(s => ({ name:s, amt: expenseShare(ex, s) }));
+
   document.getElementById('detailModalBody').innerHTML = `
     <div class="mb-4">
       <p class="section-eyebrow">${ex.category||'Misc'}</p>
@@ -1433,6 +1447,16 @@ function viewExpense(id){
         ? `<div class="divide-y" style="border-color:var(--line)">${ex.split.map(s=>`
             <div class="flex items-center justify-between py-1.5"><span class="text-sm">${s}</span><span class="mono text-sm">₹${expenseShare(ex,s).toFixed(0)}</span></div>`).join('')}</div>`
         : `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${s} · ₹${per.toFixed(0)}</span>`).join('')}</div>`}
+    </div>
+    <div class="mb-5">
+      <p class="mono text-[11px] opacity-50 mb-1">WHO OWES WHOM — FOR THIS EXPENSE</p>
+      ${oweRows.length
+        ? `<div class="divide-y" style="border-color:var(--line)">${oweRows.map(r=>`
+            <div class="flex items-center justify-between py-2">
+              <span class="text-sm"><b>${r.name}</b> owes <b>${ex.payer}</b></span>
+              <span class="mono text-sm balance-neg">₹${r.amt.toFixed(0)}</span>
+            </div>`).join('')}</div>`
+        : `<p class="text-sm opacity-50">${ex.payer} paid only for themself here — nobody owes anything on this expense.</p>`}
     </div>
     <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${ex.updatedBy}` : `Added by ${ex.createdBy||'—'}`}</p>
     <div class="flex gap-3">
@@ -1725,15 +1749,12 @@ function animateValue(el, endValue, prefix){
 function renderOverview(){
   const total = wallet.expenses.reduce((a,ex)=>a+Number(ex.amount),0);
   const count = wallet.expenses.length;
-  const net = computeNetBalances();
-  const remaining = Object.values(net).filter(v=>v>0).reduce((a,v)=>a+v,0);
   const avg = total / PARTICIPANTS.length;
   const settlements = pairwiseSettlements();
 
   animateValue(document.getElementById('kpi-total'), total, '₹');
   document.getElementById('kpi-total-sub').textContent = `${count} transaction${count===1?'':'s'}`;
   animateValue(document.getElementById('kpi-contrib'), total, '₹');
-  animateValue(document.getElementById('kpi-remaining'), remaining, '₹');
   animateValue(document.getElementById('kpi-avg'), avg, '₹');
   document.getElementById('kpi-count').textContent = count;
   document.getElementById('kpi-outstanding').textContent = settlements.length;
@@ -1939,54 +1960,43 @@ function renderParticipants(){
 }
 
 /* ============================================================
-   WALLET (deposit pool) — separate ledger from Expenses/Settlements.
-   Members volunteer deposits into a shared pool up front; total spend
-   (sum of wallet.expenses) is divided evenly across all PARTICIPANTS,
-   regardless of who was recorded as "payer" on any individual expense.
-   deposited − fairShare tells you if that person still owes the pool
-   or has credit left in it. Add/edit/delete are admin-gated the same
-   way as participant renaming, since in practice one or two people
-   (the treasurer) log cash/UPI they've actually received.
+   WALLET (deposit pool) — fully manual, fully cut off from
+   Expenses/Settlements/Overview. It only ever reads wallet.deposits
+   (entries added one at a time via the deposit form/modal) — it does
+   NOT read wallet.expenses, does not compute a "fair share", and does
+   NOT infer anyone's deposit from what they paid for an expense.
+   Every figure here starts at 0 and only changes when a deposit is
+   explicitly logged. Add/edit/delete are admin-gated the same way as
+   participant renaming, since in practice one or two people (the
+   treasurer) log cash/UPI they've actually received.
 =============================================================*/
 function totalDeposited(){
   return (wallet.deposits||[]).reduce((s,d)=> s + Number(d.amount||0), 0);
-}
-function totalSpent(){
-  return (wallet.expenses||[]).reduce((s,e)=> s + Number(e.amount||0), 0);
 }
 function depositedByPerson(person){
   return (wallet.deposits||[]).filter(d=>d.person===person).reduce((s,d)=> s + Number(d.amount||0), 0);
 }
 function renderWallet(){
   const deposited = totalDeposited();
-  const spent = totalSpent();
-  const fairShare = PARTICIPANTS.length ? spent / PARTICIPANTS.length : 0;
+  const peopleWithDeposits = PARTICIPANTS.filter(p => depositedByPerson(p) > 0);
 
   document.getElementById('wkpi-deposited').textContent = '₹' + deposited.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('wkpi-spent').textContent = '₹' + spent.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-  const balance = deposited - spent;
-  const balEl = document.getElementById('wkpi-balance');
-  balEl.textContent = (balance>=0?'₹':'−₹') + Math.abs(balance).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-  balEl.className = 'val ' + (balance>=0 ? 'balance-pos' : 'balance-neg');
-  document.getElementById('wkpi-fairshare').textContent = '₹' + fairShare.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('wkpi-fairshare-sub').textContent = `₹${spent.toFixed(2)} spent ÷ ${PARTICIPANTS.length} people`;
+  document.getElementById('wkpi-count').textContent = peopleWithDeposits.length;
+  document.getElementById('wkpi-count-sub').textContent = `of ${PARTICIPANTS.length} participants`;
+  document.getElementById('wkpi-entries').textContent = (wallet.deposits||[]).length;
 
   // Per-person cards: only for people who actually have a deposit
-  // logged — the full 12-person roster used to render regardless,
-  // which made "Deposits by person" noisy before anyone had paid in.
-  // Cards appear here automatically as soon as their first deposit
-  // is added elsewhere (via "+ Add deposit" or the modal below).
-  const peopleWithDeposits = PARTICIPANTS.filter(p => depositedByPerson(p) > 0);
+  // logged, and showing nothing but the raw amount they've deposited —
+  // no comparison to spend, no fair-share math, no "still owes" verdict.
   document.getElementById('walletPersonGrid').innerHTML = peopleWithDeposits.map(p=>{
     const dep = depositedByPerson(p);
-    const net = dep - fairShare;
     return `<div class="panel p-5 cursor-pointer" onclick="viewPersonDeposits('${p.replace(/'/g,"\\'")}')">
       <div class="flex items-center gap-3 mb-3">
         <span class="avatar">${initials(p)}</span>
-        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Deposited ₹${dep.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">${(wallet.deposits||[]).filter(d=>d.person===p).length} deposit${(wallet.deposits||[]).filter(d=>d.person===p).length===1?'':'s'} logged</p></div>
       </div>
-      <p class="mono text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0? '+₹'+net.toFixed(2) : '−₹'+Math.abs(net).toFixed(2)}</p>
-      <p class="text-xs opacity-50">${net>=0? 'credit left in the pool' : 'still owes the pool'} · tap to view/edit</p>
+      <p class="mono text-lg">₹${dep.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+      <p class="text-xs opacity-50">total deposited · tap to view/edit</p>
     </div>`;
   }).join('');
   document.getElementById('walletPersonEmptyState').style.display = peopleWithDeposits.length ? 'none' : 'block';
@@ -2099,19 +2109,15 @@ async function removeDeposit(id, forPerson){
 =============================================================*/
 function viewPersonDeposits(person){
   const deposited = depositedByPerson(person);
-  const spent = totalSpent();
-  const fairShare = PARTICIPANTS.length ? spent / PARTICIPANTS.length : 0;
-  const net = deposited - fairShare;
+  const entries = (wallet.deposits||[]).filter(d=>d.person===person);
 
   document.getElementById('pdModalTitle').textContent = person;
   document.getElementById('pdSummary').innerHTML = `
-    <div class="kpi"><p class="lbl">Deposited</p><p class="val text-lg">₹${deposited.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
-    <div class="kpi"><p class="lbl">Fair share</p><p class="val text-lg">₹${fairShare.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
-    <div class="kpi"><p class="lbl">Net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    <div class="kpi"><p class="lbl">Total deposited</p><p class="val text-lg">₹${deposited.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    <div class="kpi"><p class="lbl">Entries logged</p><p class="val text-lg">${entries.length}</p></div>
   `;
 
-  const rows = (wallet.deposits||[]).filter(d=>d.person===person)
-    .slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
+  const rows = entries.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
   document.getElementById('pdList').innerHTML = rows.map(d=>`
     <div class="py-3 flex items-center justify-between gap-3">
       <div>
@@ -2301,6 +2307,22 @@ function viewPerson(person){
 =============================================================*/
 function renderSettlements(){
   const net = computeNetBalances();
+
+  // "Who owes whom" — direct pairwise amounts, the actual answer to
+  // "who do I need to pay". Each row can jump straight into the manual
+  // settlement form pre-filled, so recording it is one click away.
+  const pairs = pairwiseSettlements();
+  const owList = document.getElementById('whoOwesWhomList');
+  owList.innerHTML = pairs.map(p=>`
+    <div class="py-3 flex items-center justify-between gap-3 flex-wrap">
+      <span class="text-sm"><b>${p.from}</b> <span class="opacity-50">owes</span> <b>${p.to}</b></span>
+      <div class="flex items-center gap-3">
+        <span class="mono text-sm balance-neg">₹${p.amount.toFixed(0)}</span>
+        <button type="button" class="btn-ghost text-xs" style="padding:6px 12px" onclick="quickRecordSettlement('${p.from.replace(/'/g,"\\'")}','${p.to.replace(/'/g,"\\'")}',${p.amount})">Record</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('whoOwesWhomEmpty').style.display = pairs.length ? 'none' : 'block';
+
   const glance = document.getElementById('settlementBalanceGlance');
   const nonZero = PARTICIPANTS.filter(p => Math.abs(net[p]||0) > 0.5);
   glance.innerHTML = nonZero.length ? nonZero.map(p=>{
@@ -2320,6 +2342,17 @@ function renderSettlements(){
       <td><span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span></td>
     </tr>`).join('');
   document.getElementById('settlementEmptyState').style.display = wallet.settlements.length ? 'none' : 'block';
+}
+
+// Opens the settlement modal straight on the manual-entry tab, pre-filled
+// with a specific "who owes whom" pair from the list above — so recording
+// it is a couple of clicks instead of re-typing names and amounts.
+function quickRecordSettlement(from, to, amount){
+  openSettlementModal();
+  switchSettlementMode('manual');
+  document.getElementById('s-from').value = from;
+  document.getElementById('s-to').value = to;
+  document.getElementById('s-amount').value = amount.toFixed(2);
 }
 
 /* ============================================================
