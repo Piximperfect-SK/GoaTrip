@@ -79,6 +79,7 @@
   #topbar{
     position:sticky; top:0; z-index:30; background:rgba(251,246,236,.92); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--line); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    color:var(--ink); /* shared.css sets pale --sand text for a DARK topbar; this topbar is light, so it needs dark text of its own */
   }
   #topbar::after{
     content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
@@ -131,7 +132,7 @@
   .btn-ghost{ border:1.5px solid var(--line); border-radius:10px; padding:9px 18px; font-weight:600; background:white; cursor:pointer; transition:.2s; font-size:14px; color:var(--ink); }
   .btn-ghost:hover{ border-color:var(--ink); }
   .btn-ghost:active{ transform:scale(.97); }
-  .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; }
+  .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; color:var(--ink); }
   .btn-icon:hover{ background:var(--sand); }
 
   /* ---------- Form elements ----------
