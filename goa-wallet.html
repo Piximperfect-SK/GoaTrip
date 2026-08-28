@@ -363,6 +363,7 @@
     </div>
     <nav class="py-3">
       <div class="navitem active" data-page="overview"><span class="ic">◆</span> Overview</div>
+      <div class="navitem" data-page="wallet"><span class="ic">▣</span> Wallet</div>
       <div class="navitem" data-page="expenses"><span class="ic">▤</span> Expenses</div>
       <div class="navitem" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
       <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
@@ -432,6 +433,47 @@
         </div>
       </div>
       <p class="text-xs opacity-40 mt-3" id="chartFallbackNote" style="display:none;">Charts couldn't load (offline or the chart library was blocked) — the numbers above and the tables below are still fully up to date.</p>
+    </div>
+
+    <!-- ============ WALLET (deposit pool) ============
+         Separate from the Splitwise-style Expenses/Settlements ledger.
+         Members volunteer deposits into a shared pool up front; the
+         group's total expenses are then divided evenly across everyone
+         (deposited − fair share = still owed to the pool, or owed back).
+         Add/edit/delete are admin-gated (checkWalletAdmin), same as
+         participant renaming and manual adjustments — this models one
+         or two people acting as treasurer and logging cash/UPI they've
+         actually received, not a self-service ledger every member edits.
+    -->
+    <div class="page" id="page-wallet">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="kpi"><p class="lbl">Total in pool</p><p class="val" id="wkpi-deposited">₹0</p><p class="sub">sum of all deposits</p></div>
+        <div class="kpi"><p class="lbl">Total spent</p><p class="val" id="wkpi-spent">₹0</p><p class="sub">from the Expenses tab</p></div>
+        <div class="kpi"><p class="lbl">Pool balance</p><p class="val" id="wkpi-balance">₹0</p><p class="sub">deposited − spent</p></div>
+        <div class="kpi"><p class="lbl">Fair share / person</p><p class="val" id="wkpi-fairshare">₹0</p><p class="sub" id="wkpi-fairshare-sub">total spend ÷ participants</p></div>
+      </div>
+
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-semibold">Deposits by person</h3>
+          <p class="text-xs opacity-50 mt-0.5">Deposited vs. their fair share of total spend — positive means credit left in the pool, negative means they still owe it.</p>
+        </div>
+        <button class="btn-primary" onclick="openDepositModal()">+ Add deposit</button>
+      </div>
+
+      <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6" id="walletPersonGrid"></div>
+
+      <div class="panel p-6">
+        <h3 class="font-semibold mb-1">All deposits</h3>
+        <p class="text-xs opacity-50 mb-4">Every amount logged into the pool, in order.</p>
+        <div class="overflow-x-auto">
+          <table>
+            <thead><tr><th>Person</th><th>Amount</th><th>Note</th><th>Date</th><th>Logged by</th><th></th></tr></thead>
+            <tbody id="depositTableBody"></tbody>
+          </table>
+        </div>
+        <p class="text-sm opacity-50 text-center py-8" id="depositEmptyState" style="display:none;">No deposits recorded yet.</p>
+      </div>
     </div>
 
     <!-- ============ EXPENSES ============ -->
@@ -527,6 +569,7 @@
 <nav id="tabbar">
   <div class="tabbar-row">
     <div class="tabbar-item active" data-page="overview"><span class="tic">◆</span><span class="tlbl">Overview</span></div>
+    <div class="tabbar-item" data-page="wallet"><span class="tic">▣</span><span class="tlbl">Wallet</span></div>
     <div class="tabbar-item" data-page="expenses"><span class="tic">▤</span><span class="tlbl">Expenses</span></div>
     <div class="tabbar-item" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
     <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
@@ -758,6 +801,29 @@
   </div>
 </div>
 
+<!-- ============ MODAL: Add / Edit Deposit ============ -->
+<div id="depositModal" class="app-modal">
+  <div class="modal-panel">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <div>
+        <h3 class="display text-xl font-semibold" id="depositModalTitle">Add deposit</h3>
+        <p class="text-xs opacity-50 mt-0.5">Logs an amount into the shared pool for one person. Admin-confirmed, like renaming or adjustments.</p>
+      </div>
+      <span class="modal-close" onclick="closeModal('depositModal')">✕</span>
+    </div>
+    <form id="depositForm" class="p-6 grid grid-cols-2 gap-5">
+      <div class="col-span-2"><label>Person</label><select id="d-person" required></select></div>
+      <div><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" id="d-amount" required/></div>
+      <div><label>Date</label><input type="date" id="d-date" required/></div>
+      <div class="col-span-2"><label>Note (optional)</label><input id="d-note" placeholder="UPI, cash handed to…"/></div>
+      <div class="col-span-2 flex gap-3 mt-2">
+        <button type="submit" class="btn-primary flex-1" id="depositSubmitBtn">Add deposit</button>
+        <button type="button" class="btn-ghost" onclick="closeModal('depositModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ============ MODAL: Name verification ============ -->
 <div id="nameVerifyModal" class="app-modal">
   <div class="modal-panel" style="max-width:380px;">
@@ -855,11 +921,12 @@ function expenseShare(ex, person){
    STATE
 =============================================================*/
 function loadLocal(){
-  try{ return JSON.parse(localStorage.getItem('goaWalletV2')) || {expenses:[], settlements:[], activity:[]}; }
-  catch(e){ return {expenses:[], settlements:[], activity:[]}; }
+  try{ return JSON.parse(localStorage.getItem('goaWalletV2')) || {expenses:[], settlements:[], activity:[], deposits:[]}; }
+  catch(e){ return {expenses:[], settlements:[], activity:[], deposits:[]}; }
 }
 function persistLocal(){ localStorage.setItem('goaWalletV2', JSON.stringify(wallet)); }
 let wallet = loadLocal();
+if(!Array.isArray(wallet.deposits)) wallet.deposits = []; // upgrade older cached state
 let charts = {};
 
 /* ============================================================
@@ -870,7 +937,7 @@ function goToPage(pageKey){
   document.querySelectorAll(`.navitem[data-page="${pageKey}"], .tabbar-item[data-page="${pageKey}"]`).forEach(n=>n.classList.add('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pageKey).classList.add('active');
-  const titles = {overview:['Split the bill','Overview'], expenses:['All expenses','Expenses'],
+  const titles = {overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
     participants:['Who owes what','Participants & Balances'], settlements:['Square up','Settlements'],
     activity:['Everything logged','Activity Log']};
   document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
@@ -925,7 +992,10 @@ async function pullFromSheet(manual){
       throw new Error('Sheet did not return JSON — usually means the Web App deployment needs "Anyone" access, or a redeploy after code changes. Raw response started with: ' + text.slice(0,120));
     }
     if(data.error) throw new Error(data.error);
-    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[]};
+    // deposits falls back to the existing local copy (not []) if the Sheet
+    // backend hasn't been updated yet to return a "deposits" field — so an
+    // un-upgraded Apps Script never silently wipes locally-logged deposits.
+    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
     setSyncStatus('ok');
     clearBanner();
@@ -953,7 +1023,7 @@ async function pushToSheet(action, payload, actor){
       throw new Error('Sheet did not return JSON on write — check the deployment is redeployed as a new version after any code change.');
     }
     if(data.error) throw new Error(data.error);
-    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[]};
+    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
     setSyncStatus('ok');
     clearBanner();
@@ -1845,6 +1915,137 @@ function renderParticipants(){
 }
 
 /* ============================================================
+   WALLET (deposit pool) — separate ledger from Expenses/Settlements.
+   Members volunteer deposits into a shared pool up front; total spend
+   (sum of wallet.expenses) is divided evenly across all PARTICIPANTS,
+   regardless of who was recorded as "payer" on any individual expense.
+   deposited − fairShare tells you if that person still owes the pool
+   or has credit left in it. Add/edit/delete are admin-gated the same
+   way as participant renaming, since in practice one or two people
+   (the treasurer) log cash/UPI they've actually received.
+=============================================================*/
+function totalDeposited(){
+  return (wallet.deposits||[]).reduce((s,d)=> s + Number(d.amount||0), 0);
+}
+function totalSpent(){
+  return (wallet.expenses||[]).reduce((s,e)=> s + Number(e.amount||0), 0);
+}
+function depositedByPerson(person){
+  return (wallet.deposits||[]).filter(d=>d.person===person).reduce((s,d)=> s + Number(d.amount||0), 0);
+}
+function renderWallet(){
+  const deposited = totalDeposited();
+  const spent = totalSpent();
+  const fairShare = PARTICIPANTS.length ? spent / PARTICIPANTS.length : 0;
+
+  document.getElementById('wkpi-deposited').textContent = '₹' + deposited.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('wkpi-spent').textContent = '₹' + spent.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const balance = deposited - spent;
+  const balEl = document.getElementById('wkpi-balance');
+  balEl.textContent = (balance>=0?'₹':'−₹') + Math.abs(balance).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  balEl.className = 'val ' + (balance>=0 ? 'balance-pos' : 'balance-neg');
+  document.getElementById('wkpi-fairshare').textContent = '₹' + fairShare.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('wkpi-fairshare-sub').textContent = `₹${spent.toFixed(2)} spent ÷ ${PARTICIPANTS.length} people`;
+
+  // Per-person cards: deposited vs. fair share of total spend
+  document.getElementById('walletPersonGrid').innerHTML = PARTICIPANTS.map(p=>{
+    const dep = depositedByPerson(p);
+    const net = dep - fairShare;
+    return `<div class="panel p-5">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="avatar">${initials(p)}</span>
+        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Deposited ₹${dep.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+      </div>
+      <p class="mono text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0? '+₹'+net.toFixed(2) : '−₹'+Math.abs(net).toFixed(2)}</p>
+      <p class="text-xs opacity-50">${net>=0? 'credit left in the pool' : 'still owes the pool'}</p>
+    </div>`;
+  }).join('');
+
+  // All-deposits table
+  const sorted = (wallet.deposits||[]).slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.ts||'').localeCompare(a.ts||''));
+  document.getElementById('depositTableBody').innerHTML = sorted.map(d=>`
+    <tr>
+      <td>${escapeHtml(d.person)}</td>
+      <td class="mono">₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td class="text-sm opacity-70">${escapeHtml(d.note||'—')}</td>
+      <td class="text-sm">${d.date||'—'}</td>
+      <td class="text-sm opacity-70">${escapeHtml(d.loggedBy||'—')}</td>
+      <td class="text-right whitespace-nowrap">
+        <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>
+      </td>
+    </tr>`).join('');
+  document.getElementById('depositEmptyState').style.display = sorted.length ? 'none' : 'block';
+}
+
+let depositEditingId = null;
+function openDepositModal(){
+  depositEditingId = null;
+  document.getElementById('depositModalTitle').textContent = 'Add deposit';
+  document.getElementById('depositSubmitBtn').textContent = 'Add deposit';
+  document.getElementById('depositForm').reset();
+  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-date').value = new Date().toISOString().slice(0,10);
+  openModal('depositModal');
+}
+function editDeposit(id){
+  const d = (wallet.deposits||[]).find(x=>x.id===id);
+  if(!d) return;
+  depositEditingId = id;
+  document.getElementById('depositModalTitle').textContent = 'Edit deposit';
+  document.getElementById('depositSubmitBtn').textContent = 'Save changes';
+  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-person').value = d.person;
+  document.getElementById('d-amount').value = d.amount;
+  document.getElementById('d-date').value = d.date || new Date().toISOString().slice(0,10);
+  document.getElementById('d-note').value = d.note || '';
+  openModal('depositModal');
+}
+document.getElementById('depositForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const person = document.getElementById('d-person').value;
+  const amount = parseFloat(document.getElementById('d-amount').value);
+  const date = document.getElementById('d-date').value;
+  const note = document.getElementById('d-note').value.trim();
+  if(!person || !amount || amount <= 0) return;
+
+  const editing = depositEditingId;
+  const actor = await checkWalletAdmin(editing ? 'edit deposits' : 'add deposits');
+  if(!actor) return;
+
+  if(editing){
+    const d = (wallet.deposits||[]).find(x=>x.id===editing);
+    if(!d) return;
+    Object.assign(d, {person, amount, date, note});
+    persistLocal(); closeModal('depositModal'); renderAll();
+    const synced = await pushToSheet('editDeposit', {id:editing, person, amount, date, note}, actor);
+    renderAll();
+    showBanner(synced ? 'ok' : 'warn', `✅ Deposit updated for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  } else {
+    const id = 'dep'+Date.now();
+    wallet.deposits = wallet.deposits || [];
+    wallet.deposits.push({id, person, amount, date, note, loggedBy:actor, ts:new Date().toISOString()});
+    persistLocal(); closeModal('depositModal'); renderAll();
+    const synced = await pushToSheet('addDeposit', {id, person, amount, date, note}, actor);
+    renderAll();
+    showBanner(synced ? 'ok' : 'warn', `✅ Deposit of ₹${amount.toFixed(2)} logged for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  }
+});
+async function removeDeposit(id){
+  const d = (wallet.deposits||[]).find(x=>x.id===id);
+  if(!d) return;
+  confirmAction('Delete this deposit?', `This removes ₹${Number(d.amount).toFixed(2)} logged for ${d.person} from the pool total.`, async ()=>{
+    const actor = await checkWalletAdmin('delete deposits');
+    if(!actor) return;
+    wallet.deposits = (wallet.deposits||[]).filter(x=>x.id!==id);
+    persistLocal(); renderAll();
+    const synced = await pushToSheet('deleteDeposit', {id}, actor);
+    renderAll();
+    showBanner(synced ? 'ok' : 'warn', `Deposit removed.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  });
+}
+
+/* ============================================================
    EDIT PARTICIPANT MODAL — rename + manual balance adjustment
    Both actions gate behind the same "who's making this change?"
    identity check (requestActor), restricted to WALLET_ADMINS —
@@ -2054,6 +2255,7 @@ function renderActivity(){
 =============================================================*/
 function renderAll(){
   renderOverview();
+  renderWallet();
   renderExpensesTable();
   renderParticipants();
   renderSettlements();
