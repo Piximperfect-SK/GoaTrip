@@ -1467,11 +1467,16 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     const actor = await requestActor("Who's adding this expense?", `Confirm your name to log "${title}".`);
     if(!actor) return;
     const id = 'e'+Date.now();
+    const withdrawalId = 'dep'+Date.now();
     wallet.expenses.push({id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, createdBy:actor, createdAt:new Date().toISOString()});
     
-    // If paid from deposit, automatically create a withdrawal entry
+    // If paid from deposit, automatically create a withdrawal entry.
+    // This is only an OPTIMISTIC local preview — it gets overwritten by
+    // whatever pushToSheet('addExpense', ...) returns a few lines down
+    // (that response's `deposits` array won't have it yet), so it must
+    // also be pushed to the Sheet itself via a follow-up addDeposit call,
+    // or it disappears the moment the expense sync response comes back.
     if(paidFromDeposit && depositUsedFrom){
-      const withdrawalId = 'dep'+Date.now();
       wallet.deposits = wallet.deposits || [];
       wallet.deposits.push({
         id: withdrawalId, 
@@ -1495,6 +1500,11 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     
     persistLocal(); closeModal('expenseModal'); renderAll();
     await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom}, actor);
+    // Persist the auto-withdrawal itself — without this call it only ever
+    // existed in memory/localStorage and never actually left anyone's pool.
+    if(paidFromDeposit && depositUsedFrom){
+      await pushToSheet('addDeposit', {id: withdrawalId, person: depositUsedFrom, amount: Number(amount), date, note: `Paid for: ${title}`, type: 'withdrawal'}, actor);
+    }
     renderAll();
     showBanner('ok', `✅ Expense "${title}" logged${paidFromDeposit ? ` and paid from ${depositUsedFrom}'s deposit` : ''}.`);
   }
