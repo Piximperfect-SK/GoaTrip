@@ -41,8 +41,8 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .hero-bg{position:absolute; inset:0; background-size:cover; background-position:center 68%; animation:kenburns 26s ease-in-out infinite alternate; z-index:0;}
 .hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0; background-color:#0B3D3A;}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
-.team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.28;}
-.team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.55), rgba(11,61,58,.88) 70%, var(--teal-900) 100%);}
+.team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7;}
+.team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%);}
 @keyframes kenburns{from{transform:scale(1.06) translate(0,0);} to{transform:scale(1.16) translate(-1.5%,-1%);}}
 .hero-scrim{position:absolute; inset:0; z-index:1; background:
   linear-gradient(180deg, rgba(6,26,24,.55) 0%, rgba(6,26,24,.15) 30%, rgba(6,26,24,.35) 62%, rgba(6,26,24,.92) 100%);}
@@ -940,7 +940,7 @@ const team = [
   {name:"Divya Kumari", role:"People Coordinator", note:"Headcounts, groups, who's-where, Non-Tulip members administration"},
 ];
 document.getElementById('teamGrid').innerHTML = team.map(t=>`
-  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1)">
+  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.14)">
     <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
       ${t.name.trim()[0]}
     </div>

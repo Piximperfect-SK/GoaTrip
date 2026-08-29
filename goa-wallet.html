@@ -35,6 +35,39 @@
       linear-gradient(-45deg, var(--azulejo-2) 25%, transparent 25%);
     background-size:52px 52px;
   }
+
+  /* ---------- Full-page background video (no overlay) ---------- */
+  #pageVideo{
+    position:fixed !important; top:0; left:0; width:100%; height:100%;
+    object-fit:cover; z-index:-3; pointer-events:none;
+  }
+
+  /* Text sitting directly on the raw video (no card behind it) needs its
+     own contrast, since there's no overlay/scrim to rely on. */
+  .on-video h3{ color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
+  .on-video p{ color:rgba(255,255,255,.88); text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
+
+  /* ---------- Scattered decorative watermarks ----------
+     6 distinct icons, faint, fixed to the viewport, each with its own
+     slow animation so none of them read as a repeat of another. */
+  .scatter-deco{ position:fixed; z-index:-1; pointer-events:none; }
+  .scatter-deco svg{ display:block; width:100%; height:100%; }
+
+  .deco-anchor{ top:16%; right:6.5%; width:64px; height:64px; color:var(--azulejo-2); opacity:.08; animation:decoBob 7s ease-in-out infinite alternate; }
+  .deco-palm  { top:56%; left:2%; width:84px; height:84px; color:var(--palm); opacity:.08; transform-origin:bottom center; animation:decoSway 9s ease-in-out infinite alternate; }
+  .deco-sun   { top:9%; left:10%; width:54px; height:54px; color:var(--mango); opacity:.07; animation:decoSpin 55s linear infinite; }
+  .deco-wheel { bottom:13%; right:4.5%; width:74px; height:74px; color:var(--bp-brass); opacity:.07; animation:decoSpin 34s linear infinite reverse; }
+  .deco-shell { bottom:25%; left:7%; width:50px; height:50px; color:var(--teal-700); opacity:.09; animation:decoPulse 5.5s ease-in-out infinite; }
+  .deco-wave  { bottom:5%; right:30%; width:96px; height:40px; color:var(--azulejo); opacity:.08; animation:decoDrift 11s ease-in-out infinite alternate; }
+
+  @keyframes decoBob{ from{ transform:translateY(0); } to{ transform:translateY(-14px); } }
+  @keyframes decoSway{ from{ transform:rotate(-6deg); } to{ transform:rotate(6deg); } }
+  @keyframes decoSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+  @keyframes decoPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.15); } }
+  @keyframes decoDrift{ from{ transform:translateX(0); } to{ transform:translateX(20px); } }
+
+  /* Keep small screens uncluttered — content takes priority there */
+  @media (max-width:640px){ .scatter-deco{ transform:scale(.72); } }
   button, .btn-primary, .btn-ghost, .btn-icon, .navitem, .wtab-chip, .tabbar-item, .fab{ touch-action:manipulation; }
   input, textarea, select{ -webkit-user-select:text; user-select:text; }
   h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
@@ -58,8 +91,18 @@
   #sidebar::after{
     content:''; position:absolute; left:-30px; bottom:-30px; width:200px; height:200px; pointer-events:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23EFE6D6' stroke-width='1'/%3E%3Ccircle cx='50' cy='50' r='32' fill='none' stroke='%23EFE6D6' stroke-width='1' stroke-dasharray='2 3'/%3E%3Cpath d='M50 6 L56 46 L94 50 L56 54 L50 94 L44 54 L6 50 L44 46 Z' fill='%23EFE6D6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; opacity:.05;
+    background-repeat:no-repeat; opacity:.12;
+    transform-origin:50% 50%; animation:compassSpin 40s linear infinite;
   }
+  @keyframes compassSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+  /* ---------- Scattered decorative icons inside the sidebar ----------
+     Container spans the full sidebar height; populated by a small
+     script (see bottom of page) so the count/spread is one number to
+     tune. Icons sit behind the nav (z-index:0 vs nav's z-index:1). */
+  .sb-deco-field{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .sb-deco{ position:absolute; pointer-events:none; }
+  .sb-deco svg{ display:block; width:100%; height:100%; }
   #sidebar .brand{ padding:22px 20px 16px; border-bottom:1px solid rgba(255,255,255,.08); position:relative; z-index:1; }
   #sidebar nav{ position:relative; z-index:1; }
   #sidebar .navitem{
@@ -99,7 +142,9 @@
   @keyframes pageIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
 
   .kpi{
-    background:white; border:1px solid var(--line); border-radius:16px; padding:18px 20px;
+    background:rgba(255,255,255,.90);
+    -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%);
+    border:1px solid rgba(255,255,255,.55); border-radius:16px; padding:18px 20px;
     position:relative; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease;
     animation:kpiIn .45s ease backwards;
   }
@@ -117,7 +162,12 @@
   .kpi .val{ font-family:'Fraunces',serif; font-size:1.7rem; font-weight:600; margin-top:4px; }
   .kpi .sub{ font-size:12px; opacity:.55; margin-top:2px; }
 
-  .panel{ background:white; border:1px solid var(--line); border-radius:16px; transition:box-shadow .2s ease, transform .2s ease; }
+  .panel{
+    background:rgba(255,255,255,.90);
+    -webkit-backdrop-filter:blur(22px) saturate(160%); backdrop-filter:blur(22px) saturate(160%);
+    border:1px solid rgba(255,255,255,.55); border-radius:16px;
+    transition:box-shadow .2s ease, transform .2s ease;
+  }
   @media (hover:hover){ .panel:hover{ box-shadow:0 18px 36px -26px rgba(15,38,34,.4); } }
   .chart-box{ width:100%; }
   .section-eyebrow{ font-family:'Space Mono',monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mango-2); }
@@ -350,6 +400,67 @@
 </head>
 <body>
 
+<video id="pageVideo" autoplay muted loop playsinline preload="none" onerror="this.style.display='none'">
+  <source src="videos/6.mp4" type="video/mp4">
+</video>
+
+<!-- Scattered decorative watermarks — faint, fixed, non-interactive -->
+<div class="scatter-deco deco-anchor" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+    <circle cx="12" cy="5" r="2"/>
+    <line x1="12" y1="7" x2="12" y2="21"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+    <path d="M5 12c0 4 3 7 7 9c4-2 7-5 7-9"/>
+  </svg>
+</div>
+<div class="scatter-deco deco-palm" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+    <path d="M12 22V10"/>
+    <path d="M12 10C8 8 5 9 3 6"/>
+    <path d="M12 10C16 8 19 9 21 6"/>
+    <path d="M12 10C9 6 9 3 6 2"/>
+    <path d="M12 10C15 6 15 3 18 2"/>
+    <path d="M12 10C10.5 5 12 2 12 2"/>
+  </svg>
+</div>
+<div class="scatter-deco deco-sun" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.3"/>
+    <line x1="12" y1="1" x2="12" y2="4"/>
+    <line x1="12" y1="20" x2="12" y2="23"/>
+    <line x1="1" y1="12" x2="4" y2="12"/>
+    <line x1="20" y1="12" x2="23" y2="12"/>
+    <line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
+    <line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
+    <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
+    <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
+  </svg>
+</div>
+<div class="scatter-deco deco-wheel" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+    <circle cx="12" cy="12" r="8"/>
+    <circle cx="12" cy="12" r="2.3"/>
+    <line x1="12" y1="4" x2="12" y2="1.5"/>
+    <line x1="12" y1="20" x2="12" y2="22.5"/>
+    <line x1="4" y1="12" x2="1.5" y2="12"/>
+    <line x1="20" y1="12" x2="22.5" y2="12"/>
+    <line x1="6.3" y1="6.3" x2="4.5" y2="4.5"/>
+    <line x1="17.7" y1="17.7" x2="19.5" y2="19.5"/>
+    <line x1="6.3" y1="17.7" x2="4.5" y2="19.5"/>
+    <line x1="17.7" y1="6.3" x2="19.5" y2="4.5"/>
+  </svg>
+</div>
+<div class="scatter-deco deco-shell" aria-hidden="true">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+    <path d="M12 21c-5 0-9-4-9-9a7 7 0 0 1 14 0c0 3-2.5 5-5.5 5A4 4 0 0 1 7.5 13a2.6 2.6 0 0 1 2.6-2.6"/>
+  </svg>
+</div>
+<div class="scatter-deco deco-wave" aria-hidden="true">
+  <svg viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+    <path d="M1 5c2-2.4 4-2.4 6 0s4 2.4 6 0s4-2.4 6 0"/>
+  </svg>
+</div>
+
 <div id="shell">
   <!-- ============ SIDEBAR ============ -->
   <aside id="sidebar">
@@ -358,6 +469,7 @@
         <source src="videos/5.mp4" type="video/mp4">
       </video>
     </div>
+    <div class="sb-deco-field" id="sbDecoField" aria-hidden="true"></div>
     <div class="brand">
       <p class="mono text-[10px] tracking-widest opacity-60">GOA RUN · 2026</p>
       <h1 class="display text-xl font-semibold mt-1">Trip Wallet</h1>
@@ -453,10 +565,10 @@
         <div class="kpi"><p class="lbl">Deposit entries</p><p class="val" id="wkpi-entries">0</p><p class="sub">logged so far</p></div>
       </div>
 
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between mb-5 on-video">
         <div>
           <h3 class="font-semibold">Deposits by person</h3>
-          <p class="text-xs opacity-50 mt-0.5">Purely manual record-keeping — not linked to expenses, splits, or balances elsewhere in the app.</p>
+          <p class="text-xs mt-0.5">Purely manual record-keeping — not linked to expenses, splits, or balances elsewhere in the app.</p>
         </div>
         <button class="btn-primary" onclick="openDepositModal()">+ Add deposit</button>
       </div>
@@ -528,10 +640,10 @@
 
     <!-- ============ SETTLEMENTS ============ -->
     <div class="page" id="page-settlements">
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between mb-5 on-video">
         <div>
           <h3 class="font-semibold">Settlements</h3>
-          <p class="text-xs opacity-50 mt-0.5">"Who owes whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
+          <p class="text-xs mt-0.5">"Who owes whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
         </div>
         <button class="btn-primary" onclick="openSettlementModal()">+ Record a settlement</button>
       </div>
@@ -922,6 +1034,46 @@
 
 <script src="shared.js"></script>
 <script>
+/* ============================================================
+   SIDEBAR DECORATIVE PATTERN
+   Fills #sbDecoField with a spread of faint animated icons running
+   the full height of the sidebar. Bump SB_DECO_COUNT to add/remove
+   icons from the pattern.
+=============================================================*/
+(function(){
+  const SB_DECO_COUNT = 25;
+  const SB_DECO_SHAPES = [
+    { color:'var(--azulejo-2)', anim:'decoBob 7s ease-in-out infinite alternate',
+      vb:'0 0 24 24', svg:'<circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="21"/><line x1="5" y1="12" x2="19" y2="12"/><path d="M5 12c0 4 3 7 7 9c4-2 7-5 7-9"/>' },
+    { color:'var(--mango)', anim:'decoSpin 50s linear infinite',
+      vb:'0 0 24 24', svg:'<circle cx="12" cy="12" r="4.3"/><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>' },
+    { color:'var(--teal-700)', anim:'decoPulse 5s ease-in-out infinite',
+      vb:'0 0 24 24', svg:'<path d="M12 21c-5 0-9-4-9-9a7 7 0 0 1 14 0c0 3-2.5 5-5.5 5A4 4 0 0 1 7.5 13a2.6 2.6 0 0 1 2.6-2.6"/>' },
+    { color:'var(--azulejo)', anim:'decoDrift 9s ease-in-out infinite alternate',
+      vb:'0 0 24 10', svg:'<path d="M1 5c2-2.4 4-2.4 6 0s4 2.4 6 0s4-2.4 6 0"/>' },
+    { color:'var(--palm)', anim:'decoSway 8s ease-in-out infinite alternate',
+      vb:'0 0 24 24', svg:'<path d="M12 22V10"/><path d="M12 10C8 8 5 9 3 6"/><path d="M12 10C16 8 19 9 21 6"/><path d="M12 10C9 6 9 3 6 2"/><path d="M12 10C15 6 15 3 18 2"/><path d="M12 10C10.5 5 12 2 12 2"/>' },
+    { color:'var(--bp-brass)', anim:'decoSpin 30s linear infinite reverse',
+      vb:'0 0 24 24', svg:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.3"/><line x1="12" y1="4" x2="12" y2="1.5"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="4" y1="12" x2="1.5" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="6.3" y1="6.3" x2="4.5" y2="4.5"/><line x1="17.7" y1="17.7" x2="19.5" y2="19.5"/><line x1="6.3" y1="17.7" x2="4.5" y2="19.5"/><line x1="17.7" y1="6.3" x2="19.5" y2="4.5"/>' }
+  ];
+  const field = document.getElementById('sbDecoField');
+  if(!field) return;
+  let html = '';
+  for(let i=0; i<SB_DECO_COUNT; i++){
+    const s = SB_DECO_SHAPES[i % SB_DECO_SHAPES.length];
+    const isWave = s.vb === '0 0 24 10';
+    const top = (i / SB_DECO_COUNT) * 100 + (Math.random()*3.2 - 1.6); // even spread top->bottom, whole height, slight jitter
+    const left = Math.random() * 216 - 8;                              // spread across sidebar width, slight edge bleed
+    const w = isWave ? 26 + Math.random()*20 : 15 + Math.random()*13;
+    const h = isWave ? w*0.42 : w;
+    const opacity = (0.16 + Math.random()*0.14).toFixed(2);
+    const delay = (Math.random()*4).toFixed(1);
+    html += `<div class="sb-deco" style="top:${top.toFixed(1)}%; left:${left.toFixed(0)}px; width:${w.toFixed(0)}px; height:${h.toFixed(0)}px; opacity:${opacity}; color:${s.color}; animation:${s.anim}; animation-delay:${delay}s;">`
+          + `<svg viewBox="${s.vb}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">${s.svg}</svg></div>`;
+  }
+  field.innerHTML = html;
+})();
+
 /* ============================================================
    CONFIG
 =============================================================*/
