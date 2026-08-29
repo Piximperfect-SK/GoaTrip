@@ -1778,11 +1778,15 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
   if(!actor) return;
   
   const id = 's'+Date.now();
+  const withdrawalId = 'dep'+Date.now();
   wallet.settlements.push({id, from, to, amount, note, usedDeposit: useDeposit, actor, ts:new Date().toISOString()});
   
-  // If settling via deposit, create automatic withdrawal
+  // If settling via deposit, create automatic withdrawal.
+  // Same as the expense flow: this is only an OPTIMISTIC local preview.
+  // pushToSheet('addSettlement', ...) below returns the server's current
+  // `deposits` array, which won't include this yet and will overwrite it
+  // here — so it also needs its own addDeposit push to actually persist.
   if(useDeposit){
-    const withdrawalId = 'dep'+Date.now();
     wallet.deposits = wallet.deposits || [];
     wallet.deposits.push({
       id: withdrawalId,
@@ -1805,6 +1809,11 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
   
   persistLocal(); closeModal('settlementModal'); renderAll();
   const synced = await pushToSheet('addSettlement', {id, from, to, amount, note, usedDeposit: useDeposit}, actor);
+  // Persist the auto-withdrawal itself — without this it only ever lived
+  // in memory/localStorage and the deposit pool was never actually touched.
+  if(useDeposit){
+    await pushToSheet('addDeposit', {id: withdrawalId, person: from, amount: Number(amount), date: new Date().toISOString().slice(0,10), note: `Settlement to ${to}: ${note || 'payment'}`, type: 'withdrawal'}, actor);
+  }
   renderAll();
   const method = useDeposit ? ` via ${from}'s deposit` : '';
   showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
