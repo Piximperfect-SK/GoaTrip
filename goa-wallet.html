@@ -2282,8 +2282,30 @@ function renderExpensesTable(){
 function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 function renderParticipants(){
   const net = computeNetBalances();
+  // Same pairwise engine that powers the Settlements tab's "Who owes
+  // whom" list — reused here so each card can say exactly WHO to pay
+  // (or collect from), not just the person's overall net number.
+  const pairs = pairwiseSettlements();
   document.getElementById('participantGrid').innerHTML = PARTICIPANTS.map(p=>{
     const v = net[p]||0;
+    const owesTo = pairs.filter(x=>x.from===p);   // this person needs to pay these people
+    const owedBy = pairs.filter(x=>x.to===p);      // these people need to pay this person
+    const whoLines = [...owesTo.map(x=>({dir:'pay', person:x.to, amount:x.amount})),
+                       ...owedBy.map(x=>({dir:'collect', person:x.from, amount:x.amount}))];
+
+    let whoHtml = '';
+    if(whoLines.length === 1){
+      const w = whoLines[0];
+      whoHtml = `<p class="text-xs mt-2 ${w.dir==='pay'?'balance-neg':'balance-pos'}">
+        ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${w.person}</b> · ₹${w.amount.toFixed(0)}
+      </p>`;
+    } else if(whoLines.length > 1){
+      whoHtml = `<div class="mt-2 space-y-1">${whoLines.map(w=>`
+        <p class="text-xs ${w.dir==='pay'?'balance-neg':'balance-pos'}">
+          ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${w.person}</b> · ₹${w.amount.toFixed(0)}
+        </p>`).join('')}</div>`;
+    }
+
     return `<div class="panel p-5 cursor-pointer" onclick="viewPerson('${p}')">
       <div class="flex items-center justify-between gap-3 mb-3">
         <div class="flex items-center gap-3">
@@ -2294,6 +2316,8 @@ function renderParticipants(){
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
       <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
+      ${whoHtml}
+      ${whoLines.length ? `<button type="button" class="btn-ghost text-xs mt-3" style="padding:6px 12px" onclick="event.stopPropagation(); goToPage('settlements')">Settle up →</button>` : ''}
     </div>`;
   }).join('');
 }
