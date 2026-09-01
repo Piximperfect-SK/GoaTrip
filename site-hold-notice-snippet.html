@@ -1,0 +1,52 @@
+<!--
+  ============================================================
+  SITE-HOLD NOTICE — paste this block into itinerary.html,
+  goa-wallet.html and boarding-pass.html.
+
+  Where to paste:
+   1. Add the <style> rules below into each page's existing
+      <style> block (or keep this <style> tag as-is right
+      before </head> — either works).
+   2. Paste the <div id="siteHoldNotice">…</div> block as the
+      very first thing inside <body>, so it sits on top of
+      everything else on the page.
+
+  This notice does NOT fade out and does NOT use sessionStorage —
+  unlike the homepage storm overlay, it's meant to stay up for as
+  long as the site is on hold. To bring a page back online later,
+  just delete this block (or wrap it in a single comment).
+  ============================================================
+-->
+<style>
+.site-hold-notice{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(1200px 700px at 50% 18%, rgba(16,58,54,.97), rgba(6,26,24,.98) 72%);
+  padding:24px;
+}
+.site-hold-notice .hold-content{
+  max-width:480px; text-align:center; color:var(--sand, #F3ECD9);
+  font-family:'Space Grotesk', sans-serif;
+  background:rgba(11,61,58,.35); border:1px solid rgba(255,255,255,.14); border-radius:20px;
+  padding:38px 30px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.6);
+}
+.site-hold-notice .hold-icon{width:48px; height:48px; margin:0 auto 16px; color:var(--mango, #FF7A45);}
+.site-hold-notice .hold-eyebrow{
+  font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--mango-2, #E85D2A); margin-bottom:10px;
+}
+.site-hold-notice h2{font-family:'Fraunces', serif; font-size:clamp(20px,4vw,26px); margin:0 0 14px; letter-spacing:-0.01em;}
+.site-hold-notice p{font-size:14.5px; line-height:1.7; opacity:.92; margin:0;}
+</style>
+
+<div id="siteHoldNotice" class="site-hold-notice" role="alert" aria-live="assertive">
+  <div class="hold-content">
+    <svg class="hold-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 16a4.5 4.5 0 0 1 .5-8.98A5.5 5.5 0 0 1 17 9.5a4 4 0 0 1-.5 7.99"/>
+      <path d="M13 12l-2.5 4h3L11 20"/>
+    </svg>
+    <div class="hold-eyebrow">Notice · The Goa Run</div>
+    <h2>Site Unavailable</h2>
+    <p>Site is currently non-operational, kindly check with the coordinators.</p>
+  </div>
+</div>

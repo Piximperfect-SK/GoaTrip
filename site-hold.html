@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>The Goa Run — Site On Hold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+    background:radial-gradient(1200px 700px at 50% 18%, rgba(16,58,54,.97), rgba(6,26,24,.98) 72%);
+  }
+  .hold-content{
+    max-width:480px; text-align:center; color:var(--sand, #F3ECD9);
+    background:rgba(11,61,58,.35); border:1px solid rgba(255,255,255,.14); border-radius:20px;
+    padding:42px 32px; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    box-shadow:0 30px 70px -30px rgba(0,0,0,.6);
+  }
+  .hold-icon{width:52px; height:52px; margin:0 auto 16px; color:var(--mango, #FF7A45);}
+  .hold-eyebrow{
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--mango-2, #E85D2A); margin-bottom:10px;
+  }
+  h1{font-family:'Fraunces', serif; font-size:clamp(21px,4vw,28px); margin:0 0 14px; letter-spacing:-0.01em; color:var(--sand, #F3ECD9);}
+  p{font-size:14.5px; line-height:1.7; opacity:.92; margin:0; color:#DCE9E4;}
+</style>
+</head>
+<body>
+  <div class="hold-content" role="alert" aria-live="assertive">
+    <svg class="hold-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 16a4.5 4.5 0 0 1 .5-8.98A5.5 5.5 0 0 1 17 9.5a4 4 0 0 1-.5 7.99"/>
+      <path d="M13 12l-2.5 4h3L11 20"/>
+    </svg>
+    <div class="hold-eyebrow">Notice · The Goa Run</div>
+    <h1>Site Unavailable</h1>
+    <p>Site is currently non-operational, kindly check with the coordinators.</p>
+  </div>
+</body>
+</html>
