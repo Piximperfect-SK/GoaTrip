@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://en.wikipedia.org; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -60,6 +60,14 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
 .field-row{display:flex; flex-direction:column; gap:6px;}
 .day-editor{position:relative; overflow:hidden;}
 .item-row{display:flex; align-items:center; gap:8px;}
+.place-row{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; padding:8px 10px; background:var(--paper);}
+.place-thumb{width:44px; height:44px; border-radius:8px; object-fit:cover; flex-shrink:0; background:var(--sand-2);}
+.place-thumb.empty{display:flex; align-items:center; justify-content:center; font-size:16px; opacity:.4;}
+.place-row input{flex:1; min-width:0;}
+.place-status{font-size:11px; white-space:nowrap; flex-shrink:0;}
+.place-status.ok{color:var(--palm);}
+.place-status.bad{color:var(--mango-2);}
+.place-status.pending{color:#C9A227;}
 .sync-dot{width:9px; height:9px; border-radius:9999px; display:inline-block;}
 .sync-dot.ok{background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18);}
 .sync-dot.bad{background:var(--mango-2); box-shadow:0 0 0 3px rgba(232,93,42,.18);}
@@ -133,13 +141,13 @@ const BACKEND_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd2
 
 const DEFAULT_ITINERARY = [
   {day:"Day 1", date:"2 Oct · Fri", title:"Pune → Londa → Villa check‑in", tag:"TRAVEL", tbd:false,
-   items:["Board the overnight train from Pune, ~21:30","Arrive Londa Jn at sunrise, group cabs to the villa (~3 hrs)","Check in, settle rooms, lazy lunch by the pool","Evening: welcome dinner + first beach walk at sunset"]},
+   items:["Board the overnight train from Pune, ~21:30","Arrive Londa Jn at sunrise, group cabs to the villa (~3 hrs)","Check in, settle rooms, lazy lunch by the pool","Evening: welcome dinner + first beach walk at sunset"], places:[]},
   {day:"Day 2", date:"3 Oct · Sat", title:"Open day — plan TBD", tag:"TBD", tbd:true,
-   items:["Beach time, water sports or a local excursion — nothing locked yet","Drop ideas in the group chat and this card gets filled in"]},
+   items:["Beach time, water sports or a local excursion — nothing locked yet","Drop ideas in the group chat and this card gets filled in"], places:[]},
   {day:"Day 3", date:"4 Oct · Sun", title:"Open day — plan TBD", tag:"TBD", tbd:true,
-   items:["Second full day in Goa — likely candidates: Old Goa, a sunset cruise, or a market run","Final call once headcount + preferences are in"]},
+   items:["Second full day in Goa — likely candidates: Old Goa, a sunset cruise, or a market run","Final call once headcount + preferences are in"], places:[]},
   {day:"Day 4", date:"5 Oct · Mon", title:"Villa checkout → Londa → Pune", tag:"TRAVEL", tbd:false,
-   items:["Slow morning, checkout by 11:00","Cabs back to Londa Jn","Board return train to Pune","Home the next morning"]},
+   items:["Slow morning, checkout by 11:00","Cabs back to Londa Jn","Board return train to Pune","Home the next morning"], places:[]},
 ];
 
 function loadLocal(){
@@ -240,7 +248,19 @@ function render(){
             <button class="btn-danger" onclick="removeItem(${di},${ii})">✕</button>
           </div>`).join('')}
       </div>
-      <button class="btn-ghost text-xs" onclick="addItem(${di})">+ Add item</button>
+      <button class="btn-ghost text-xs mb-4" onclick="addItem(${di})">+ Add item</button>
+
+      <label>Places <span class="opacity-50 normal-case font-normal" style="letter-spacing:normal;">— type a name, we pull a real photo automatically for the homepage carousel</span></label>
+      <div class="space-y-2 mb-2">
+        ${(d.places||[]).map((p,pi)=>`
+          <div class="place-row">
+            ${p.photo ? `<img class="place-thumb" src="${escAttr(p.photo)}" alt="${escAttr(p.name)}"/>` : `<span class="place-thumb empty">🖼</span>`}
+            <input value="${escAttr(p.name)}" placeholder="e.g. Palolem Beach" oninput="updatePlaceName(${di},${pi},this.value)" onblur="fetchPlacePhoto(${di},${pi})" onkeydown="if(event.key==='Enter'){event.preventDefault(); fetchPlacePhoto(${di},${pi});}"/>
+            <span class="place-status ${p.status||''}" id="placeStatus-${di}-${pi}">${placeStatusLabel(p)}</span>
+            <button class="btn-danger" onclick="removePlace(${di},${pi})">✕</button>
+          </div>`).join('')}
+      </div>
+      <button class="btn-ghost text-xs" onclick="addPlace(${di})">+ Add place</button>
     </div>`).join('') || '<p class="text-sm opacity-50">No days yet — add one below.</p>';
 }
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -249,8 +269,113 @@ function update(di, key, val){ days[di][key] = val; }
 function updateItem(di, ii, val){ days[di].items[ii] = val; }
 function addItem(di){ days[di].items = days[di].items || []; days[di].items.push(''); render(); }
 function removeItem(di, ii){ days[di].items.splice(ii,1); render(); }
+
+/* ============================================================
+   PLACES — free photo lookup, no API key, no billing.
+   Primary source: Wikipedia's REST summary API — for a named
+   landmark/beach with its own article, this returns the actual
+   place's photo (not generic stock), and is public/CORS-friendly
+   with no key required at all.
+   Fallback: Unsplash (only if an access key is configured below) —
+   optional, since most Goa places you'll type already have a
+   Wikipedia page. Leave UNSPLASH_ACCESS_KEY blank to skip it.
+=============================================================*/
+const UNSPLASH_ACCESS_KEY = ""; // optional — paste a free Unsplash Access Key here to enable the fallback
+
+function placeStatusLabel(p){
+  if(p.status === 'pending') return 'Looking…';
+  if(p.status === 'ok') return p.source === 'wikipedia' ? '✓ Wikipedia' : p.source === 'unsplash' ? '✓ Unsplash' : '✓';
+  if(p.status === 'bad') return 'No photo found';
+  return '';
+}
+function addPlace(di){
+  days[di].places = days[di].places || [];
+  days[di].places.push({name:'', photo:null, caption:'', source:'', status:''});
+  render();
+}
+function updatePlaceName(di, pi, val){ days[di].places[pi].name = val; }
+function removePlace(di, pi){ days[di].places.splice(pi,1); render(); }
+
+async function fetchPlacePhoto(di, pi){
+  const p = days[di] && days[di].places && days[di].places[pi];
+  if(!p) return;
+  const name = (p.name||'').trim();
+  if(!name){ p.status=''; p.photo=null; render(); return; }
+  // Don't re-fetch if we already found a photo for this exact name
+  if(p.status === 'ok' && p._fetchedFor === name) return;
+  p.status = 'pending';
+  render();
+  try{
+    const wiki = await fetchWikipediaPhoto(name);
+    if(wiki){
+      p.photo = wiki.photo; p.caption = wiki.title || name; p.source = 'wikipedia';
+      p.status = 'ok'; p._fetchedFor = name;
+    }else if(UNSPLASH_ACCESS_KEY){
+      const uns = await fetchUnsplashPhoto(name);
+      if(uns){ p.photo = uns.photo; p.caption = name; p.source = 'unsplash'; p.status = 'ok'; p._fetchedFor = name; }
+      else { p.photo = null; p.status = 'bad'; }
+    }else{
+      p.photo = null; p.status = 'bad';
+    }
+  }catch(err){
+    console.warn('Place photo lookup failed:', err);
+    p.photo = null; p.status = 'bad';
+  }
+  render();
+}
+
+async function fetchWikipediaPhoto(name){
+  // Step 1: search (typo/spacing-tolerant) instead of requiring an exact
+  // page title — "Bagha Beach" or "Palo lem beach" should still resolve
+  // to the real articles "Baga, Goa" / "Palolem Beach".
+  const resolvedTitle = await resolveWikipediaTitle(name);
+  if(!resolvedTitle) return null;
+
+  // Step 2: fetch the actual summary/photo for whichever real title we found
+  const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(resolvedTitle), {
+    headers: { 'Accept': 'application/json' }
+  });
+  if(!res.ok) return null;
+  const data = await res.json();
+  if(data.type === 'disambiguation') return null;
+  // Use the URLs exactly as Wikipedia returns them — no rewriting the
+  // width in the path. Wikipedia's thumbnail URLs now carry tracking
+  // query params (?utm_source=...), and asking the thumb generator for
+  // a size it hasn't already rendered WHILE those params are attached
+  // returns a 400 Bad Request instead of the image. originalimage (the
+  // real full-resolution photo) is preferred when present; thumbnail
+  // is the fallback — both used as-is.
+  const photo = (data.originalimage && data.originalimage.source) || (data.thumbnail && data.thumbnail.source);
+  if(!photo) return null;
+  return { photo, title: data.title };
+}
+
+// Uses Wikipedia's own search endpoint (the same one that powers the
+// search box on wikipedia.org) to turn a rough/misspelled/loosely typed
+// name into the closest real article title. Appending "Goa" nudges
+// ambiguous names (e.g. a beach that shares a name with somewhere else)
+// toward the right regional result.
+async function resolveWikipediaTitle(name){
+  const query = name + ' Goa';
+  const url = 'https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=' + encodeURIComponent(query);
+  const res = await fetch(url);
+  if(!res.ok) return null;
+  const data = await res.json();
+  const hit = data.query && data.query.search && data.query.search[0];
+  return hit ? hit.title : null;
+}
+async function fetchUnsplashPhoto(query){
+  const res = await fetch('https://api.unsplash.com/search/photos?per_page=1&query=' + encodeURIComponent(query + ' Goa'), {
+    headers: { 'Authorization': 'Client-ID ' + UNSPLASH_ACCESS_KEY }
+  });
+  if(!res.ok) return null;
+  const data = await res.json();
+  const hit = data.results && data.results[0];
+  if(!hit) return null;
+  return { photo: hit.urls.regular };
+}
 function addDay(){
-  days.push({day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, items:['']});
+  days.push({day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, items:[''], places:[]});
   render();
 }
 function removeDay(di){
