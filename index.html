@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@14.0.1/swiper-bundle.min.css">
 <style>
 /* shared :root design tokens now live in shared.css */
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -62,15 +63,22 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .section-num{font-family:'Space Mono',monospace; font-size:13px; letter-spacing:.16em; color:var(--mango-2); display:flex; align-items:center; gap:10px;}
 .section-num .rule{height:1px; width:40px; background:var(--mango-2); opacity:.5;}
 
-/* ---------- Horizontal photo gallery ---------- */
-.gallery-track{display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding:6px 5vw 26px; -webkit-overflow-scrolling:touch;}
-.gallery-track::-webkit-scrollbar{height:6px;}
-.gallery-track::-webkit-scrollbar-thumb{background:var(--teal-700); border-radius:9999px;}
-.gallery-item{scroll-snap-align:center; flex:0 0 auto; width:78vw; max-width:420px; height:520px; border-radius:18px; overflow:hidden; position:relative; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); transition:transform .4s ease;}
-.gallery-item img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
-.gallery-item:hover img{transform:scale(1.06);}
-.gallery-item .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.88)); color:var(--sand);}
-@media (min-width:768px){ .gallery-item{width:360px; height:480px;} }
+/* ---------- Coverflow photo gallery (Swiper) ---------- */
+.gallerySwiper{width:100%; padding:6px 0 46px;}
+.gallerySwiper .swiper-wrapper{align-items:center;}
+.gallery-item{width:78vw; max-width:420px; height:480px; border-radius:18px; overflow:hidden; position:relative; box-shadow:0 25px 50px -25px rgba(15,38,34,.5); background:var(--teal-700);}
+.gallery-item img,.gallery-item video{width:100%; height:100%; object-fit:cover; display:block;}
+.gallery-item .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.9));}
+@media (min-width:768px){ .gallery-item{width:340px; height:460px;} }
+
+/* pagination bullets, themed to match the palette rather than default Swiper black/blue */
+#gallery .swiper-pagination{position:relative; margin-top:6px;}
+#gallery .swiper-pagination-bullet{background:var(--sand); opacity:.35; width:7px; height:7px;}
+#gallery .swiper-pagination-bullet-active{background:var(--mango); opacity:1; width:20px; border-radius:9999px;}
+
+/* keep the coverflow shadow subtle so it reads as depth, not a black smear */
+#gallery .swiper-slide-shadow-left,#gallery .swiper-slide-shadow-right{background-image:linear-gradient(to left, rgba(6,26,24,.55), rgba(6,26,24,0));}
+#gallery .swiper-slide-shadow-right{background-image:linear-gradient(to right, rgba(6,26,24,.55), rgba(6,26,24,0));}
 
 /* ---------- Ambient background motion ---------- */
 .hero-blob{position:absolute; border-radius:9999px; filter:blur(80px); pointer-events:none; z-index:1; mix-blend-mode:screen;}
@@ -219,9 +227,125 @@ textarea:focus{border-color:var(--mango);}
   input, select{font-size:16px;}
   section{scroll-margin-top:64px;}
 }
+
+/* ================= TRIP HOLD OVERLAY + THUNDERSTORM ================= */
+.trip-hold-overlay{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(1200px 700px at 50% 18%, rgba(16,58,54,.96), rgba(6,26,24,.98) 72%);
+  overflow:hidden;
+  opacity:1; transition:opacity 1.8s ease;
+  padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar);
+}
+.trip-hold-overlay.hold-fade{opacity:0; pointer-events:none;}
+.trip-hold-overlay.hold-hidden{display:none;}
+
+/* faint rain streaks drifting behind the flashes */
+.storm-rain{
+  position:absolute; inset:-15% -10% -10% -10%; z-index:0; pointer-events:none; opacity:.14;
+  background-image:repeating-linear-gradient(102deg, rgba(220,233,228,.55) 0px, rgba(220,233,228,.55) 1px, transparent 1px, transparent 46px);
+  animation:rainFall 6s linear infinite;
+}
+@keyframes rainFall{ 0%{transform:translateY(-3%);} 100%{transform:translateY(3%);} }
+
+/* transparent lightning-flash layers, irregular timing so it reads as a storm not a strobe */
+.storm-flash{
+  position:absolute; inset:0; z-index:1; pointer-events:none; mix-blend-mode:screen; opacity:0;
+  background:radial-gradient(circle at 28% 12%, rgba(230,240,255,.95), rgba(230,240,255,0) 46%);
+  animation:lightningA 3.1s ease-in-out infinite;
+}
+.storm-flash-2{
+  background:radial-gradient(circle at 76% 8%, rgba(197,222,255,.8), rgba(197,222,255,0) 42%);
+  animation:lightningB 4s ease-in-out infinite; animation-delay:.9s;
+}
+.storm-flash-3{
+  background:radial-gradient(circle at 50% 30%, rgba(210,230,255,.55), rgba(210,230,255,0) 55%);
+  animation:lightningC 5.3s ease-in-out infinite; animation-delay:1.8s;
+}
+/* each layer's flash now lands well inside its (short) cycle, so it's
+   guaranteed to fire multiple times during the overlay's visible window
+   rather than only near the tail end of a long, mostly-idle cycle */
+@keyframes lightningA{
+  0%,44%,100%{opacity:0;} 44.4%{opacity:.9;} 44.9%{opacity:.1;} 45.4%{opacity:.75;} 46%{opacity:0;}
+}
+@keyframes lightningB{
+  0%,53%,100%{opacity:0;} 53.3%{opacity:.65;} 53.8%{opacity:0;} 54.3%{opacity:.5;} 54.8%{opacity:0;}
+}
+@keyframes lightningC{
+  0%,32%,100%{opacity:0;} 32.3%{opacity:.45;} 32.8%{opacity:0;}
+}
+
+.hold-content{
+  position:relative; z-index:2; max-width:560px; margin:0 24px; text-align:center; color:var(--sand);
+  padding:42px 32px; border:1px solid rgba(255,255,255,.14); border-radius:20px;
+  background:rgba(11,61,58,.35); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.6);
+  animation:heroIntro 1s cubic-bezier(.22,1,.36,1) both;
+}
+.hold-icon{width:52px; height:52px; margin:0 auto 16px; color:var(--mango); animation:holdIconPulse 2.4s ease-in-out infinite;}
+@keyframes holdIconPulse{0%,100%{opacity:.85; transform:scale(1);} 50%{opacity:1; transform:scale(1.08);}}
+.hold-eyebrow{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--mango-2); margin-bottom:10px;}
+.hold-content h2{font-family:'Fraunces',serif; font-size:clamp(21px,4vw,28px); margin:0 0 16px; color:var(--sand); letter-spacing:-0.01em;}
+.hold-content p{font-size:14.5px; line-height:1.8; color:#DCE9E4; opacity:.92; margin:0;}
+
+/* simplified, non-fading notice reused on the other pages when the site is on hold */
+.site-hold-notice{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(1200px 700px at 50% 18%, rgba(16,58,54,.97), rgba(6,26,24,.98) 72%);
+  padding:24px;
+}
+.site-hold-notice .hold-content{animation:none;}
 </style>
 </head>
 <body>
+
+<!-- ============ TRIP HOLD OVERLAY ============ -->
+<div id="tripHoldOverlay" class="trip-hold-overlay" role="alert" aria-live="assertive">
+  <div class="storm-rain"></div>
+  <div class="storm-flash"></div>
+  <div class="storm-flash storm-flash-2"></div>
+  <div class="storm-flash storm-flash-3"></div>
+  <div class="hold-content">
+    <svg class="hold-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 16a4.5 4.5 0 0 1 .5-8.98A5.5 5.5 0 0 1 17 9.5a4 4 0 0 1-.5 7.99"/>
+      <path d="M13 12l-2.5 4h3L11 20"/>
+    </svg>
+    <div class="hold-eyebrow">Notice · The Goa Run</div>
+    <h2>Trip Planning is Currently on Hold</h2>
+    <p>
+      Due to some unforeseen reason, Trip planning is on Hold.<br>
+      Coordinators are actively monitoring the case and trying to address.<br>
+      Apologies for the inconvenience caused.<br>
+      Website will be on Hold till the time.
+    </p>
+  </div>
+</div>
+<script>
+(function(){
+  var overlay = document.getElementById('tripHoldOverlay');
+  if(!overlay) return;
+
+  var HOLD_KEY = 'tripHoldSeen_v1';
+  var SHOW_MS  = 6500;  // how long the storm notice stays fully visible
+  var FADE_MS  = 1800;  // must match the CSS opacity transition above
+
+  var alreadySeen = false;
+  try { alreadySeen = sessionStorage.getItem(HOLD_KEY) === '1'; } catch(e){}
+
+  if (alreadySeen){
+    overlay.classList.add('hold-hidden');
+    return;
+  }
+
+  setTimeout(function(){
+    overlay.classList.add('hold-fade');
+    setTimeout(function(){
+      overlay.classList.add('hold-hidden');
+      try { sessionStorage.setItem(HOLD_KEY, '1'); } catch(e){}
+    }, FADE_MS);
+  }, SHOW_MS);
+})();
+</script>
 
 <!-- ============ NAV ============ -->
 <nav id="topnav" class="px-5 md:px-10 py-4 flex items-center justify-between">
@@ -306,33 +430,36 @@ textarea:focus{border-color:var(--mango);}
     <h2 class="display text-4xl md:text-5xl font-semibold mb-2">What we're chasing.</h2>
     <p class="opacity-70 max-w-lg mb-8">Golden coastline, cashew groves off the Ghats, and villa evenings that run long. Swipe through.</p>
   </div>
-  <div class="gallery-track" id="galleryTrack">
-    <div class="gallery-item">
-      <img src="https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop" alt="Aerial view of a secluded Goa cove, turquoise water meeting golden sand">
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">01 — COASTLINE</p><p class="display text-lg font-semibold">Coves you can't reach by road.</p></div>
+  <div class="swiper gallerySwiper" id="gallerySwiper">
+    <div class="swiper-wrapper">
+      <div class="swiper-slide gallery-item">
+        <img src="https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop" alt="Aerial view of a secluded Goa cove, turquoise water meeting golden sand">
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">01 — COASTLINE</p><p class="display text-lg font-semibold">Coves you can't reach by road.</p></div>
+      </div>
+      <div class="swiper-slide gallery-item">
+        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))">
+          <source src="videos/4.mp4" type="video/mp4">
+        </video>
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">02 — PALMS</p><p class="display text-lg font-semibold">Shade for the slow afternoons.</p></div>
+      </div>
+      <div class="swiper-slide gallery-item">
+        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',alt:'Car threading through jungle road toward the coast'}))">
+          <source src="videos/3.mp4" type="video/mp4">
+        </video>
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE DRIVE</p><p class="display text-lg font-semibold">Jungle roads to the shore.</p></div>
+      </div>
+      <div class="swiper-slide gallery-item">
+        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',alt:'Golden sunset sky with birds in flight over the sea'}))">
+          <source src="videos/2.mp4" type="video/mp4">
+        </video>
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">04 — TIDE LINE</p><p class="display text-lg font-semibold">Sunset walk, every evening.</p></div>
+      </div>
+      <div class="swiper-slide gallery-item">
+        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop" alt="Coastal grove overlooking the Arabian Sea near a Goan fort">
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">05 — LOOKOUT</p><p class="display text-lg font-semibold">Cliffside views, first morning.</p></div>
+      </div>
     </div>
-    <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))" style="width:100%;height:100%;object-fit:cover;">
-        <source src="videos/4.mp4" type="video/mp4">
-      </video>
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">02 — PALMS</p><p class="display text-lg font-semibold">Shade for the slow afternoons.</p></div>
-    </div>
-    <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',alt:'Car threading through jungle road toward the coast'}))" style="width:100%;height:100%;object-fit:cover;">
-        <source src="videos/3.mp4" type="video/mp4">
-      </video>
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE DRIVE</p><p class="display text-lg font-semibold">Jungle roads to the shore.</p></div>
-    </div>
-    <div class="gallery-item">
-      <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',alt:'Golden sunset sky with birds in flight over the sea'}))" style="width:100%;height:100%;object-fit:cover;">
-        <source src="videos/2.mp4" type="video/mp4">
-      </video>
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">04 — TIDE LINE</p><p class="display text-lg font-semibold">Sunset walk, every evening.</p></div>
-    </div>
-    <div class="gallery-item">
-      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop" alt="Coastal grove overlooking the Arabian Sea near a Goan fort">
-      <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">05 — LOOKOUT</p><p class="display text-lg font-semibold">Cliffside views, first morning.</p></div>
-    </div>
+    <div class="swiper-pagination"></div>
   </div>
 </section>
 
@@ -580,6 +707,38 @@ textarea:focus{border-color:var(--mango);}
   Pune → Londa → Goa · built for the crew, edit freely.
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/swiper@14.0.1/swiper-bundle.min.js"></script>
+<script>
+new Swiper('#gallerySwiper', {
+  effect: 'coverflow',
+  grabCursor: true,
+  centeredSlides: true,
+  slidesPerView: 'auto',
+  loop: true,
+  loopAdditionalSlides: 2,
+  mousewheel: {
+    forceToAxis: true,
+    sensitivity: 1,
+    releaseOnEdges: true,
+  },
+  coverflowEffect: {
+    rotate: 35,
+    stretch: 0,
+    depth: 140,
+    modifier: 1,
+    slideShadows: true,
+  },
+  pagination: {
+    el: '#gallery .swiper-pagination',
+    clickable: true,
+  },
+  autoplay: {
+    delay: 3200,
+    disableOnInteraction: true,
+    pauseOnMouseEnter: true,
+  },
+});
+</script>
 <script src="shared.js"></script>
 <script>
 /* ============================================================
