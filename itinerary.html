@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://en.wikipedia.org; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -13,6 +13,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+/* Lenis smooth scroll CSS, inlined (unpkg.com isn't in style-src) */
+html.lenis, html.lenis body{ height:auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped{ overflow:clip; }
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal]{ overscroll-behavior:contain; }
+.lenis.lenis-smooth iframe{ pointer-events:none; }
+.lenis.lenis-autoToggle{ transition-property:overflow; transition-duration:1ms; transition-behavior:allow-discrete; }
 :root{
   --ink:#0F2622; --teal-900:#0B3D3A; --teal-800:#123F3C; --teal-700:#1A544F;
   --sand:#EFE6D6; --sand-2:#E4D8C2; --paper:#FBF6EC; --mango:#FF7A45; --mango-2:#E85D2A;
@@ -284,7 +294,7 @@ const UNSPLASH_ACCESS_KEY = ""; // optional — paste a free Unsplash Access Key
 
 function placeStatusLabel(p){
   if(p.status === 'pending') return 'Looking…';
-  if(p.status === 'ok') return p.source === 'wikipedia' ? '✓ Wikipedia' : p.source === 'unsplash' ? '✓ Unsplash' : '✓';
+  if(p.status === 'ok') return p.source === 'wikipedia' ? '✓ Wikipedia' : p.source === 'commons' ? '✓ Commons' : p.source === 'unsplash' ? '✓ Unsplash' : '✓';
   if(p.status === 'bad') return 'No photo found';
   return '';
 }
@@ -306,14 +316,31 @@ async function fetchPlacePhoto(di, pi){
   p.status = 'pending';
   render();
   try{
-    const wiki = await fetchWikipediaPhoto(name);
-    if(wiki){
-      p.photo = wiki.photo; p.caption = wiki.title || name; p.source = 'wikipedia';
+    // 1. Wikipedia — best when it hits, since it's a curated lead photo
+    //    for an actual article on the place.
+    let found = await fetchWikipediaPhoto(name);
+    let source = 'wikipedia';
+
+    // 2. Wikimedia Commons — a much bigger net than Wikipedia articles.
+    //    Plenty of real places (a specific temple, viewpoint, small
+    //    waterfall) never get a full Wikipedia article but still have
+    //    photos uploaded to Commons under that name. No key, no quota,
+    //    works for basically any named place worldwide.
+    if(!found){
+      found = await fetchCommonsPhoto(name);
+      source = 'commons';
+    }
+
+    // 3. Unsplash — only if a key has been pasted in above. Stock-style
+    //    photography, so it's the last resort rather than the first.
+    if(!found && UNSPLASH_ACCESS_KEY){
+      found = await fetchUnsplashPhoto(name);
+      source = 'unsplash';
+    }
+
+    if(found){
+      p.photo = found.photo; p.caption = found.title || name; p.source = source;
       p.status = 'ok'; p._fetchedFor = name;
-    }else if(UNSPLASH_ACCESS_KEY){
-      const uns = await fetchUnsplashPhoto(name);
-      if(uns){ p.photo = uns.photo; p.caption = name; p.source = 'unsplash'; p.status = 'ok'; p._fetchedFor = name; }
-      else { p.photo = null; p.status = 'bad'; }
     }else{
       p.photo = null; p.status = 'bad';
     }
@@ -324,15 +351,50 @@ async function fetchPlacePhoto(di, pi){
   render();
 }
 
-async function fetchWikipediaPhoto(name){
-  // Step 1: search (typo/spacing-tolerant) instead of requiring an exact
-  // page title — "Bagha Beach" or "Palo lem beach" should still resolve
-  // to the real articles "Baga, Goa" / "Palolem Beach".
-  const resolvedTitle = await resolveWikipediaTitle(name);
-  if(!resolvedTitle) return null;
+// Searches Wikimedia Commons' File namespace directly for a bitmap image
+// matching the name — independent of whether English Wikipedia has an
+// article on the place at all. Free, no key, CORS-enabled (origin=*).
+async function fetchCommonsPhoto(name){
+  const url = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search'
+    + '&gsrsearch=' + encodeURIComponent(name + ' filetype:bitmap')
+    + '&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url&iiurlwidth=1000&format=json&origin=*';
+  const res = await fetch(url);
+  if(!res.ok) return null;
+  const data = await res.json();
+  const pages = data.query && data.query.pages;
+  if(!pages) return null;
+  const first = Object.values(pages)[0];
+  const info = first && first.imageinfo && first.imageinfo[0];
+  const photo = info && (info.thumburl || info.url);
+  if(!photo) return null;
+  const title = (first.title || '').replace(/^File:/, '').replace(/\.[a-zA-Z0-9]+$/, '');
+  return { photo, title: title || name };
+}
 
-  // Step 2: fetch the actual summary/photo for whichever real title we found
-  const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(resolvedTitle), {
+async function fetchWikipediaPhoto(name){
+  // Step 1: try the name as a literal Wikipedia article title first.
+  // This is what makes well-known landmarks that have nothing to do
+  // with Goa (Taj Mahal, Gateway of India, Dudhsagar Falls) resolve
+  // correctly — appending "Goa" to a search for these only drags the
+  // query away from the real article.
+  let summary = await fetchWikiSummary(name);
+
+  // Step 2: no exact article under that title (typo, loose phrasing,
+  // or a short name that collides with something more famous
+  // elsewhere) — fall back to Wikipedia's search endpoint. Try it
+  // plain first, then nudged with "Goa" only if that also comes up
+  // empty, so the regional bias only kicks in when it's actually
+  // needed for disambiguation, not on every lookup.
+  if(!summary){
+    let title = await resolveWikipediaTitle(name, false);
+    if(!title) title = await resolveWikipediaTitle(name, true);
+    if(title) summary = await fetchWikiSummary(title);
+  }
+  return summary;
+}
+
+async function fetchWikiSummary(title){
+  const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title), {
     headers: { 'Accept': 'application/json' }
   });
   if(!res.ok) return null;
@@ -352,11 +414,12 @@ async function fetchWikipediaPhoto(name){
 
 // Uses Wikipedia's own search endpoint (the same one that powers the
 // search box on wikipedia.org) to turn a rough/misspelled/loosely typed
-// name into the closest real article title. Appending "Goa" nudges
-// ambiguous names (e.g. a beach that shares a name with somewhere else)
-// toward the right regional result.
-async function resolveWikipediaTitle(name){
-  const query = name + ' Goa';
+// name into the closest real article title. withRegion appends "Goa" to
+// nudge ambiguous local names (e.g. a beach that shares a name with
+// somewhere else) toward the right regional result — only used as a
+// second-pass fallback now, not on every lookup.
+async function resolveWikipediaTitle(name, withRegion){
+  const query = withRegion ? name + ' Goa' : name;
   const url = 'https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=' + encodeURIComponent(query);
   const res = await fetch(url);
   if(!res.ok) return null;
@@ -385,6 +448,12 @@ function removeDay(di){
 
 render();
 pullItinerary();
+</script>
+<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
+<script>
+// Lenis honors prefers-reduced-motion itself (locks lerp to 1), so
+// no extra reduced-motion check is needed here.
+if(typeof Lenis !== 'undefined'){ new Lenis({ autoRaf: true, autoToggle: true }); }
 </script>
 </body>
 </html>

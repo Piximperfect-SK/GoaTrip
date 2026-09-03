@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,7 +14,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="shared.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@14.0.1/swiper-bundle.min.css">
 <style>
 /* shared :root design tokens now live in shared.css */
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -41,6 +40,12 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; color:var(--sand);}
 .hero-bg{position:absolute; inset:0; background-size:cover; background-position:center 68%; animation:kenburns 26s ease-in-out infinite alternate; z-index:0;}
 .hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0; background-color:#0B3D3A;}
+/* Spline 3D hero layer — sits where hero-video sits; JS decides which
+   one is actually shown (see HERO 3D script near the end of body).
+   Hidden by default so nothing renders until a real scene is set. */
+.hero-spline{position:absolute; inset:0; z-index:0; display:none;}
+.hero-spline.active{display:block;}
+.hero-spline spline-viewer{width:100%; height:100%; display:block;}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
 .team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7;}
 .team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%);}
@@ -63,24 +68,44 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .section-num{font-family:'Space Mono',monospace; font-size:13px; letter-spacing:.16em; color:var(--mango-2); display:flex; align-items:center; gap:10px;}
 .section-num .rule{height:1px; width:40px; background:var(--mango-2); opacity:.5;}
 
-/* ---------- Coverflow photo gallery (Swiper) ---------- */
-.gallerySwiper{width:100%; padding:6px 0 46px;}
-.gallerySwiper .swiper-wrapper{align-items:center;}
-.gallery-item{width:78vw; max-width:420px; height:480px; border-radius:18px; overflow:hidden; position:relative; box-shadow:0 25px 50px -25px rgba(15,38,34,.5); background:var(--teal-700);}
+/* ---------- Carousel — flat slider (motion.dev style) ---------- */
+#motionCarouselContainer{width:100%; padding:6px 0 20px;}
+.motion-carousel-wrapper{width:100%; overflow:hidden;}
+.motion-carousel-inner{display:flex; gap:16px; padding:0 5vw; transition:transform .55s cubic-bezier(.22,1,.36,1); will-change:transform;}
+.gallery-item{position:relative; flex:0 0 auto; width:78vw; max-width:420px; height:460px; border-radius:16px; overflow:hidden; background:var(--teal-700); perspective:1400px; cursor:pointer;}
 .gallery-item img,.gallery-item video{width:100%; height:100%; object-fit:cover; display:block;}
 .gallery-item .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.9));}
-@media (min-width:768px){ .gallery-item{width:340px; height:460px;} }
+@media (min-width:768px){ .gallery-item{width:400px; height:440px;} }
+
+/* ---------- Flip cards (gallery) — front = photo, back = distance + direction ---------- */
+.flip-inner{position:relative; width:100%; height:100%; transition:transform .6s cubic-bezier(.22,1,.36,1); transform-style:preserve-3d;}
+.gallery-item.flipped .flip-inner{transform:rotateY(180deg);}
+.flip-face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:16px; overflow:hidden;}
+.flip-front{}
+.flip-back{transform:rotateY(180deg); background:linear-gradient(160deg, var(--teal-800), var(--teal-900)); color:var(--sand); display:flex; flex-direction:column; justify-content:space-between; padding:22px; }
+.flip-back .fb-top{display:flex; flex-direction:column; gap:6px;}
+.flip-back .fb-name{font-family:'Fraunces',serif; font-size:20px; font-weight:600; letter-spacing:-0.01em; line-height:1.15;}
+.flip-back .fb-dist{font-family:'Space Mono',monospace; font-size:13px; color:#FFAB85; letter-spacing:.03em;}
+.flip-back .fb-dist .num{font-size:26px; font-weight:700; color:var(--sand); font-family:'Space Grotesk',sans-serif; margin-right:6px;}
+.compass{width:64px; height:64px; border-radius:50%; border:1.5px solid rgba(255,255,255,.22); background:rgba(255,255,255,.05); position:relative; display:flex; align-items:center; justify-content:center; margin:14px 0;}
+.compass .needle{width:2px; height:24px; background:var(--mango); position:absolute; top:6px; left:50%; margin-left:-1px; transform-origin:50% 26px; border-radius:2px;}
+.compass .needle::before{content:"";position:absolute; top:-5px; left:-4px; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:7px solid var(--mango);}
+.compass .n-label{position:absolute; top:3px; left:50%; transform:translateX(-50%); font-family:'Space Mono',monospace; font-size:8px; opacity:.55; letter-spacing:.06em;}
+.flip-back .fb-directions{display:flex; align-items:center; justify-content:center; gap:8px; background:var(--mango); color:white; font-weight:600; font-size:13.5px; border-radius:9999px; padding:11px 18px; text-decoration:none; transition:.2s;}
+.flip-back .fb-directions:hover{background:var(--mango-2);}
+.flip-back .fb-note{font-size:12px; opacity:.6; line-height:1.4;}
+.flip-hint{position:absolute; top:12px; right:12px; z-index:2; width:26px; height:26px; border-radius:50%; background:rgba(6,26,24,.55); display:flex; align-items:center; justify-content:center; color:var(--sand); font-size:13px; pointer-events:none;}
 .gallery-skel{background:linear-gradient(100deg, rgba(255,255,255,.05) 30%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.05) 70%); background-size:200% 100%; animation:skelShimmer 1.6s ease-in-out infinite;}
 @keyframes skelShimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
-/* pagination bullets, themed to match the palette rather than default Swiper black/blue */
-#gallery .swiper-pagination{position:relative; margin-top:6px;}
-#gallery .swiper-pagination-bullet{background:var(--sand); opacity:.35; width:7px; height:7px;}
-#gallery .swiper-pagination-bullet-active{background:var(--mango); opacity:1; width:20px; border-radius:9999px;}
+/* Carousel controls — flat chevrons, bottom-left, no dots (motion.dev style) */
+#galleryCarouselDots{display:none;}
+.carousel-controls{display:flex; align-items:center; gap:2px; padding:18px 5vw 0;}
+.carousel-arrow{background:none; border:none; color:var(--sand); width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:.8; transition:opacity .2s ease;}
+.carousel-arrow svg{width:22px; height:22px; display:block;}
+.carousel-arrow:hover{opacity:1;}
+.carousel-arrow:disabled{opacity:.3; cursor:not-allowed;}
 
-/* keep the coverflow shadow subtle so it reads as depth, not a black smear */
-#gallery .swiper-slide-shadow-left,#gallery .swiper-slide-shadow-right{background-image:linear-gradient(to left, rgba(6,26,24,.55), rgba(6,26,24,0));}
-#gallery .swiper-slide-shadow-right{background-image:linear-gradient(to right, rgba(6,26,24,.55), rgba(6,26,24,0));}
 
 /* ---------- Ambient background motion ---------- */
 .hero-blob{position:absolute; border-radius:9999px; filter:blur(80px); pointer-events:none; z-index:1; mix-blend-mode:screen;}
@@ -267,9 +292,15 @@ textarea:focus{border-color:var(--mango);}
 <!-- ============ HERO ============ -->
 <header class="hero">
   <!--<div class="hero-bg" style="background-image:url('pictures/background.jpg')"></div>-->
-  <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3E%3Crect fill='%230B3D3A' width='1920' height='1080'/%3E%3C/svg%3E" onerror="this.style.display='none'">
+  <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="auto" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3E%3Crect fill='%230B3D3A' width='1920' height='1080'/%3E%3C/svg%3E" onerror="this.style.display='none'">
+    <!-- Spline export goes here: render your scene in Spline, then
+         File → Export → Video, and save the .mp4 as videos/hero-spline.mp4.
+         Until that file exists the browser silently falls through to the
+         line below — nothing changes, no JS, no CSP edits needed. -->
+    <source src="videos/hero-spline.mp4" type="video/mp4">
     <source src="videos/1.mp4" type="video/mp4">
   </video>
+  <div class="hero-spline" id="heroSpline" aria-hidden="true"></div>
   <div class="hero-scrim"></div>
   <div class="hero-blob hero-blob-a"></div>
   <div class="hero-blob hero-blob-b"></div>
@@ -316,36 +347,19 @@ textarea:focus{border-color:var(--mango);}
     <h2 class="display text-4xl md:text-5xl font-semibold mb-2">What we're chasing.</h2>
     <p class="opacity-70 max-w-lg mb-8">Golden coastline, cashew groves off the Ghats, and villa evenings that run long. Swipe through.</p>
   </div>
-  <div class="swiper gallerySwiper" id="gallerySwiper">
-    <div class="swiper-wrapper">
-      <div class="swiper-slide gallery-item">
-        <img src="https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop" alt="Aerial view of a secluded Goa cove, turquoise water meeting golden sand">
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">01 — COASTLINE</p><p class="display text-lg font-semibold">Coves you can't reach by road.</p></div>
-      </div>
-      <div class="swiper-slide gallery-item">
-        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',alt:'Coconut palm trees silhouetted at a quiet South Goa beach'}))">
-          <source src="videos/4.mp4" type="video/mp4">
-        </video>
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">02 — PALMS</p><p class="display text-lg font-semibold">Shade for the slow afternoons.</p></div>
-      </div>
-      <div class="swiper-slide gallery-item">
-        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',alt:'Car threading through jungle road toward the coast'}))">
-          <source src="videos/3.mp4" type="video/mp4">
-        </video>
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">03 — THE DRIVE</p><p class="display text-lg font-semibold">Jungle roads to the shore.</p></div>
-      </div>
-      <div class="swiper-slide gallery-item">
-        <video autoplay muted loop playsinline preload="none" loading="lazy" poster="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop" onerror="this.replaceWith(Object.assign(new Image(),{src:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',alt:'Golden sunset sky with birds in flight over the sea'}))">
-          <source src="videos/2.mp4" type="video/mp4">
-        </video>
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">04 — TIDE LINE</p><p class="display text-lg font-semibold">Sunset walk, every evening.</p></div>
-      </div>
-      <div class="swiper-slide gallery-item">
-        <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop" alt="Coastal grove overlooking the Arabian Sea near a Goan fort">
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">05 — LOOKOUT</p><p class="display text-lg font-semibold">Cliffside views, first morning.</p></div>
-      </div>
+  <div id="motionCarouselContainer">
+    <div class="motion-carousel-wrapper">
+      <div class="motion-carousel-inner" id="motionCarouselInner"></div>
     </div>
-    <div class="swiper-pagination"></div>
+    <div class="carousel-controls">
+      <button class="carousel-arrow" id="carouselPrevBtn" aria-label="Previous slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button class="carousel-arrow" id="carouselNextBtn" aria-label="Next slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+      <div id="galleryCarouselDots"></div>
+    </div>
   </div>
 </section>
 
@@ -593,7 +607,6 @@ textarea:focus{border-color:var(--mango);}
   Pune → Londa → Goa · built for the crew, edit freely.
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/swiper@14.0.1/swiper-bundle.min.js"></script>
 <script>
 /* ============================================================
    GALLERY — slides are picked automatically from whatever the
@@ -604,27 +617,37 @@ textarea:focus{border-color:var(--mango);}
    carousel roughly retells the trip. Falls back to showing all
    five if the itinerary is too sparse (e.g. still mostly TBD).
 =============================================================*/
+/* Straight-line "as the crow flies" home base for the distance/direction
+   feature below. This is Parra village centre — swap in the villa's exact
+   pin (long-press it in Google Maps → coordinates shown at the bottom) for
+   genuinely accurate numbers once you have it. */
+const HOME_BASE = { name:'Smalltown Villa, Parra', lat:15.56667, lng:73.78333 };
+
 const GALLERY_MEDIA = [
   { id:'coastline', num:'01', tag:'COASTLINE', caption:"Coves you can't reach by road.",
     keywords:['beach','water sport','watersport','swim','cove','coast','sea','ocean','snorkel'],
     type:'image', src:'https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop',
-    alt:'Aerial view of a secluded Goa cove, turquoise water meeting golden sand' },
+    alt:'Aerial view of a secluded Goa cove, turquoise water meeting golden sand',
+    place:'Anjuna Beach', lat:15.5833, lng:73.7333 },
   { id:'palms', num:'02', tag:'PALMS', caption:'Shade for the slow afternoons.',
     keywords:['villa','pool','lunch','dinner','check-in','check in','relax','shade','afternoon','settle'],
     type:'video', video:'videos/4.mp4', poster:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',
-    alt:'Coconut palm trees silhouetted at a quiet South Goa beach' },
+    alt:'Coconut palm trees silhouetted at a quiet South Goa beach' /* no place — this one's the villa itself */ },
   { id:'drive', num:'03', tag:'THE DRIVE', caption:'Jungle roads to the shore.',
     keywords:['train','cab','drive','road','londa','pune','checkout','board','station','jungle','transfer'],
     type:'video', video:'videos/3.mp4', poster:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',
-    alt:'Car threading through jungle road toward the coast' },
+    alt:'Car threading through jungle road toward the coast',
+    place:'Londa Junction', lat:15.4489, lng:74.4960 },
   { id:'tideline', num:'04', tag:'TIDE LINE', caption:'Sunset walk, every evening.',
     keywords:['sunset','evening','cruise','walk','tide','dusk'],
     type:'video', video:'videos/2.mp4', poster:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',
-    alt:'Golden sunset sky with birds in flight over the sea' },
+    alt:'Golden sunset sky with birds in flight over the sea',
+    place:'Vagator Beach', lat:15.6025, lng:73.73361 },
   { id:'lookout', num:'05', tag:'LOOKOUT', caption:'Cliffside views, first morning.',
     keywords:['old goa','fort','market','heritage','church','basilica','temple','waterfall','falls','plantation','lookout','cliff','view'],
     type:'image', src:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop',
-    alt:'Coastal grove overlooking the Arabian Sea near a Goan fort' },
+    alt:'Coastal grove overlooking the Arabian Sea near a Goan fort',
+    place:'Chapora Fort', lat:15.6059, lng:73.7362 },
 ];
 
 /* ---------- Places-driven gallery ----------
@@ -648,7 +671,14 @@ function matchGalleryFromItinerary(days){
         id: 'place-' + key.replace(/[^a-z0-9]+/g,'-'),
         tag: p.name.toUpperCase(),
         caption: p.caption && p.caption !== p.name ? p.caption : p.name,
-        type: 'image', src: p.photo, alt: p.name
+        type: 'image', src: p.photo, alt: p.name,
+        place: p.name,
+        // Only set when the itinerary place-picker recorded real
+        // coordinates (e.g. via Google Places) — otherwise the flip
+        // card's back face shows the "no location yet" note instead
+        // of a fabricated distance.
+        lat: typeof p.lat === 'number' ? p.lat : null,
+        lng: typeof p.lng === 'number' ? p.lng : null,
       });
     });
   });
@@ -656,60 +686,498 @@ function matchGalleryFromItinerary(days){
   return ordered.length ? ordered : GALLERY_MEDIA.slice();
 }
 
-function gallerySlideHTML(m, i){
-  const media = m.type === 'video'
-    ? `<video autoplay muted loop playsinline preload="none" loading="lazy" poster="${m.poster}" onerror="this.replaceWith(Object.assign(new Image(),{src:'${m.poster}',alt:'${m.alt}'}))"><source src="${m.video}" type="video/mp4"></video>`
-    : `<img src="${m.src}" alt="${m.alt}">`;
-  return `<div class="swiper-slide gallery-item">
-    ${media}
-    <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${String(i+1).padStart(2,'0')} — ${m.tag}</p><p class="display text-lg font-semibold">${m.caption}</p></div>
+/* ---------- Flip-card back face: distance + bearing from HOME_BASE ----------
+   Only rendered when the media item carries lat/lng (real named places do,
+   via the itinerary place-picker; the curated fallback set has them baked
+   in above). Cards without coordinates flip to a plain "no location yet"
+   note instead of a fabricated distance. */
+function galleryBackFaceHTML(m){
+  if(m.lat == null || m.lng == null){
+    return `<div class="flip-face flip-back">
+      <div class="fb-top"><p class="fb-name">${escapeHtml(m.place || m.tag)}</p></div>
+      <p class="fb-note">No exact location pinned for this one yet — add it as a place in the itinerary planner to get distance &amp; directions here.</p>
+    </div>`;
+  }
+  const dest = { lat:m.lat, lng:m.lng };
+  const km = haversineKm(HOME_BASE, dest);
+  const brg = Math.round(bearingDeg(HOME_BASE, dest));
+  const url = mapsDirectionsUrl(HOME_BASE, dest);
+  return `<div class="flip-face flip-back">
+    <div class="fb-top">
+      <p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${escapeHtml(m.tag)}</p>
+      <p class="fb-name">${escapeHtml(m.place)}</p>
+      <p class="fb-dist"><span class="num">${km.toFixed(1)}</span>km from the villa</p>
+    </div>
+    <div class="compass" aria-hidden="true">
+      <span class="n-label">N</span>
+      <span class="needle" style="transform:translateX(-50%) rotate(${brg}deg)"></span>
+    </div>
+    <a class="fb-directions" href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+      <span>Get directions</span><span aria-hidden="true">↗</span>
+    </a>
   </div>`;
 }
 
-let gallerySwiperInstance = null;
-function renderGallery(mediaList){
-  const wrapper = document.querySelector('#gallerySwiper .swiper-wrapper');
-  if(!wrapper) return;
-  wrapper.innerHTML = mediaList.map(gallerySlideHTML).join('');
-  if(gallerySwiperInstance){ gallerySwiperInstance.destroy(true, true); }
-  gallerySwiperInstance = new Swiper('#gallerySwiper', {
-    effect: 'coverflow',
-    grabCursor: true,
-    centeredSlides: true,
-    slidesPerView: 'auto',
-    loop: mediaList.length > 2,
-    loopAdditionalSlides: 2,
-    mousewheel: { forceToAxis: true, sensitivity: 1, releaseOnEdges: true },
-    coverflowEffect: { rotate: 35, stretch: 0, depth: 140, modifier: 1, slideShadows: true },
-    pagination: { el: '#gallery .swiper-pagination', clickable: true },
-    autoplay: { delay: 3200, disableOnInteraction: true, pauseOnMouseEnter: true },
+function galleryCardHTML(m, i, extraClass){
+  const media = m.type === 'video'
+    ? `<video autoplay muted loop playsinline preload="none" loading="lazy" poster="${m.poster}" onerror="this.replaceWith(Object.assign(new Image(),{src:'${m.poster}',alt:'${m.alt}'}))"><source src="${m.video}" type="video/mp4"></video>`
+    : `<img src="${m.src}" alt="${m.alt}">`;
+  return `<div class="gallery-item${extraClass ? ' ' + extraClass : ''}" data-index="${i}">
+    <div class="flip-hint" aria-hidden="true">⤵</div>
+    <div class="flip-inner">
+      <div class="flip-face flip-front">
+        ${media}
+        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${String(i+1).padStart(2,'0')} — ${m.tag}</p><p class="display text-lg font-semibold">${m.caption}</p></div>
+      </div>
+      ${galleryBackFaceHTML(m)}
+    </div>
+  </div>`;
+}
+
+function gallerySlideHTML(m, i){
+  return galleryCardHTML(m, i, 'swiper-slide');
+}
+
+/* ============================================================
+   MOTION CAROUSEL PARALLAX — Pure JavaScript, Framer Motion
+   inspired parallax carousel without dependencies. Renders items
+   with scale + opacity based on distance from center, creating
+   depth and visual hierarchy. Touch-friendly with smooth animation.
+=============================================================*/
+let motionCarouselState = { current: 0, items: [], autoplayInterval: null, isDragging: false, startX: 0, currentX: 0, dragMoved: false };
+
+function renderMotionCarousel(mediaList){
+  if(!mediaList || mediaList.length === 0) return;
+  
+  motionCarouselState.items = mediaList;
+  motionCarouselState.current = 0;
+  
+  const container = document.getElementById('motionCarouselInner');
+  if(!container) return;
+  
+  // Render all items into the carousel as a flat row (motion.dev style — no scale/opacity falloff)
+  container.innerHTML = mediaList.map((m, i) => galleryCardHTML(m, i)).join('');
+
+  // Enable drag/touch + tap-to-flip/maps — guarded so re-rendering the
+  // carousel (e.g. when the itinerary's places change) doesn't stack up
+  // duplicate listeners on the same container.
+  if(!container.dataset.listenersBound){
+    container.addEventListener('mousedown', motionCarouselStartDrag);
+    container.addEventListener('touchstart', motionCarouselStartDrag);
+    // Tap-to-flip (desktop) / tap-to-open-Google-Maps (mobile). A drag that
+    // moves the slide shouldn't also trigger a flip — see the moved-guard
+    // in motionCarouselStartDrag/EndDrag.
+    container.addEventListener('click', motionCarouselCardClick);
+    container.dataset.listenersBound = '1';
+  }
+
+  // Start autoplay
+  motionCarouselStartAutoplay();
+  
+  // Initial render
+  motionCarouselUpdatePosition();
+}
+
+function motionCarouselCardClick(e){
+  if(motionCarouselState.dragMoved) return; // this click was really the end of a drag
+  const card = e.target.closest('.gallery-item');
+  if(!card || !container_contains_card(card)) return;
+  const idx = Number(card.dataset.index);
+  const m = motionCarouselState.items[idx];
+  if(!m) return;
+
+  const isMobile = window.innerWidth < 768 || 'ontouchstart' in window;
+  if(isMobile && m.lat != null && m.lng != null){
+    // Skip the flip entirely on mobile — go straight to native Google Maps,
+    // exactly like the flip card's "Get directions" button does on desktop.
+    window.open(mapsDirectionsUrl(HOME_BASE, { lat:m.lat, lng:m.lng }), '_blank', 'noopener');
+    return;
+  }
+  // FIX: Toggle the clicked card FIRST, then unflip all others.
+  // Previously, unflipAll() was called first, which would unflip the clicked card,
+  // then the toggle would flip it back — making it impossible to close a card by
+  // clicking it again (it would just stay flipped).
+  card.classList.toggle('flipped');
+  document.querySelectorAll('#motionCarouselInner .gallery-item.flipped').forEach(el => {
+    if(el !== card) el.classList.remove('flipped');
   });
 }
+function container_contains_card(card){
+  return document.getElementById('motionCarouselInner')?.contains(card);
+}
+function motionCarouselUnflipAll(){
+  document.querySelectorAll('#motionCarouselInner .gallery-item.flipped').forEach(el => el.classList.remove('flipped'));
+}
+
+function motionCarouselUpdatePosition(){
+  const container = document.getElementById('motionCarouselInner');
+  if(!container) return;
+  
+  const items = container.querySelectorAll('.gallery-item');
+  const count = items.length;
+  if(count === 0) return;
+  
+  const current = motionCarouselState.current;
+  const first = items[0];
+  const gap = parseFloat(getComputedStyle(container).gap) || 16;
+  const slideWidth = first.getBoundingClientRect().width + gap;
+  
+  // Flat slide — translate the whole track, no per-item scale/opacity (motion.dev style)
+  container.style.transform = `translateX(-${current * slideWidth}px)`;
+  
+  // Disable arrows at the ends
+  const prevBtn = document.getElementById('carouselPrevBtn');
+  const nextBtn = document.getElementById('carouselNextBtn');
+  if(prevBtn) prevBtn.disabled = current === 0;
+  if(nextBtn) nextBtn.disabled = current === count - 1;
+
+  // A slide change is a good moment to reset any flipped card — mirrors
+  // the auto-unflip behaviour already used on the itinerary places carousel.
+  motionCarouselUnflipAll();
+}
+
+function motionCarouselNext(){
+  motionCarouselState.current = Math.min(motionCarouselState.current + 1, motionCarouselState.items.length - 1);
+  motionCarouselUpdatePosition();
+  motionCarouselResetAutoplay();
+}
+
+function motionCarouselPrev(){
+  motionCarouselState.current = Math.max(motionCarouselState.current - 1, 0);
+  motionCarouselUpdatePosition();
+  motionCarouselResetAutoplay();
+}
+
+function motionCarouselGoTo(index){
+  motionCarouselState.current = Math.max(0, Math.min(index, motionCarouselState.items.length - 1));
+  motionCarouselUpdatePosition();
+  motionCarouselResetAutoplay();
+}
+
+function motionCarouselStartDrag(e){
+  if(motionCarouselState.items.length < 2) return;
+  motionCarouselState.isDragging = true;
+  motionCarouselState.dragMoved = false;
+  motionCarouselState.startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+  motionCarouselState.currentX = motionCarouselState.startX;
+  document.addEventListener('mousemove', motionCarouselDrag);
+  document.addEventListener('touchmove', motionCarouselDrag);
+  document.addEventListener('mouseup', motionCarouselEndDrag);
+  document.addEventListener('touchend', motionCarouselEndDrag);
+  motionCarouselClearAutoplay();
+}
+
+function motionCarouselDrag(e){
+  if(!motionCarouselState.isDragging) return;
+  motionCarouselState.currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+  if(Math.abs(motionCarouselState.startX - motionCarouselState.currentX) > 6){
+    motionCarouselState.dragMoved = true; // real swipe, not a tap — suppress the click-to-flip
+  }
+}
+
+function motionCarouselEndDrag(){
+  if(!motionCarouselState.isDragging) return;
+  motionCarouselState.isDragging = false;
+  
+  const delta = motionCarouselState.startX - motionCarouselState.currentX;
+  if(Math.abs(delta) > 40){
+    if(delta > 0) motionCarouselNext(); else motionCarouselPrev();
+  }
+  
+  document.removeEventListener('mousemove', motionCarouselDrag);
+  document.removeEventListener('touchmove', motionCarouselDrag);
+  document.removeEventListener('mouseup', motionCarouselEndDrag);
+  document.removeEventListener('touchend', motionCarouselEndDrag);
+  
+  motionCarouselStartAutoplay();
+  // Clear the drag-moved guard just after this tick so the click event that
+  // (in some browsers) follows touchend/mouseup doesn't get suppressed too.
+  setTimeout(() => { motionCarouselState.dragMoved = false; }, 0);
+}
+
+function motionCarouselStartAutoplay(){
+  if(motionCarouselState.autoplayInterval) return;
+  motionCarouselState.autoplayInterval = setInterval(() => {
+    motionCarouselNext();
+  }, 3800);
+}
+
+function motionCarouselClearAutoplay(){
+  if(motionCarouselState.autoplayInterval){
+    clearInterval(motionCarouselState.autoplayInterval);
+    motionCarouselState.autoplayInterval = null;
+  }
+}
+
+function motionCarouselResetAutoplay(){
+  motionCarouselClearAutoplay();
+  motionCarouselStartAutoplay();
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowLeft') motionCarouselPrev();
+  if(e.key === 'ArrowRight') motionCarouselNext();
+});
+
+// Arrow button navigation
+document.getElementById('carouselPrevBtn')?.addEventListener('click', motionCarouselPrev);
+document.getElementById('carouselNextBtn')?.addEventListener('click', motionCarouselNext);
+
+// Recompute slide offset on resize (card width is responsive)
+let motionCarouselResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(motionCarouselResizeTimer);
+  motionCarouselResizeTimer = setTimeout(motionCarouselUpdatePosition, 120);
+});
+
+function renderGallery(mediaList){ renderMotionCarousel(mediaList); }
 function refreshGallery(days){ renderGallery(matchGalleryFromItinerary(days)); }
 
 // ---------- Loading skeleton ----------
-// Shown while the real itinerary (and its places) is still loading
-// from the backend, instead of instantly painting the curated
-// fallback set — avoids a visible "wrong photos, then swap to real
-// ones" flash on every page load. Swapped out for the real gallery
-// once loadItinerary() below has a definitive answer (success,
-// empty, or failed — whichever comes first).
 function renderGallerySkeleton(){
-  const wrapper = document.querySelector('#gallerySwiper .swiper-wrapper');
-  if(!wrapper) return;
-  wrapper.innerHTML = Array.from({length:3}).map(()=>`<div class="swiper-slide gallery-item gallery-skel"></div>`).join('');
-  if(gallerySwiperInstance){ gallerySwiperInstance.destroy(true, true); gallerySwiperInstance = null; }
-  gallerySwiperInstance = new Swiper('#gallerySwiper', {
-    effect: 'coverflow', centeredSlides: true, slidesPerView: 'auto', loop: false,
-    coverflowEffect: { rotate: 35, stretch: 0, depth: 140, modifier: 1, slideShadows: true },
-  });
+  const container = document.getElementById('motionCarouselInner');
+  if(!container) return;
+  container.innerHTML = Array.from({length:3}).map((_, i) => 
+    `<div class="gallery-item gallery-skel" data-index="${i}"></div>`
+  ).join('');
+  motionCarouselState.items = [];
+  motionCarouselClearAutoplay();
 }
 
-// first paint — a loading placeholder, not a specific set of photos,
-// so there's nothing to visibly swap away from a moment later
+// First paint — loading placeholder
 renderGallerySkeleton();
 </script>
 <script src="shared.js"></script>
+<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
+<script>initSmoothScroll();</script>
+<script>
+/* ============================================================
+   HERO 3D — optional LIVE Spline scene, swapped in for the hero video.
+   This is the heavier, interactive path (real-time WebGL) and is
+   intentionally desktop-only — see the width/reduced-motion guard
+   below. For a cheaper, mobile-safe option that still gets you a
+   Spline look, just export the scene as a video from the Spline
+   editor and drop it at videos/hero-spline.mp4 — the <video> tag
+   above already prefers that file automatically, no code needed.
+
+   TODO (only if you want the LIVE version too): paste your exported
+   scene URL here once it's built in the Spline editor
+   (Export → Public URL → "Code export" panel). Leave it as '' and
+   this whole block quietly does nothing — the video hero keeps
+   working exactly as before.
+=============================================================*/
+const SPLINE_SCENE_URL = ''; // e.g. 'https://prod.spline.design/XXXXXXXXXXXX/scene.splinecode'
+
+(function initHeroSpline(){
+  if(!SPLINE_SCENE_URL) return;
+
+  // Skip on reduced-motion and on small/mobile viewports — a live
+  // WebGL scene is exactly the kind of thing that runs a phone warm
+  // on a beach trip, and the video hero already looks good there.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reducedMotion || window.innerWidth < 768) return;
+
+  const splineScript = document.createElement('script');
+  splineScript.type = 'module';
+  splineScript.src = 'https://unpkg.com/@splinetool/viewer/build/spline-viewer.js';
+  splineScript.onload = () => {
+    const wrap = document.getElementById('heroSpline');
+    const video = document.getElementById('heroVideo');
+    if(!wrap) return;
+    const viewer = document.createElement('spline-viewer');
+    viewer.setAttribute('url', SPLINE_SCENE_URL);
+    viewer.setAttribute('loading', 'eager');
+    wrap.appendChild(viewer);
+    wrap.classList.add('active');
+    if(video){ video.pause(); video.style.display = 'none'; }
+  };
+  // If the script itself fails to load (offline, CSP, CDN down), the
+  // video hero is untouched — nothing to catch or fall back to here.
+  document.head.appendChild(splineScript);
+})();
+</script>
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script>
+/* ============================================================
+   HERO 3D (built-in) — a procedural WebGL "Golden Hour Goa" scene:
+   sun, drifting clouds, a wireframe-free animated ocean, two palm
+   silhouettes, a bobbing boat and a few birds. Everything here is
+   generated at runtime from Three.js primitives + canvas textures —
+   there's no .splinecode file to export, upload or keep in sync,
+   and it runs the instant this file loads.
+
+   This only takes over when SPLINE_SCENE_URL above is left empty,
+   so a real Spline scene (if you add one later) always wins. Same
+   guards as the live-Spline path: desktop only, skipped entirely
+   on prefers-reduced-motion or narrow/mobile viewports, where the
+   video hero keeps doing the job.
+=============================================================*/
+(function initHeroWebGL(){
+  if(SPLINE_SCENE_URL) return; // a real Spline scene takes priority
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reducedMotion || window.innerWidth < 768) return;
+
+  const wrap = document.getElementById('heroSpline');
+  const video = document.getElementById('heroVideo');
+  if(!wrap || typeof THREE === 'undefined') return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, wrap.clientWidth / Math.max(wrap.clientHeight,1), 0.1, 100);
+  camera.position.set(0, 2.3, 9);
+  camera.lookAt(0, 1.1, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  renderer.domElement.style.cssText = 'width:100%;height:100%;display:block;';
+  wrap.appendChild(renderer.domElement);
+
+  function makeCanvasTexture(draw, w, h){
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const tex = new THREE.CanvasTexture(c);
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  // ---- sky gradient (Golden Hour Goa palette) ----
+  scene.background = makeCanvasTexture((ctx,w,h)=>{
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0, '#0B3D3A');
+    g.addColorStop(0.55, '#E85D2A');
+    g.addColorStop(1, '#FF7A45');
+    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+  }, 4, 256);
+
+  function glowTexture(hex){
+    return makeCanvasTexture((ctx)=>{
+      const g = ctx.createRadialGradient(128,128,0,128,128,128);
+      g.addColorStop(0, hex + 'ff'); g.addColorStop(0.45, hex + '80'); g.addColorStop(1, hex + '00');
+      ctx.fillStyle = g; ctx.fillRect(0,0,256,256);
+    }, 256, 256);
+  }
+
+  // ---- sun ----
+  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('#FF7A45'), transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
+  sunGlow.scale.set(9,9,1);
+  sunGlow.position.set(1.4, 3.3, -6);
+  scene.add(sunGlow);
+  const sunCore = new THREE.Mesh(new THREE.CircleGeometry(0.85, 48), new THREE.MeshBasicMaterial({ color:0xFFD9A0 }));
+  sunCore.position.copy(sunGlow.position);
+  scene.add(sunCore);
+
+  scene.add(new THREE.DirectionalLight(0xFFDAB0, 1.1)).position.set(2,4,3);
+  scene.add(new THREE.AmbientLight(0x224a45, 0.95));
+
+  // ---- clouds ----
+  const cloudTex = glowTexture('#FBF6EC');
+  const clouds = [];
+  for(let i=0;i<4;i++){
+    const cl = new THREE.Sprite(new THREE.SpriteMaterial({ map:cloudTex, transparent:true, opacity:0.45 }));
+    cl.scale.set(4+Math.random()*2, 1.6+Math.random(), 1);
+    cl.position.set(-8+Math.random()*16, 2.8+Math.random()*1.6, -5-Math.random()*3);
+    scene.add(cl); clouds.push(cl);
+  }
+
+  // ---- ocean: displaced plane, recolored per-vertex each frame ----
+  const oceanGeo = new THREE.PlaneGeometry(30, 16, 100, 50);
+  oceanGeo.rotateX(-Math.PI/2.15);
+  const oceanPos = oceanGeo.attributes.position;
+  const oceanColorArr = new Float32Array(oceanPos.count * 3);
+  oceanGeo.setAttribute('color', new THREE.BufferAttribute(oceanColorArr, 3));
+  const ocean = new THREE.Mesh(oceanGeo, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.35, metalness:0.05, transparent:true, opacity:0.94 }));
+  ocean.position.y = -0.4;
+  scene.add(ocean);
+  const deepC = new THREE.Color('#123F3C'), shallowC = new THREE.Color('#3B82C4'), foamC = new THREE.Color('#FBF6EC');
+  const tmpColor = new THREE.Color();
+
+  // ---- palm silhouettes ----
+  const palmTex = makeCanvasTexture((ctx)=>{
+    ctx.strokeStyle = '#2F5F44'; ctx.lineCap = 'round';
+    ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(64,192); ctx.quadraticCurveTo(50,90,60,40); ctx.stroke();
+    for(let a=0;a<6;a++){
+      const ang = (a/6)*Math.PI*1.4 - 0.7;
+      ctx.beginPath(); ctx.moveTo(60,40);
+      ctx.quadraticCurveTo(60+Math.cos(ang)*40, 40+Math.sin(ang)*20-20, 60+Math.cos(ang)*72, 40+Math.sin(ang)*46-8);
+      ctx.lineWidth = 11; ctx.strokeStyle = '#3E7C59'; ctx.stroke();
+    }
+  }, 128, 200);
+  [-4.4, 4.7].forEach(x=>{
+    const p = new THREE.Sprite(new THREE.SpriteMaterial({ map:palmTex, transparent:true }));
+    p.scale.set(3, 4.6, 1);
+    p.position.set(x, 1.7, -1);
+    scene.add(p);
+  });
+
+  // ---- boat ----
+  const boatTex = makeCanvasTexture((ctx)=>{
+    ctx.fillStyle = '#0F2622';
+    ctx.beginPath(); ctx.moveTo(20,60); ctx.quadraticCurveTo(80,80,140,60); ctx.lineTo(120,45); ctx.lineTo(40,45); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#0F2622'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(80,45); ctx.lineTo(80,10); ctx.stroke();
+  }, 160, 90);
+  const boat = new THREE.Sprite(new THREE.SpriteMaterial({ map:boatTex, transparent:true }));
+  boat.scale.set(2.1, 1.2, 1);
+  boat.position.set(-0.6, -0.05, 1.6);
+  scene.add(boat);
+
+  // ---- birds ----
+  const birdTex = makeCanvasTexture((ctx)=>{
+    ctx.strokeStyle = '#0F2622'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(4,20); ctx.quadraticCurveTo(16,4,32,16); ctx.quadraticCurveTo(48,4,60,20); ctx.stroke();
+  }, 64, 32);
+  const birds = [];
+  for(let i=0;i<3;i++){
+    const b = new THREE.Sprite(new THREE.SpriteMaterial({ map:birdTex, transparent:true }));
+    b.scale.set(0.8, 0.4, 1);
+    b.position.set(-6+i*2.4, 3.5+Math.random()*0.6, -3);
+    scene.add(b); birds.push(b);
+  }
+
+  // ---- animate ----
+  const clock = new THREE.Clock();
+  let raf = null;
+  function tick(){
+    raf = requestAnimationFrame(tick);
+    const t = clock.getElapsedTime();
+
+    for(let i=0;i<oceanPos.count;i++){
+      const x = oceanPos.getX(i), z = oceanPos.getZ(i);
+      const y = Math.sin(x*0.6 + t*1.1)*0.18 + Math.cos(z*0.8 + t*0.8)*0.12;
+      oceanPos.setY(i, y);
+      const h = Math.min(1, Math.max(0, (y+0.3)/0.6));
+      tmpColor.copy(h > 0.78 ? foamC : deepC).lerp(shallowC, h);
+      oceanColorArr[i*3] = tmpColor.r; oceanColorArr[i*3+1] = tmpColor.g; oceanColorArr[i*3+2] = tmpColor.b;
+    }
+    oceanPos.needsUpdate = true;
+    oceanGeo.attributes.color.needsUpdate = true;
+    oceanGeo.computeVertexNormals();
+
+    clouds.forEach((c,i)=>{ c.position.x += 0.0025*(i%2?1:-1); if(c.position.x>10) c.position.x=-10; if(c.position.x<-10) c.position.x=10; });
+    birds.forEach((b,i)=>{ b.position.x += 0.008+i*0.002; b.position.y += Math.sin(t*3+i)*0.0015; if(b.position.x>8) b.position.x=-8; });
+    boat.position.y = -0.05 + Math.sin(t*1.4)*0.05;
+    sunGlow.material.opacity = 0.82 + Math.sin(t*0.6)*0.12;
+
+    renderer.render(scene, camera);
+  }
+  tick();
+
+  function onResize(){
+    if(!wrap.clientWidth || !wrap.clientHeight) return;
+    camera.aspect = wrap.clientWidth / wrap.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  }
+  window.addEventListener('resize', onResize);
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ if(raf) cancelAnimationFrame(raf); raf = null; }
+    else if(!raf){ tick(); }
+  });
+
+  wrap.classList.add('active');
+  if(video){ video.pause(); video.style.display = 'none'; }
+})();
+</script>
 <script>
 /* ============================================================
    NAV: active link tracking + hide-on-scroll-down

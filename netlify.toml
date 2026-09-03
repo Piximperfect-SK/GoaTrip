@@ -12,11 +12,27 @@
 # actually served from script.googleusercontent.com under the hood
 # (a redirect from the script.google.com URL you call), so both are
 # needed or every fetch to the backend gets blocked.
+#
+# Spline (index.html hero) additions, added site-wide rather than
+# scoped to /index.html only — Netlify doesn't reliably merge two
+# [[headers]] blocks that both set Content-Security-Policy for
+# overlapping paths, so a second block risks silently overriding
+# this one instead of extending it. The three additions below are
+# low-risk everywhere else since no other page loads the viewer:
+#   - script-src 'wasm-unsafe-eval': Spline's runtime compiles WASM
+#   - connect-src https://prod.spline.design: scene data host
+#   - worker-src 'self' blob:: viewer spins up a worker via blob URL
+#
+# frame-src is new here too: with no frame-src directive at all, iframes
+# fall back to default-src 'self', which silently blocks an embedded
+# Google Maps iframe (<iframe src="https://www.google.com/maps/embed?...">).
+# img-src also picks up maps.gstatic.com / maps.googleapis.com, which the
+# Maps embed UI loads its own tile/icon images from.
 # ============================================================
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://en.wikipedia.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

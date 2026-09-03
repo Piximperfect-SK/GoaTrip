@@ -114,6 +114,54 @@ function waitForImagesToLoad(container, timeoutMs){
 }
 
 /**
+ * Start Lenis smooth scrolling if the CDN script (lenis.min.js) has
+ * loaded on this page. Lenis honors prefers-reduced-motion itself
+ * (locks lerp to 1, jumps instant on programmatic scroll) so no
+ * extra reduced-motion handling is needed here — it matches the
+ * kill-switch behaviour the rest of the site already uses.
+ * Returns the Lenis instance, or null if the script wasn't present
+ * (e.g. a page that intentionally opts out, like boarding-pass.html).
+ */
+function initSmoothScroll(options){
+  if(typeof Lenis === 'undefined') return null;
+  const lenis = new Lenis(Object.assign({ autoRaf: true, autoToggle: true }, options || {}));
+  return lenis;
+}
+
+/**
+ * Great-circle ("as the crow flies") distance in km between two
+ * {lat,lng} points, via the haversine formula.
+ */
+function haversineKm(a, b){
+  const R = 6371; // Earth radius, km
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+/**
+ * Initial compass bearing in degrees (0 = north, 90 = east) for the
+ * great-circle path from point a to point b.
+ */
+function bearingDeg(a, b){
+  const toRad = d => d * Math.PI / 180;
+  const y = Math.sin(toRad(b.lng - a.lng)) * Math.cos(toRad(b.lat));
+  const x = Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+            Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lng - a.lng));
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+/**
+ * Google Maps "get directions" deep link — opens the native Google Maps
+ * app automatically on iOS/Android, and maps.google.com in a desktop browser.
+ */
+function mapsDirectionsUrl(origin, destination){
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&travelmode=driving`;
+}
+
+/**
  * Build the QR image URL via the api.qrserver.com image API.
  */
 function qrApiUrl(text){
