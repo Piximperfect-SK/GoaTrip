@@ -423,7 +423,8 @@
         <div class="lookup-card">
           <span class="field-label">Passenger name</span>
           <form id="lookupForm" class="lookup-row">
-            <input required id="p-name" placeholder="e.g. Dean M. Winters" autocomplete="off"/>
+            <input required id="p-name" placeholder="e.g. Dean M. Winters" autocomplete="off" list="registered-names"/>
+            <datalist id="registered-names"></datalist>
             <button type="submit" id="lookupBtn">
               <span id="lookupBtnLabel">Find my ticket</span>
               <span aria-hidden="true">→</span>
@@ -463,6 +464,26 @@
       trip = two rows, same Name, Leg = onward / return.
    ============================================================ */
 const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx2AkwL-gL3HdGFabJuylOG9JLRiip-yY1OdFQOThzn0WdTLKk33FuaLGWzmEgD09-z/exec";
+
+/* Same Apps Script deployment index.html/itinerary.html use for
+   registration + itinerary — reused here read-only to autocomplete
+   the passenger name field with names people actually registered
+   with, since the lookup below is exact-match against that same name. */
+const REGISTRATIONS_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
+
+async function populateRegisteredNamesDatalist(){
+  const list = document.getElementById('registered-names');
+  if(!list || !REGISTRATIONS_ENDPOINT) return;
+  try{
+    const res = await fetch(REGISTRATIONS_ENDPOINT + '?type=participants');
+    const data = await res.json();
+    if(data.error || !Array.isArray(data.participants)) return;
+    list.innerHTML = data.participants.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
+  }catch(err){
+    console.warn('populateRegisteredNamesDatalist failed (non-fatal, field still works as free text):', err);
+  }
+}
+populateRegisteredNamesDatalist();
 
 async function fetchTickets(name, opts){
   opts = opts || {};
