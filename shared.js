@@ -168,6 +168,41 @@ function qrApiUrl(text){
   return 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=' + encodeURIComponent(text);
 }
 
+/* ============================================================
+   FEATURE FLAGS (admin console)
+   Any page can call applyFeatureFlags(ADMIN_ENDPOINT) once on load.
+   It fetches the public flag list (no auth needed to read) and,
+   for every element on the page carrying data-feature="someKey",
+   hides it (or disables it, for inputs/buttons/forms) if that
+   flag is turned off in the admin console. A flag that doesn't
+   exist yet defaults to enabled, so untagged pages are unaffected.
+   ============================================================ */
+async function applyFeatureFlags(adminEndpoint){
+  if(!adminEndpoint) return {};
+  let flags = {};
+  try{
+    const res = await fetch(adminEndpoint + '?action=flags');
+    const data = await res.json();
+    (data.flags || []).forEach(f => { flags[f.featureKey] = !!f.enabled; });
+  }catch(e){
+    console.warn('Could not load feature flags — leaving all features enabled.', e);
+    return {};
+  }
+  document.querySelectorAll('[data-feature]').forEach(node => {
+    const key = node.dataset.feature;
+    if(flags[key] === false){
+      if(['INPUT','BUTTON','SELECT','TEXTAREA','FORM'].includes(node.tagName)){
+        node.setAttribute('disabled', 'disabled');
+        node.title = 'This feature is currently restricted.';
+      }else{
+        node.style.display = 'none';
+      }
+      node.classList.add('feature-restricted');
+    }
+  });
+  return flags;
+}
+
 /**
  * Render a QR code into `el` (an <img> or container) from plain text,
  * falling back gracefully if the request fails.

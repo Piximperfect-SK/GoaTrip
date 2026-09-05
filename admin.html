@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Admin — Goa Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  body{ min-height:100vh; }
+  #wrap{ max-width:760px; margin:0 auto; padding:56px 20px 90px; }
+  .eyebrow{ font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--mango-2); }
+  h1{ font-family:'Fraunces',serif; font-size:2.2rem; margin:6px 0 26px; }
+  .card{ padding:28px; margin-bottom:22px; }
+  .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:end; }
+  .row > div{ flex:1; min-width:180px; }
+  .msg{ font-size:13.5px; padding:10px 14px; border-radius:10px; margin-top:14px; display:none; }
+  .msg.ok{ display:block; background:rgba(62,124,89,.1); color:var(--palm); border:1px solid rgba(62,124,89,.25); }
+  .msg.err{ display:block; background:rgba(232,93,42,.1); color:var(--mango-2); border:1px solid rgba(232,93,42,.25); }
+  .flag-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .flag-row:last-child{ border-bottom:none; }
+  .flag-meta .key{ font-family:'Space Mono',monospace; font-size:11px; opacity:.5; }
+  .flag-meta .label{ font-weight:600; }
+  .flag-meta .page{ font-size:11.5px; opacity:.5; }
+  .toggle{ position:relative; width:46px; height:26px; border-radius:9999px; background:var(--sand-2); cursor:pointer; flex-shrink:0; transition:.2s; border:none; }
+  .toggle.on{ background:var(--palm); }
+  .toggle::after{ content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:white; transition:.2s; }
+  .toggle.on::after{ left:23px; }
+  #logoutBtn{ float:right; }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <p class="eyebrow">GoaTrip · Restricted</p>
+  <h1>Admin console</h1>
+
+  <!-- ======= REQUEST ACCESS ======= -->
+  <div class="card panel" id="requestCard">
+    <h3 class="font-semibold mb-1">Request admin access</h3>
+    <p class="text-sm opacity-60 mb-4">Sends your request for approval. You'll only get admin rights once it's approved — nothing happens automatically.</p>
+    <form id="requestForm" class="row">
+      <div><label>Your name (as on Registration)</label><input id="r-name" required/></div>
+      <div><label>Your email</label><input id="r-email" type="email" required/></div>
+      <div style="flex:0 0 auto;"><button type="submit" class="btn-primary">Request access</button></div>
+    </form>
+    <div class="msg" id="requestMsg"></div>
+  </div>
+
+  <!-- ======= LOGIN ======= -->
+  <div class="card panel" id="loginCard">
+    <h3 class="font-semibold mb-1">Admin login</h3>
+    <p class="text-sm opacity-60 mb-4">Enter the 6-digit code from your authenticator app.</p>
+    <form id="loginForm" class="row">
+      <div><label>Name</label><input id="l-name" required/></div>
+      <div><label>6-digit code</label><input id="l-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required/></div>
+      <div style="flex:0 0 auto;"><button type="submit" class="btn-primary">Log in</button></div>
+    </form>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- ======= DASHBOARD (shown after login) ======= -->
+  <div class="card panel hidden" id="dashboard">
+    <button class="btn-ghost" id="logoutBtn" type="button">Log out</button>
+    <h3 class="font-semibold mb-1">Logged in as <span id="whoName"></span></h3>
+    <p class="text-sm opacity-60 mb-4">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
+    <div id="flagList"></div>
+
+    <div class="mt-6 pt-5" style="border-top:1px solid var(--line)">
+      <h4 class="font-semibold mb-2 text-sm">Add a new feature toggle</h4>
+      <form id="addFlagForm" class="row">
+        <div><label>Feature key</label><input id="nf-key" placeholder="e.g. wallet.exportCsv" required/></div>
+        <div><label>Label</label><input id="nf-label" placeholder="Human-readable name" required/></div>
+        <div><label>Page</label><input id="nf-page" placeholder="e.g. goa-wallet.html"/></div>
+        <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
+      </form>
+    </div>
+    <div class="msg" id="dashMsg"></div>
+  </div>
+</div>
+
+<script>
+/* Paste your deployed admin-backend.gs Web App /exec URL here */
+const ADMIN_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
+
+const el = id => document.getElementById(id);
+function showMsg(id, kind, text){ const m = el(id); m.className = 'msg ' + kind; m.textContent = text; }
+
+async function callGet(params){
+  const url = ADMIN_ENDPOINT + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function callPost(body){
+  const res = await fetch(ADMIN_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body) });
+  return res.json();
+}
+
+/* ---------- session ---------- */
+function getToken(){ return sessionStorage.getItem('goaAdminToken'); }
+function getName(){ return sessionStorage.getItem('goaAdminName'); }
+function setSession(token, name){ sessionStorage.setItem('goaAdminToken', token); sessionStorage.setItem('goaAdminName', name); }
+function clearSession(){ sessionStorage.removeItem('goaAdminToken'); sessionStorage.removeItem('goaAdminName'); }
+
+function showLoggedOut(){
+  el('dashboard').classList.add('hidden');
+  el('requestCard').classList.remove('hidden');
+  el('loginCard').classList.remove('hidden');
+}
+function showLoggedIn(name){
+  el('requestCard').classList.add('hidden');
+  el('loginCard').classList.add('hidden');
+  el('dashboard').classList.remove('hidden');
+  el('whoName').textContent = name;
+  loadFlags();
+}
+
+/* ---------- request access ---------- */
+el('requestForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  try{
+    const res = await callPost({ action:'requestAdmin', name: el('r-name').value.trim(), email: el('r-email').value.trim() });
+    if(res.error) throw new Error(res.error);
+    showMsg('requestMsg','ok','Request sent. You will be emailed once approved.');
+    el('requestForm').reset();
+  }catch(err){ showMsg('requestMsg','err', err.message); }
+});
+
+/* ---------- login ---------- */
+el('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  try{
+    const name = el('l-name').value.trim();
+    const res = await callPost({ action:'login', name, code: el('l-code').value.trim() });
+    if(!res.ok) throw new Error(res.message || 'Login failed.');
+    setSession(res.token, name);
+    showMsg('loginMsg','ok','Logged in.');
+    showLoggedIn(name);
+  }catch(err){ showMsg('loginMsg','err', err.message); }
+});
+
+el('logoutBtn').addEventListener('click', ()=>{ clearSession(); showLoggedOut(); });
+
+/* ---------- flags dashboard ---------- */
+function renderFlags(flags){
+  el('flagList').innerHTML = flags.map(f => `
+    <div class="flag-row">
+      <div class="flag-meta">
+        <div class="label">${f.label}</div>
+        <div class="page">${f.page || ''}</div>
+        <div class="key">${f.featureKey}</div>
+      </div>
+      <button class="toggle ${f.enabled ? 'on':''}" data-key="${f.featureKey}" data-label="${f.label}" data-page="${f.page||''}" data-enabled="${f.enabled}"></button>
+    </div>`).join('');
+  document.querySelectorAll('.toggle').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const newVal = btn.dataset.enabled !== 'true';
+      btn.disabled = true;
+      try{
+        const res = await callPost({ action:'updateFlag', token:getToken(), featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
+        if(res.error) throw new Error(res.error);
+        renderFlags(res.flags);
+      }catch(err){ showMsg('dashMsg','err', err.message); btn.disabled = false; }
+    });
+  });
+}
+async function loadFlags(){
+  try{
+    const res = await callGet({ action:'flags' });
+    if(res.error) throw new Error(res.error);
+    renderFlags(res.flags);
+  }catch(err){ showMsg('dashMsg','err', err.message); }
+}
+
+el('addFlagForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  try{
+    const res = await callPost({
+      action:'updateFlag', token:getToken(),
+      featureKey: el('nf-key').value.trim(), enabled:true,
+      label: el('nf-label').value.trim(), page: el('nf-page').value.trim()
+    });
+    if(res.error) throw new Error(res.error);
+    renderFlags(res.flags);
+    el('addFlagForm').reset();
+    showMsg('dashMsg','ok','Feature added.');
+  }catch(err){ showMsg('dashMsg','err', err.message); }
+});
+
+/* ---------- boot ---------- */
+(async function boot(){
+  const token = getToken();
+  if(!token){ showLoggedOut(); return; }
+  const res = await callPost({ action:'whoAmI', token });
+  if(res.ok){ showLoggedIn(res.name); } else { clearSession(); showLoggedOut(); }
+})();
+</script>
+</body>
+</html>
