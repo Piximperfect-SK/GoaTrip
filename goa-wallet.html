@@ -479,6 +479,7 @@
       <div class="navitem" data-page="wallet"><span class="ic">▣</span> Wallet</div>
       <div class="navitem" data-page="expenses"><span class="ic">▤</span> Expenses</div>
       <div class="navitem" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
+      <div class="navitem" data-page="p2p"><span class="ic">⇌</span> 1:1 History</div>
       <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
       <div class="navitem" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
@@ -638,6 +639,32 @@
       <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" id="participantGrid"></div>
     </div>
 
+    <!-- ============ 1:1 HISTORY ============ -->
+    <div class="page" id="page-p2p">
+      <div class="panel p-6 mb-5">
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex-1 min-w-[160px]">
+            <label>Person A</label>
+            <select id="p2p-a" onchange="renderP2P()"></select>
+          </div>
+          <button type="button" class="btn-icon" title="Swap" style="margin-bottom:1px" onclick="swapP2P()">⇄</button>
+          <div class="flex-1 min-w-[160px]">
+            <label>Person B</label>
+            <select id="p2p-b" onchange="renderP2P()"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel p-6 mb-6" id="p2pSummaryCard"></div>
+
+      <div class="panel p-6">
+        <h3 class="font-semibold mb-1">Transaction history</h3>
+        <p class="text-xs opacity-50 mb-4">Every shared expense and settlement directly between these two — oldest first.</p>
+        <div id="p2pHistoryList" class="divide-y" style="border-color:var(--line)"></div>
+        <p class="text-sm opacity-50 text-center py-8" id="p2pEmptyState" style="display:none;">No transactions between these two yet.</p>
+      </div>
+    </div>
+
     <!-- ============ SETTLEMENTS ============ -->
     <div class="page" id="page-settlements">
       <div class="flex items-center justify-between mb-5 on-video">
@@ -692,6 +719,7 @@
     <div class="tabbar-item" data-page="wallet"><span class="tic">▣</span><span class="tlbl">Wallet</span></div>
     <div class="tabbar-item" data-page="expenses"><span class="tic">▤</span><span class="tlbl">Expenses</span></div>
     <div class="tabbar-item" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
+    <div class="tabbar-item" data-page="p2p"><span class="tic">⇌</span><span class="tlbl">1:1</span></div>
     <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
     <div class="tabbar-item" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
   </div>
@@ -1203,7 +1231,7 @@ function goToPage(pageKey){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pageKey).classList.add('active');
   const titles = {overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
-    participants:['Who owes what','Participants & Balances'], settlements:['Square up','Settlements'],
+    participants:['Who owes what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
     activity:['Everything logged','Activity Log']};
   document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
   document.getElementById('pageTitle').textContent = titles[pageKey][1];
@@ -1368,6 +1396,20 @@ function populateSelects(){
   payerFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
   const involvesFilter = document.getElementById('f-involves');
   involvesFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+
+  // 1:1 History pickers — preserve whatever's currently selected (if that
+  // person is still a participant) instead of resetting to defaults every
+  // time PARTICIPANTS changes, e.g. from a registration auto-add.
+  const p2pA = document.getElementById('p2p-a');
+  const p2pB = document.getElementById('p2p-b');
+  if(p2pA && p2pB){
+    const prevA = p2pA.value, prevB = p2pB.value;
+    const p2pOpts = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    p2pA.innerHTML = p2pOpts;
+    p2pB.innerHTML = p2pOpts;
+    p2pA.value = PARTICIPANTS.includes(prevA) ? prevA : (PARTICIPANTS[0] || '');
+    p2pB.value = PARTICIPANTS.includes(prevB) && prevB !== p2pA.value ? prevB : (PARTICIPANTS.find(p=>p!==p2pA.value) || '');
+  }
 }
 populateSelects();
 
@@ -2120,6 +2162,104 @@ function pairwiseSettlements(){
 }
 
 /* ============================================================
+   RENDER: 1:1 HISTORY
+   Reuses buildPairwiseLedger() (already computes, per pair, exactly
+   what's owed after settlements) for the headline net figure, then
+   separately walks expenses + settlements again to build the actual
+   line-by-line history list — every expense where one of the two
+   paid and the other was in the split, plus every settlement
+   recorded directly between them. Expenses where both are just
+   fellow split-members under a third payer are deliberately left
+   out: that's not money moving between these two people.
+=============================================================*/
+function computeP2PHistory(a, b){
+  const rows = [];
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer===a && ex.split.includes(b)){
+      const amt = expenseShare(ex,b);
+      if(amt) rows.push({type:'expense', date: ex.date||'', title: ex.title, category: ex.category||'Misc', from:b, to:a, amount:amt});
+    }
+    if(ex.payer===b && ex.split.includes(a)){
+      const amt = expenseShare(ex,a);
+      if(amt) rows.push({type:'expense', date: ex.date||'', title: ex.title, category: ex.category||'Misc', from:a, to:b, amount:amt});
+    }
+  });
+  wallet.settlements.forEach(s=>{
+    if((s.from===a && s.to===b) || (s.from===b && s.to===a)){
+      rows.push({type:'settlement', date:(s.ts||'').slice(0,10), title: s.note || 'Settlement', category:'Settlement', from:s.from, to:s.to, amount:Number(s.amount)});
+    }
+  });
+  rows.sort((x,y)=> String(x.date).localeCompare(String(y.date)));
+
+  const ledger = buildPairwiseLedger();
+  const aOwesB = (ledger[a] && ledger[a][b]) || 0;
+  const bOwesA = (ledger[b] && ledger[b][a]) || 0;
+  const net = aOwesB - bOwesA; // > 0 => a owes b; < 0 => b owes a
+  return {rows, net};
+}
+
+function swapP2P(){
+  const a = document.getElementById('p2p-a'), b = document.getElementById('p2p-b');
+  if(!a || !b) return;
+  const tmp = a.value; a.value = b.value; b.value = tmp;
+  renderP2P();
+}
+
+function renderP2P(){
+  const aSel = document.getElementById('p2p-a'), bSel = document.getElementById('p2p-b');
+  const summary = document.getElementById('p2pSummaryCard');
+  const list = document.getElementById('p2pHistoryList');
+  const empty = document.getElementById('p2pEmptyState');
+  if(!aSel || !bSel || !summary || !list || !empty) return;
+  const a = aSel.value, b = bSel.value;
+
+  if(!a || !b || a===b){
+    summary.innerHTML = `<p class="text-sm opacity-50 text-center py-4">Pick two different people to see their history together.</p>`;
+    list.innerHTML = '';
+    empty.style.display = 'none';
+    return;
+  }
+
+  const {rows, net} = computeP2PHistory(a, b);
+  const settled = Math.abs(net) <= 0.5;
+  const ower = net > 0 ? a : b;
+  const owed = net > 0 ? b : a;
+
+  summary.innerHTML = `
+    <div class="flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <span class="avatar">${initials(a)}</span>
+        <span class="opacity-40 text-lg">⇌</span>
+        <span class="avatar">${initials(b)}</span>
+        <div>
+          <p class="font-semibold text-sm">${escapeHtml(a)} &amp; ${escapeHtml(b)}</p>
+          <p class="text-xs opacity-50">${rows.length} transaction${rows.length===1?'':'s'} together</p>
+        </div>
+      </div>
+      <div class="text-right">
+        ${settled
+          ? `<p class="mono text-lg balance-pos">All settled up 🎉</p>`
+          : `<p class="mono text-lg balance-neg">${escapeHtml(ower)} owes ${escapeHtml(owed)} · ₹${Math.abs(net).toFixed(0)}</p>`}
+        ${!settled ? `<button type="button" class="btn-ghost text-xs mt-2" style="padding:6px 12px" onclick="quickRecordSettlement('${ower.replace(/'/g,"\\'")}','${owed.replace(/'/g,"\\'")}',${Math.abs(net)})">Record settlement</button>` : ''}
+      </div>
+    </div>`;
+
+  list.innerHTML = rows.map(r=>{
+    const tag = r.type==='settlement'
+      ? `<span class="pill" style="background:rgba(30,96,145,.08); color:var(--azulejo); border:1px solid rgba(30,96,145,.2);">Settlement</span>`
+      : `<span class="pill">${escapeHtml(r.category)}</span>`;
+    return `<div class="py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <p class="text-sm">${escapeHtml(r.title||'—')} ${tag}</p>
+        <p class="text-xs opacity-50"><b>${escapeHtml(r.from)}</b> <span class="opacity-40">owes</span> <b>${escapeHtml(r.to)}</b> · ${r.date||'—'}</p>
+      </div>
+      <span class="mono text-sm">₹${Number(r.amount).toFixed(0)}</span>
+    </div>`;
+  }).join('');
+  empty.style.display = rows.length ? 'none' : 'block';
+}
+
+/* ============================================================
    RENDER: OVERVIEW
 =============================================================*/
 function animateValue(el, endValue, prefix){
@@ -2838,7 +2978,7 @@ function renderActivity(){
 // piece just logs to console and leaves its own section stale,
 // instead of taking the whole page down with it.
 function renderAll(){
-  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderSettlements, renderActivity];
+  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderP2P, renderSettlements, renderActivity];
   sections.forEach(fn=>{
     try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
   });
