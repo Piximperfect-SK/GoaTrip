@@ -142,6 +142,20 @@
     #dashboard .dash-head{ flex-wrap:wrap; }
     #logoutBtn{ margin-left:0; }
   }
+
+  /* ============ PIN change modal (forced on first login) ============ */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(11,38,34,.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  }
+  .modal-card{
+    width:100%; max-width:380px; background:linear-gradient(160deg, rgba(251,246,236,.99), rgba(239,230,214,.97));
+    border-radius:22px; padding:30px 26px 26px; box-shadow:0 30px 70px -20px rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.5);
+    text-align:center;
+  }
+  .modal-card h3{ font-family:'Fraunces',serif; font-size:1.3rem; margin:0 0 6px; color:var(--ink); }
+  .modal-card p.modal-sub{ font-size:12.5px; color:var(--teal-700); opacity:.8; margin:0 0 22px; line-height:1.5; }
+  .modal-card .gate-field{ margin-bottom:14px; }
 </style>
 </head>
 <body>
@@ -186,8 +200,8 @@
           <input id="l-name" placeholder="Your name" required autocomplete="off"/>
         </div>
         <div class="gate-field">
-          <span class="flabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Code</span>
-          <input id="l-code" placeholder="000000" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+          <span class="flabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> PIN</span>
+          <input id="l-code" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
         </div>
       </div>
       <button type="submit" class="gate-submit" id="loginSubmitBtn">
@@ -232,6 +246,32 @@
         <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
       </form>
     </div>
+  </div>
+</div>
+
+<!-- ============ PIN CHANGE MODAL (forced on first login after approval) ============ -->
+<div class="modal-overlay hidden" id="pinModalOverlay">
+  <div class="modal-card">
+    <div class="gate-badge" style="width:52px;height:52px;border-radius:16px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h3>Set your PIN</h3>
+    <p class="modal-sub">You logged in with a temporary PIN. Choose a permanent 6-digit PIN — you'll use it to log in from now on.</p>
+    <div class="gate-banner" id="pinModalBanner"></div>
+    <form id="pinChangeForm">
+      <div class="gate-field">
+        <span class="flabel">New PIN</span>
+        <input id="pin-new" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+      </div>
+      <div class="gate-field">
+        <span class="flabel">Confirm PIN</span>
+        <input id="pin-confirm" placeholder="Re-enter PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+      </div>
+      <button type="submit" class="gate-submit" id="pinChangeSubmitBtn">
+        <span>Save PIN &amp; continue</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
   </div>
 </div>
 
@@ -316,12 +356,43 @@ el('loginForm').addEventListener('submit', async e=>{
     const res = await callPost({ action:'login', name, code: el('l-code').value.trim() });
     if(!res.ok) throw new Error(res.message || 'Login failed.');
     setSession(res.token, name);
-    showLoggedIn(name);
+    if(res.mustChangePin){ showPinModal(); }
+    else{ showLoggedIn(name); }
   }catch(err){ showGateBanner('bad', err.message); }
   finally{ btn.disabled = false; }
 });
 
 el('logoutBtn').addEventListener('click', ()=>{ clearSession(); showLoggedOut(); setMode('login'); });
+
+/* ---------- forced PIN change (first login after approval) ---------- */
+function showPinModal(){
+  el('dashboardWrap').classList.add('hidden');
+  el('gateWrap').classList.add('hidden');
+  el('pinModalOverlay').classList.remove('hidden');
+  el('pinModalBanner').className = 'gate-banner';
+  el('pinChangeForm').reset();
+}
+function hidePinModal(){ el('pinModalOverlay').classList.add('hidden'); }
+
+el('pinChangeForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const banner = el('pinModalBanner');
+  banner.className = 'gate-banner';
+  const btn = el('pinChangeSubmitBtn'); btn.disabled = true;
+  try{
+    const newPin = el('pin-new').value.trim();
+    const confirmPin = el('pin-confirm').value.trim();
+    if(!/^\d{6}$/.test(newPin)) throw new Error('PIN must be exactly 6 digits.');
+    if(newPin !== confirmPin) throw new Error('PINs don\u2019t match.');
+    const res = await callPost({ action:'changePin', token:getToken(), newPin });
+    if(!res.ok) throw new Error(res.message || 'Could not set PIN.');
+    hidePinModal();
+    showLoggedIn(sessionStorage.getItem('goaAdminName'));
+  }catch(err){
+    banner.className = 'gate-banner show bad';
+    banner.textContent = err.message;
+  }finally{ btn.disabled = false; }
+});
 
 /* ---------- flags dashboard ---------- */
 function renderFlags(flags){
@@ -374,7 +445,9 @@ el('addFlagForm').addEventListener('submit', async e=>{
   const token = getToken();
   if(!token){ showLoggedOut(); setMode('request'); return; }
   const res = await callPost({ action:'whoAmI', token });
-  if(res.ok){ showLoggedIn(res.name); } else { clearSession(); showLoggedOut(); setMode('login'); }
+  if(res.ok && res.mustChangePin){ showPinModal(); }
+  else if(res.ok){ showLoggedIn(res.name); }
+  else{ clearSession(); showLoggedOut(); setMode('login'); }
 })();
 </script>
 </body>
