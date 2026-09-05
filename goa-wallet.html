@@ -478,10 +478,10 @@
       <div class="navitem active" data-page="overview"><span class="ic">◆</span> Overview</div>
       <div class="navitem" data-page="wallet"><span class="ic">▣</span> Wallet</div>
       <div class="navitem" data-page="expenses"><span class="ic">▤</span> Expenses</div>
-      <div class="navitem" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
+      <div class="navitem" data-feature="wallet.viewParticipants" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
       <div class="navitem" data-page="p2p"><span class="ic">⇌</span> 1:1 History</div>
       <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
-      <div class="navitem" data-page="activity"><span class="ic">≡</span> Activity Log</div>
+      <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
     <div class="foot">
       <a href="index.html" class="hover:text-white">← Back to trip site</a>
@@ -501,8 +501,8 @@
       </div>
       <div class="flex items-center gap-3">
         <span class="mono text-xs flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
-        <button class="btn-ghost" onclick="pullFromSheet(true)">Refresh</button>
-        <button class="btn-primary" onclick="openExpenseModal()">+ Add expense</button>
+        <button class="btn-ghost" data-feature="wallet.refresh" onclick="pullFromSheet(true)">Refresh</button>
+        <button class="btn-primary" data-feature="wallet.addExpense" onclick="openExpenseModal()">+ Add expense</button>
       </div>
     </div>
 
@@ -672,7 +672,7 @@
           <h3 class="font-semibold">Settlements</h3>
           <p class="text-xs mt-0.5">"Who owes whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
         </div>
-        <button class="btn-primary" onclick="openSettlementModal()">+ Record a settlement</button>
+        <button class="btn-primary" data-feature="wallet.settlements" onclick="openSettlementModal()">+ Record a settlement</button>
       </div>
 
       <div class="panel p-6 mb-6">
@@ -718,15 +718,15 @@
     <div class="tabbar-item active" data-page="overview"><span class="tic">◆</span><span class="tlbl">Overview</span></div>
     <div class="tabbar-item" data-page="wallet"><span class="tic">▣</span><span class="tlbl">Wallet</span></div>
     <div class="tabbar-item" data-page="expenses"><span class="tic">▤</span><span class="tlbl">Expenses</span></div>
-    <div class="tabbar-item" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
+    <div class="tabbar-item" data-feature="wallet.viewParticipants" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
     <div class="tabbar-item" data-page="p2p"><span class="tic">⇌</span><span class="tlbl">1:1</span></div>
     <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
-    <div class="tabbar-item" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
+    <div class="tabbar-item" data-feature="wallet.activityLog" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
   </div>
 </nav>
 
 <!-- ============ MOBILE: floating add-expense button ============ -->
-<button type="button" class="fab" aria-label="Add expense" onclick="openExpenseModal()">+</button>
+<button type="button" class="fab" data-feature="wallet.addExpense" aria-label="Add expense" onclick="openExpenseModal()">+</button>
 
 <!-- ============ MODAL: Add / Edit Expense ============ -->
 <div id="expenseModal" class="app-modal">
@@ -2984,6 +2984,7 @@ function renderAll(){
   });
 }
 try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
+applyFeatureFlags(REGISTRATIONS_ENDPOINT);
 pullFromSheet();
 syncParticipantsFromRegistrations();
 
