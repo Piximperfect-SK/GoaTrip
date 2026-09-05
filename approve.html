@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Admin request — Goa Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+  *{ box-sizing:border-box; }
+  h1,h2,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+  body{
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 16px;
+    background:
+      radial-gradient(38% 42% at 8% 12%, rgba(255,122,69,.55), transparent 60%),
+      radial-gradient(34% 38% at 92% 18%, rgba(30,96,145,.45), transparent 60%),
+      radial-gradient(40% 46% at 88% 88%, rgba(62,124,89,.4), transparent 60%),
+      radial-gradient(46% 50% at 4% 92%, rgba(201,162,39,.35), transparent 60%),
+      linear-gradient(175deg, var(--teal-900), var(--teal-800) 55%, var(--teal-900));
+    background-attachment:fixed;
+  }
+  .card{
+    width:100%; max-width:400px; background:linear-gradient(160deg, rgba(251,246,236,.98), rgba(239,230,214,.96));
+    border-radius:26px; padding:40px 30px; text-align:center;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.4) inset;
+    border:1px solid rgba(255,255,255,.5);
+  }
+  .badge{
+    width:60px; height:60px; border-radius:18px; margin:0 auto 18px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--teal-800), var(--teal-900));
+    box-shadow:0 10px 22px -8px rgba(11,61,58,.55);
+  }
+  .badge svg{ width:26px; height:26px; color:var(--sand); }
+  .badge.ok{ background:linear-gradient(155deg, var(--palm), #2c5940); }
+  .badge.bad{ background:linear-gradient(155deg, var(--mango-2), #8A2E12); }
+  h1{ font-size:1.5rem; margin:0 0 6px; color:var(--ink); }
+  p.sub{ font-size:14px; color:var(--teal-700); opacity:.85; margin:0; line-height:1.5; }
+  .spinner{
+    width:22px; height:22px; border-radius:50%; margin:0 auto 18px;
+    border:3px solid rgba(15,38,34,.15); border-top-color:var(--mango);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  a.back{ display:inline-block; margin-top:22px; font-size:12.5px; color:var(--teal-700); opacity:.7; text-decoration:none; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <h1 id="title">Working…</h1>
+    <p class="sub" id="sub">Contacting the admin backend.</p>
+  </div>
+
+<script>
+/* Same Apps Script Web App URL as admin.html's ADMIN_ENDPOINT. */
+const ADMIN_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
+
+const params = new URLSearchParams(location.search);
+const action = params.get('action'); // 'approve' | 'reject'
+const token = params.get('token');
+
+function render(kind, title, sub){
+  document.getElementById('card').innerHTML = `
+    <div class="badge ${kind}">
+      ${kind === 'ok'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>'}
+    </div>
+    <h1>${title}</h1>
+    <p class="sub">${sub}</p>
+    <a class="back" href="admin.html">Go to admin console →</a>
+  `;
+}
+
+(async function run(){
+  if(!action || !token || (action !== 'approve' && action !== 'reject')){
+    render('bad', 'Invalid link', 'This link is missing required information.');
+    return;
+  }
+  try{
+    const url = ADMIN_ENDPOINT + '?' + new URLSearchParams({ action, token }).toString();
+    const res = await fetch(url);
+    const html = await res.text();
+    // The backend returns a small HTML page (htmlOut_); pull the
+    // <h2> ok/notice + <p> message out of it rather than re-parsing
+    // JSON, since approve/reject respond as HTML, not JSON.
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const heading = doc.querySelector('h2');
+    const message = doc.querySelector('p');
+    const isOk = heading && heading.textContent.trim().toLowerCase() === 'done';
+    render(
+      isOk ? 'ok' : 'bad',
+      isOk ? (action === 'approve' ? 'Approved' : 'Rejected') : 'Notice',
+      (message && message.textContent.trim()) || 'Something went wrong — please try again from a laptop browser.'
+    );
+  }catch(err){
+    render('bad', 'Could not reach the backend', 'Check your connection and try again, or open this link in Chrome/Safari instead.');
+  }
+})();
+</script>
+</body>
+</html>
