@@ -2,20 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://maps.google.com https://www.google.com; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="theme-color" content="#0B3D3A" />
+<meta name="theme-color" content="#0C3E3A" />
 <title>The Goa Run — 2–5 Oct 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="shared.css">
 <style>
-/* shared :root design tokens now live in shared.css */
+/* shared :root design tokens now live in shared.css — overridden below
+   with a brighter "Golden Hour Goa" palette for this page: warm sand
+   instead of deep night, sunset coral + marigold accents, a fresh palm
+   green, and an azulejo (Goan-Portuguese tile) blue. Deep ocean-teal is
+   kept for a couple of intentionally "under the shade" dark sections so
+   the page still has contrast/rhythm, not one flat tint throughout. */
+:root{
+  --paper:#FBF2E3; --ink:#182620; --line:#E9DAC0;
+  --mango:#FF6B4A; --mango-2:#FFA83E;
+  --sand:#FFF7EC; --sand-2:#FFE0B0;
+  --teal-900:#0C3E3A; --teal-800:#12564F; --teal-700:#1C7A6E;
+  --azulejo:#2C86A8; --ir-navy:#16324D; --palm:#4F9A6B;
+}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{scroll-behavior:smooth; overscroll-behavior-y:none;}
 body{margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;}
@@ -24,40 +36,207 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 ::selection{background:var(--mango); color:white;}
 
 /* ---------- Nav ---------- */
-#topnav{position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(11,61,58,0.90); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,0.08); transition:transform .4s ease; padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar);}
+#topnav{position:fixed; top:0; left:0; right:0; z-index:100; background:linear-gradient(180deg, rgba(3,15,20,.45), rgba(3,15,20,0)); transition:transform .4s ease, background .3s ease, backdrop-filter .3s ease; padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar);}
+#topnav.scrolled{background:rgba(11,61,58,0.90); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,0.08);}
 #topnav.hide{transform:translateY(-100%);}
-.navlink{color:#DCE9E4; opacity:.75; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent; transition:.2s;}
+
+/* ---------- Nav-anchored live cluster (countdown + wallet) ---------- */
+.nav-live-cluster{
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
+}
+
+.nav-countdown{
+  display:flex; align-items:center; gap:5px;
+  background:rgba(255,122,69,.14); border:1px solid rgba(255,122,69,.35);
+  border-radius:9999px; padding:6px 11px;
+  font-size:10.5px; color:#FFD9C4; white-space:nowrap; letter-spacing:.02em;
+}
+.nav-countdown-icon{ font-size:11px; line-height:1; }
+
+@media (max-width:560px){
+  .nav-countdown{ padding:5px 8px; font-size:9.5px; gap:3px; }
+}
+@media (max-width:400px){
+  .nav-countdown{ display:none; } /* logo + menu already tight at this width */
+}
+
+/* ---------- Trip Wallet FAB (fixed bottom-right) ---------- */
+#walletFab{
+  position:fixed; z-index:90;
+  bottom:calc(22px + var(--sab)); right:calc(20px + var(--sar));
+  display:flex; align-items:center; gap:9px;
+  background:linear-gradient(135deg, #FF7A45 0%, #E85D2A 100%);
+  color:white; text-decoration:none; font-weight:700; font-size:15px;
+  padding:14px 24px; border-radius:9999px;
+  box-shadow:0 14px 30px -10px rgba(255,122,69,.65);
+  transition:transform .18s ease, box-shadow .18s ease;
+  touch-action:manipulation;
+}
+#walletFab:hover{ transform:translateY(-2px); box-shadow:0 18px 36px -10px rgba(255,122,69,.75); }
+#walletFab:active{ transform:translateY(0) scale(.95); }
+#walletFab .fab-icon{ font-size:19px; line-height:1; }
+
+@media (max-width:480px){
+  #walletFab{ padding:12px 18px; font-size:13.5px; }
+  #walletFab .fab-icon{ font-size:17px; }
+}
+
+.navlink{color:#DCE9E4; opacity:.75; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent; transition:.2s; white-space:nowrap;}
+@media (min-width:1024px) and (max-width:1279px){
+  .navlink{ font-size:11px; letter-spacing:.03em; }
+}
+
+/* ---------- Nav rail: a small railway motif under the desktop links.
+   A sleeper-tick track runs the width of the group; a glowing signal
+   glides to whichever "station" (link) is hovered or active, echoing
+   the site's own journey/boarding-pass language. ---------- */
+.navlinks-rail{ position:relative; padding-bottom:12px; }
+@media (min-width:1024px){
+  .navlinks-rail{ position:absolute; left:50%; top:50%; transform:translate(-50%,-44%); }
+}
+.navlinks-rail .navlink{ border-bottom:none; } /* the rail itself carries the indicator now */
+.rail-divider{
+  width:4px; height:4px; border-radius:50%; background:rgba(255,171,133,.55);
+  flex-shrink:0; align-self:center; margin:0 1px;
+}
+.rail-track{
+  position:absolute; left:0; right:0; bottom:0; height:6px; pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.4) 0 1.5px, transparent 1.5px 13px) bottom / 100% 6px no-repeat,
+    linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16)) bottom / 100% 1px no-repeat;
+}
+.rail-signal{
+  position:absolute; bottom:2px; height:3px; border-radius:2px; left:0; width:40px; opacity:0;
+  background:linear-gradient(90deg, var(--mango), var(--mango-2));
+  box-shadow:0 0 9px 1px rgba(255,122,69,.7), 0 0 0 4px rgba(255,122,69,.1);
+  pointer-events:none; will-change:transform,width,opacity;
+}
+@media (prefers-reduced-motion:reduce){ .rail-signal{ transition:none !important; } }
 .navlink:hover,.navlink.active{opacity:1; border-color:var(--mango); color:white;}
 .navlink-wallet{opacity:1; color:var(--mango); font-weight:600;}
 
+.nav-dropdown{position:relative;}
+.nav-dropdown-menu{position:absolute; top:calc(100% + 16px); right:0; background:var(--teal-900); border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:8px; min-width:190px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:.18s ease; box-shadow:0 20px 40px -18px rgba(0,0,0,.6); z-index:60;}
+.nav-dropdown:hover .nav-dropdown-menu, .nav-dropdown:focus-within .nav-dropdown-menu{opacity:1; pointer-events:auto; transform:translateY(0);}
+.nav-dropdown-menu a{display:block; padding:9px 10px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:#DCE9E4; border-radius:8px; font-family:'Space Grotesk',sans-serif; transition:.15s;}
+.nav-dropdown-menu a:hover{background:rgba(255,255,255,.08); color:white;}
+
 #menuBackdrop{position:fixed; inset:0; z-index:49; background:rgba(15,38,34,.5); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .25s ease;}
 #menuBackdrop.show{opacity:1; pointer-events:auto;}
-#mobilemenu{position:fixed; left:0; right:0; top:0; z-index:50; background:#0B3D3A; padding:calc(64px + var(--sat)) calc(20px + var(--sar)) 24px calc(20px + var(--sal)); transform:translateY(-100%); transition:transform .35s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column; gap:2px;}
+#mobilemenu{position:fixed; left:0; right:0; top:0; z-index:50; background:var(--teal-900); padding:calc(64px + var(--sat)) calc(20px + var(--sar)) 24px calc(20px + var(--sal)); transform:translateY(-100%); transition:transform .35s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column; gap:2px;}
 #mobilemenu.open{transform:translateY(0);}
 #mobilemenu .navlink{padding:14px 4px; font-size:14px; border-bottom:1px solid rgba(255,255,255,.08);}
 
-/* ---------- Hero (cinematic photo, kudanil-style) ---------- */
+/* ---------- Hero (illustrated animated beach scene) ---------- */
 .hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; color:var(--sand);}
-.hero-bg{position:absolute; inset:0; background-size:cover; background-position:center 68%; animation:kenburns 26s ease-in-out infinite alternate; z-index:0;}
-.hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 60%; z-index:0; background-color:#0B3D3A;}
-/* Spline 3D hero layer — sits where hero-video sits; JS decides which
-   one is actually shown (see HERO 3D script near the end of body).
-   Hidden by default so nothing renders until a real scene is set. */
-.hero-spline{position:absolute; inset:0; z-index:0; display:none;}
-.hero-spline.active{display:block;}
-.hero-spline spline-viewer{width:100%; height:100%; display:block;}
+
+/* Sky: warm gradient from cream/gold at the horizon up to a soft blue,
+   replacing the old video/kenburns photo background entirely. */
+.hero-sky{position:absolute; inset:0; z-index:0;
+  background:linear-gradient(180deg, #5FB6D6 0%, #8FD1D8 22%, #CDEAD6 42%, #FDE8C2 62%, #FFD9A0 78%, #FFC98A 100%);}
+
+.hero-sun{position:absolute; top:12%; right:14%; width:min(24vw,220px); height:min(24vw,220px); border-radius:50%; z-index:1;
+  background:radial-gradient(circle at 40% 35%, #FFF6D8, #FFD05C 55%, #FFA83E 100%);
+  box-shadow:0 0 90px 40px rgba(255,168,62,.45), 0 0 200px 100px rgba(255,168,62,.18);
+  animation:sunPulse 6s ease-in-out infinite;}
+@keyframes sunPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}}
+
+.hero-cloud{position:absolute; z-index:1; opacity:.9; filter:drop-shadow(0 6px 10px rgba(180,120,60,.08)); will-change:transform;}
+.hero-cloud path{fill:#FFFDF7;}
+.hero-cloud.c1{top:14%; left:-10%; width:220px; animation:cloudDrift 46s linear infinite;}
+.hero-cloud.c2{top:26%; left:-10%; width:150px; opacity:.75; animation:cloudDrift 62s linear infinite 6s;}
+.hero-cloud.c3{top:8%; left:-10%; width:120px; opacity:.6; animation:cloudDrift 38s linear infinite 3s;}
+@keyframes cloudDrift{from{transform:translateX(-10vw);} to{transform:translateX(115vw);}}
+
+.hero-bird{position:absolute; z-index:2; width:34px; animation:birdFly 24s linear infinite;}
+.hero-bird path{stroke:#16324D; stroke-width:2.4; fill:none; stroke-linecap:round;}
+.hero-bird.b1{top:20%; animation-duration:21s;}
+.hero-bird.b2{top:30%; width:24px; animation-duration:27s; animation-delay:4s;}
+.hero-bird.b3{top:16%; width:20px; animation-duration:19s; animation-delay:9s;}
+@keyframes birdFly{
+  0%{transform:translateX(-10vw) translateY(0);}
+  50%{transform:translateX(55vw) translateY(-18px);}
+  100%{transform:translateX(115vw) translateY(0);}
+}
+.hero-bird .wing{transform-origin:12px 8px; animation:wingFlap .7s ease-in-out infinite alternate;}
+@keyframes wingFlap{from{transform:scaleY(1);} to{transform:scaleY(.35);}}
+
+/* Swaying palms framing the hero, anchored to the left/right edges. */
+.hero-palm{position:absolute; bottom:18vh; z-index:4; height:clamp(180px,32vh,340px); transform-origin:bottom center; pointer-events:none;}
+.hero-palm.left{left:-18px; animation:palmSway 5.5s ease-in-out infinite;}
+.hero-palm.right{right:-18px; transform:scaleX(-1); animation:palmSway 6.5s ease-in-out infinite .4s;}
+@keyframes palmSway{0%,100%{transform:rotate(-2.5deg);} 50%{transform:rotate(2.5deg);}}
+.hero-palm.right{transform-origin:bottom center;}
+@media (max-width:640px){ .hero-palm{height:clamp(130px,26vh,220px); opacity:.85;} }
+
+/* A little boat bobbing along the horizon where sky meets sea. */
+.hero-boat{position:absolute; left:12%; bottom:20.5vh; z-index:3; width:64px; animation:boatBob 3.6s ease-in-out infinite;}
+@keyframes boatBob{0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-6px) rotate(1.5deg);}}
+@media (max-width:640px){ .hero-boat{left:8%; width:46px;} }
+
+.hero-dive{position:absolute; left:0; right:0; bottom:0; height:22vh; min-height:150px; z-index:3; pointer-events:none; overflow:hidden;}
+.hero-dive-wave{position:absolute; left:-10%; width:120%; bottom:0; height:100%;}
+.hero-dive-wave path{fill:var(--teal-700);}
+.hero-dive-wave.w1{opacity:.6; animation:diveDrift 16s linear infinite; z-index:1;}
+.hero-dive-wave.w2{opacity:.8; animation:diveDrift 11s linear infinite reverse; z-index:2;}
+.hero-dive-wave.w2 path{fill:var(--teal-800);}
+.hero-dive-wave.w3{opacity:1; animation:diveDrift 8s linear infinite; z-index:3;}
+.hero-dive-wave.w3 path{fill:var(--teal-900);}
+@keyframes diveDrift{0%{transform:translateX(0);} 100%{transform:translateX(-8%);}}
+@media (prefers-reduced-motion:reduce){
+  .hero-sun,.hero-cloud,.hero-bird,.hero-bird .wing,.hero-palm,.hero-boat,.hero-dive-wave{animation:none !important;}
+}
+
+/* ---------- Hero collage teaser ---------- */
+@keyframes heroBob{0%,100%{transform:translateY(0) rotate(var(--r,0deg));} 50%{transform:translateY(-14px) rotate(var(--r,0deg));}}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
 .team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7;}
 .team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%);}
 @keyframes kenburns{from{transform:scale(1.06) translate(0,0);} to{transform:scale(1.16) translate(-1.5%,-1%);}}
 .hero-scrim{position:absolute; inset:0; z-index:1; background:
-  linear-gradient(180deg, rgba(6,26,24,.55) 0%, rgba(6,26,24,.15) 30%, rgba(6,26,24,.35) 62%, rgba(6,26,24,.92) 100%);}
-.hero-scrim::after{content:""; position:absolute; inset:0; background:radial-gradient(1000px 500px at 85% 0%, rgba(255,122,69,.20), transparent 60%);}
+  linear-gradient(180deg, rgba(12,62,58,.32) 0%, rgba(12,62,58,.1) 26%, rgba(12,62,58,.28) 52%, rgba(12,62,58,.66) 74%, rgba(12,62,58,.94) 88%, rgba(12,62,58,1) 100%);}
+.hero-scrim::after{content:""; position:absolute; inset:0; background:radial-gradient(900px 460px at 82% 8%, rgba(255,168,62,.16), transparent 60%);}
 .grain{position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay; z-index:2;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 .hero-intro{animation:heroIntro 1s cubic-bezier(.22,1,.36,1) both;}
 @keyframes heroIntro{from{opacity:0; transform:translateY(22px);} to{opacity:1; transform:translateY(0);}}
 .stamp{border:2px solid currentColor; border-radius:9999px; display:inline-flex; align-items:center; justify-content:center; transform:rotate(-8deg);}
+
+/* ---------- Departure board (hero surprise element) ---------- */
+.dep-board{
+  background:#0A0F0C; border:1px solid rgba(255,171,133,.25); border-radius:14px;
+  padding:14px 18px 16px; max-width:420px;
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.dep-board-head{
+  display:flex; align-items:center; gap:6px; margin-bottom:10px;
+  padding-bottom:9px; border-bottom:1px dashed rgba(255,255,255,.12);
+}
+.dep-dot{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.15); }
+.dep-board-title{
+  margin-left:6px; font-family:'Space Mono', monospace; font-size:9.5px;
+  letter-spacing:.16em; color:rgba(255,171,133,.7); font-weight:700;
+}
+.dep-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  padding:4px 0;
+}
+.dep-label{
+  font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:.1em;
+  color:rgba(255,255,255,.35); flex-shrink:0;
+}
+.dep-value{
+  font-family:'Space Mono', monospace; font-size:12.5px; font-weight:700;
+  color:#FFD9C4; letter-spacing:.04em; text-align:right;
+  text-shadow:0 0 10px rgba(255,122,69,.35);
+}
+.dep-status{ color:#7CE0A8; text-shadow:0 0 10px rgba(124,224,168,.4); }
+
+@media (max-width:480px){
+  .dep-board{ padding:12px 14px 14px; }
+  .dep-value, .dep-label{ font-size:10.5px; }
+}
+
 
 /* floating chip row scroll cue */
 .scroll-cue{position:absolute; z-index:3; left:50%; bottom:18px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; opacity:.8;}
@@ -68,44 +247,53 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .section-num{font-family:'Space Mono',monospace; font-size:13px; letter-spacing:.16em; color:var(--mango-2); display:flex; align-items:center; gap:10px;}
 .section-num .rule{height:1px; width:40px; background:var(--mango-2); opacity:.5;}
 
-/* ---------- Carousel — flat slider (motion.dev style) ---------- */
-#motionCarouselContainer{width:100%; padding:6px 0 20px;}
-.motion-carousel-wrapper{width:100%; overflow:hidden;}
-.motion-carousel-inner{display:flex; gap:16px; padding:0 5vw; transition:transform .55s cubic-bezier(.22,1,.36,1); will-change:transform;}
-.gallery-item{position:relative; flex:0 0 auto; width:78vw; max-width:420px; height:460px; border-radius:16px; overflow:hidden; background:var(--teal-700); perspective:1400px; cursor:pointer;}
-.gallery-item img,.gallery-item video{width:100%; height:100%; object-fit:cover; display:block;}
-.gallery-item .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.9));}
-@media (min-width:768px){ .gallery-item{width:400px; height:440px;} }
-
-/* ---------- Flip cards (gallery) — front = photo, back = distance + direction ---------- */
-.flip-inner{position:relative; width:100%; height:100%; transition:transform .6s cubic-bezier(.22,1,.36,1); transform-style:preserve-3d;}
-.gallery-item.flipped .flip-inner{transform:rotateY(180deg);}
-.flip-face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:16px; overflow:hidden;}
-.flip-front{}
-.flip-back{transform:rotateY(180deg); background:linear-gradient(160deg, var(--teal-800), var(--teal-900)); color:var(--sand); display:flex; flex-direction:column; justify-content:space-between; padding:22px; }
-.flip-back .fb-top{display:flex; flex-direction:column; gap:6px;}
-.flip-back .fb-name{font-family:'Fraunces',serif; font-size:20px; font-weight:600; letter-spacing:-0.01em; line-height:1.15;}
-.flip-back .fb-dist{font-family:'Space Mono',monospace; font-size:13px; color:#FFAB85; letter-spacing:.03em;}
-.flip-back .fb-dist .num{font-size:26px; font-weight:700; color:var(--sand); font-family:'Space Grotesk',sans-serif; margin-right:6px;}
-.compass{width:64px; height:64px; border-radius:50%; border:1.5px solid rgba(255,255,255,.22); background:rgba(255,255,255,.05); position:relative; display:flex; align-items:center; justify-content:center; margin:14px 0;}
-.compass .needle{width:2px; height:24px; background:var(--mango); position:absolute; top:6px; left:50%; margin-left:-1px; transform-origin:50% 26px; border-radius:2px;}
-.compass .needle::before{content:"";position:absolute; top:-5px; left:-4px; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:7px solid var(--mango);}
-.compass .n-label{position:absolute; top:3px; left:50%; transform:translateX(-50%); font-family:'Space Mono',monospace; font-size:8px; opacity:.55; letter-spacing:.06em;}
-.flip-back .fb-directions{display:flex; align-items:center; justify-content:center; gap:8px; background:var(--mango); color:white; font-weight:600; font-size:13.5px; border-radius:9999px; padding:11px 18px; text-decoration:none; transition:.2s;}
-.flip-back .fb-directions:hover{background:var(--mango-2);}
-.flip-back .fb-note{font-size:12px; opacity:.6; line-height:1.4;}
-.flip-hint{position:absolute; top:12px; right:12px; z-index:2; width:26px; height:26px; border-radius:50%; background:rgba(6,26,24,.55); display:flex; align-items:center; justify-content:center; color:var(--sand); font-size:13px; pointer-events:none;}
-.gallery-skel{background:linear-gradient(100deg, rgba(255,255,255,.05) 30%, rgba(255,255,255,.12) 50%, rgba(255,255,255,.05) 70%); background-size:200% 100%; animation:skelShimmer 1.6s ease-in-out infinite;}
-@keyframes skelShimmer{ 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
-
-/* Carousel controls — flat chevrons, bottom-left, no dots (motion.dev style) */
-#galleryCarouselDots{display:none;}
-.carousel-controls{display:flex; align-items:center; gap:2px; padding:18px 5vw 0;}
-.carousel-arrow{background:none; border:none; color:var(--sand); width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:.8; transition:opacity .2s ease;}
-.carousel-arrow svg{width:22px; height:22px; display:block;}
-.carousel-arrow:hover{opacity:1;}
-.carousel-arrow:disabled{opacity:.3; cursor:not-allowed;}
-
+/* ---------- Horizontal photo gallery ---------- */
+.placesSwiper{padding:6px 5vw 46px; width:100%; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);}
+.placesSwiper .swiper-slide{height:auto;}
+.gallery-item{width:100%; height:520px; border-radius:18px; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); perspective:1400px; position:relative; transition:opacity .5s ease, box-shadow .5s ease; opacity:.55;}
+.swiper-slide-active .gallery-item{opacity:1; box-shadow:0 30px 60px -22px rgba(0,0,0,.55);}
+@media (min-width:768px){ .gallery-item{height:480px;} }
+.carousel-controls{display:flex; align-items:center; justify-content:center; gap:20px; margin-top:18px;}
+.carousel-controls .places-pagination{position:static !important; width:auto !important; display:flex; align-items:center; gap:8px;}
+.carousel-controls .swiper-pagination-bullet{background:var(--sand); opacity:.4; margin:0 !important;}
+.carousel-controls .swiper-pagination-bullet-active{opacity:1; background:var(--mango);}
+.carousel-arrow{width:42px; height:42px; border-radius:9999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); color:var(--sand); font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.2s; flex-shrink:0;}
+.carousel-arrow:hover{background:rgba(255,255,255,.18); transform:translateY(-1px);}
+.carousel-arrow:active{transform:translateY(0) scale(.94);}
+.flip-card-inner{position:relative; width:100%; height:100%; transition:transform .75s cubic-bezier(.22,1,.36,1); transform-style:preserve-3d;}
+.gallery-item.flipped .flip-card-inner{transform:rotateY(180deg);}
+.flip-face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:18px; overflow:hidden;}
+/* parallax-photo is an oversized wrapper (15% overscan each side) so the
+   Swiper parallax translate/scale it receives has room to move without
+   ever revealing an edge — the parent .flip-face clips anything beyond
+   the card bounds. The <img> inside is untouched by parallax so its own
+   hover-zoom transition (below) keeps working independently. */
+.parallax-photo{position:absolute; inset:-15%; width:130%; height:130%; will-change:transform;}
+.flip-front img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
+.gallery-item:not(.flipped):hover .flip-front img{transform:scale(1.06);}
+.flip-front .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.88)); color:var(--sand); will-change:transform;}
+.gallery-badge{position:absolute; top:14px; right:14px; z-index:2; background:rgba(6,26,24,.55); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(255,171,133,.4); color:#FFD9C4; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+  padding:5px 10px; border-radius:9999px; will-change:transform;}
+.flip-back{transform:rotateY(180deg); background:linear-gradient(160deg, #0c3a2f, #072448); color:var(--sand); padding:22px 20px; display:flex; flex-direction:column; overflow-y:auto;}
+.route-map{width:100%; height:210px; border-radius:12px; overflow:hidden; margin:12px 0 10px; border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.2); flex-shrink:0; position:relative;}
+.route-map::before{content:'🗺️ Loading map...'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:13px; color:rgba(255,255,255,.6); pointer-events:none; z-index:1; transition:opacity .3s ease;}
+.route-map iframe{position:absolute; top:-92px; left:0; width:calc(100% + 112px); height:calc(100% + 92px); border:0; display:block;}
+.route-map.loaded::before{opacity:0; pointer-events:none;}
+.gallery-item{cursor:pointer;}
+.route-title{font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#FFAB85; margin-bottom:4px;}
+.route-place{font-family:'Fraunces',serif; font-weight:600; font-size:20px; line-height:1.15; margin-bottom:10px;}
+.route-stat{display:flex; align-items:baseline; gap:8px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed rgba(255,255,255,.18);}
+.route-stat .rs-icon{font-size:16px;}
+.route-stat .rs-val{font-family:'Space Mono',monospace; font-size:13px; color:var(--sand);}
+.route-stat .rs-lbl{font-size:10.5px; opacity:.55; text-transform:uppercase; letter-spacing:.06em; margin-left:auto;}
+.route-desc{font-size:12px; line-height:1.5; opacity:.85; margin-top:2px;}
+.route-open-link{display:inline-flex; align-items:center; gap:6px; align-self:flex-start; margin-top:10px; padding:8px 14px; border-radius:9999px; background:rgba(255,171,133,.15); border:1px solid rgba(255,171,133,.45); color:#FFD9C4; font-size:11.5px; font-weight:600; text-decoration:none; transition:.2s; flex-shrink:0;}
+.route-open-link:hover{background:rgba(255,171,133,.3); transform:translateY(-1px);}
+.route-open-link:active{transform:scale(.96);}
+.route-note{font-size:10px; opacity:.4; margin-top:8px; font-style:italic;}
 
 /* ---------- Ambient background motion ---------- */
 .hero-blob{position:absolute; border-radius:9999px; filter:blur(80px); pointer-events:none; z-index:1; mix-blend-mode:screen;}
@@ -120,10 +308,188 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 @keyframes waveScroll{from{transform:translateX(0);} to{transform:translateX(-50%);}}
 
 /* ---------- Journey / parallax route ---------- */
-.journey{background:var(--sand); position:relative;}
+.journey{position:relative;}
 #route-svg{width:100%; height:auto; display:block;}
-.route-path{fill:none; stroke:var(--teal-900); stroke-width:3; stroke-dasharray:10 10; opacity:.35;}
-.route-progress{fill:none; stroke:var(--mango); stroke-width:3;}
+.route-map-frame{background:rgba(3,20,30,.35); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:18px 10px 6px; backdrop-filter:blur(3px);}
+.route-path{fill:none; stroke:rgba(255,255,255,.28); stroke-width:3; stroke-dasharray:10 10;}
+.route-progress{fill:none; stroke:var(--mango); stroke-width:3.5; filter:drop-shadow(0 0 6px rgba(255,122,69,.6));}
+.route-label{fill:var(--sand); paint-order:stroke; stroke:rgba(3,20,30,.85); stroke-width:4px; stroke-linejoin:round;}
+
+/* ============ FIXED RIGHT-SIDE ROUTE MAP SCROLLBAR ============ */
+.fixed-route-map{
+  position:fixed; right:0; top:0; width:auto; height:100vh;
+  pointer-events:none; z-index:40;
+  display:flex; gap:12px; align-items:stretch;
+  padding:70px 16px 16px;
+  /* Hidden by default — only shown while the #journey section is in view
+     (see the IntersectionObserver in the script). Without this, a fixed
+     element with no scroll boundary sits on top of every other section
+     on the page (itinerary, register, footer, etc). */
+  opacity:0; visibility:hidden;
+  transition:opacity .35s ease, visibility 0s linear .35s;
+}
+.fixed-route-map.in-view{
+  opacity:1; visibility:visible;
+  transition:opacity .35s ease, visibility 0s linear 0s;
+}
+
+.route-map-scrollbar{
+  width:60px; height:100%;
+  display:block;
+}
+
+.scrollbar-track{
+  fill:none; stroke:rgba(255,255,255,.08); stroke-width:1;
+}
+
+.scrollbar-progress{
+  stroke:var(--mango); stroke-width:2;
+  stroke-linecap:round; filter:drop-shadow(0 0 4px rgba(255,122,69,.6));
+  transition:y2 0.1s ease-out;
+}
+
+.stop-marker{
+  fill:rgba(239,230,214,.3); stroke:rgba(239,230,214,.6); stroke-width:1;
+  transition:r 0.3s ease, fill 0.3s ease;
+  cursor:pointer; pointer-events:auto;
+}
+
+.stop-marker:hover{
+  r:8px; fill:var(--mango); stroke:var(--mango);
+}
+
+.stop-marker-1.active,
+.stop-marker-2.active,
+.stop-marker-3.active{
+  fill:var(--mango); stroke:var(--sand); stroke-width:2;
+  r:7px;
+}
+
+.train-indicator{
+  animation:trainPulse 2s ease-in-out infinite;
+  filter:drop-shadow(0 0 8px rgba(255,122,69,.8));
+  pointer-events:none;
+}
+
+@keyframes trainPulse {
+  0%, 100% { r:8px; opacity:1; }
+  50% { r:12px; opacity:0.6; }
+}
+
+/* ============ ROUTE DETAILS PANEL ============ */
+.route-details{
+  background:rgba(0,0,0,.35); backdrop-filter:blur(12px);
+  border:1px solid rgba(255,122,69,.3); border-radius:14px;
+  padding:14px 16px; width:220px; max-height:100vh;
+  overflow-y:auto; pointer-events:auto;
+  display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+}
+
+.route-details::-webkit-scrollbar{
+  width:4px;
+}
+
+.route-details::-webkit-scrollbar-track{
+  background:rgba(255,255,255,.05);
+}
+
+.route-details::-webkit-scrollbar-thumb{
+  background:rgba(255,122,69,.5); border-radius:2px;
+}
+
+.route-details::-webkit-scrollbar-thumb:hover{
+  background:rgba(255,122,69,.8);
+}
+
+.detail-header{
+  font-family:'Space Mono', monospace; font-size:10px;
+  text-transform:uppercase; letter-spacing:0.1em;
+  color:rgba(239,230,214,.6); font-weight:700;
+  padding-bottom:8px; border-bottom:1px solid rgba(255,255,255,.1);
+}
+
+.detail-stop{
+  display:flex; gap:10px; align-items:flex-start;
+  padding:10px; border-radius:10px;
+  background:rgba(255,255,255,.04); transition:all 0.3s ease;
+  cursor:pointer;
+}
+
+.detail-stop:hover{
+  background:rgba(255,122,69,.15); transform:translateX(-4px);
+}
+
+.detail-stop.active{
+  background:rgba(255,122,69,.25); border-left:3px solid var(--mango);
+  padding-left:7px;
+}
+
+.detail-dot{
+  width:10px; height:10px; border-radius:50%;
+  flex-shrink:0; margin-top:4px;
+  box-shadow:0 0 8px currentColor;
+}
+
+.detail-info{
+  flex:1; min-width:0;
+}
+
+.detail-time{
+  font-family:'Space Mono', monospace; font-size:11px;
+  font-weight:700; color:var(--mango);
+  letter-spacing:0.05em;
+}
+
+.detail-place{
+  font-size:13px; font-weight:600; color:var(--sand);
+  margin-top:2px; font-family:'Fraunces', serif;
+}
+
+.detail-type{
+  font-size:10px; color:rgba(239,230,214,.7);
+  margin-top:4px; font-weight:600;
+}
+
+.detail-footer{
+  padding-top:8px; border-top:1px solid rgba(255,255,255,.1);
+  font-size:10px; color:rgba(239,230,214,.6);
+  text-align:center; line-height:1.4;
+  font-family:'Space Mono', monospace;
+}
+
+.footer-progress{
+  font-size:9px; text-transform:uppercase;
+  letter-spacing:0.06em; color:var(--mango);
+}
+
+@media (max-width:1200px) {
+  .fixed-route-map{
+    padding-top:60px; gap:8px;
+  }
+  .route-details{
+    width:180px; padding:10px 12px;
+    font-size:11px;
+  }
+  .detail-time{ font-size:10px; }
+  .detail-place{ font-size:12px; }
+}
+
+@media (max-width:1024px) {
+  .fixed-route-map{
+    width:auto;
+  }
+  .route-details{
+    width:160px;
+  }
+}
+
+@media (max-width:1024px) {
+  .fixed-route-map{
+    display:none;
+  }
+}
+
 .leg-card{background:var(--paper); border:1px solid var(--line); border-radius:14px; box-shadow:0 10px 30px -18px rgba(15,38,34,0.35); opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; position:relative; overflow:hidden;}
 .leg-card.in{opacity:1; transform:translateY(0);}
 .leg-card .leg-photo{height:150px; overflow:hidden;}
@@ -246,36 +612,172 @@ textarea:focus{border-color:var(--mango);}
 
 @media (prefers-reduced-motion: reduce){*{transition:none !important; scroll-behavior:auto !important; animation:none !important;}}
 
-#walletFab{box-shadow:0 14px 30px -12px rgba(255,122,69,.55); touch-action:manipulation;}
-#walletFab:active{transform:scale(.94);}
-
 @media (max-width: 900px){
-  #walletFab{bottom:calc(20px + var(--sab)); right:calc(16px + var(--sar));}
   input, select{font-size:16px;}
   section{scroll-margin-top:64px;}
 }
+
+/* ============================================================
+   OCEAN DIVE BACKGROUND SYSTEM
+   Beach at top -> shallow reef -> open water -> deep sea -> trench
+=============================================================*/
+:root{--depth:0;}
+
+#oceanBg{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:#cdeffb;}
+#oceanGradient{position:absolute; left:0; right:0; top:0; width:100%; height:760vh;
+  background:linear-gradient(180deg,
+    #d8f3fb 0%, #b7e9ee 5%, #7fdde2 11%, #45cfd6 17%, #1fb8ca 24%,
+    #17a0c4 31%, #1687b8 39%, #1670a8 47%, #145a93 55%, #0f4a80 62%,
+    #0c3a6b 69%, #093057 76%, #072448 82%, #051a38 87%, #041329 92%,
+    #020c1c 96%, #010610 100%);
+  transform:translateY(calc(var(--depth) * -680vh));
+  will-change:transform;
+}
+#oceanBg .rays{position:absolute; top:0; left:0; right:0; height:110vh;
+  background:repeating-linear-gradient(102deg, rgba(255,255,255,.14) 0 34px, transparent 34px 130px);
+  mix-blend-mode:screen; opacity:calc(1 - (var(--depth) * 1.7)); animation:rayShift 10s ease-in-out infinite alternate; transition:opacity .2s linear;}
+@keyframes rayShift{from{transform:translateX(-4%) skewX(-8deg);} to{transform:translateX(4%) skewX(-3deg);}}
+
+#oceanBg .glow-deep{position:absolute; left:0; right:0; bottom:0; height:60vh;
+  background:radial-gradient(60% 60% at 50% 100%, rgba(255,164,90,.10), transparent 70%);
+  opacity:var(--depth); transition:opacity .2s linear;}
+
+.bubble-layer{position:absolute; inset:0; overflow:hidden;}
+.bubble{position:absolute; bottom:-10vh; border-radius:50%;
+  background:radial-gradient(circle at 30% 28%, rgba(255,255,255,.9), rgba(255,255,255,.06) 68%);
+  box-shadow:inset 0 0 6px rgba(255,255,255,.4);
+  animation:bubbleRise linear infinite;}
+@keyframes bubbleRise{
+  0%{transform:translateY(0) translateX(0) scale(.7); opacity:0;}
+  6%{opacity:.85;}
+  92%{opacity:.6;}
+  100%{transform:translateY(-135vh) translateX(var(--drift,24px)) scale(1.25); opacity:0;}
+}
+
+.sea-fish{position:absolute; animation:fishSwim linear infinite; opacity:.92;
+  filter:drop-shadow(0 8px 14px rgba(0,10,20,.35));}
+@keyframes fishSwim{
+  0%{transform:translate3d(-14vw,0,0) scaleX(1);}
+  47%{transform:translate3d(58vw,-24px,0) scaleX(1);}
+  50%{transform:translate3d(60vw,-24px,0) scaleX(-1);}
+  97%{transform:translate3d(-14vw,14px,0) scaleX(-1);}
+  100%{transform:translate3d(-14vw,0,0) scaleX(1);}
+}
+.sea-fish.rev{animation-direction:reverse;}
+
+.jelly{position:absolute; animation:jellyFloat 7.5s ease-in-out infinite; opacity:.85;}
+@keyframes jellyFloat{0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-30px) scale(1.06);}}
+
+.seaweed-row{position:absolute; left:0; right:0; bottom:-2px; display:flex; align-items:flex-end; justify-content:space-around; pointer-events:none;}
+.seaweed{transform-origin:bottom center; animation:sway ease-in-out infinite;}
+@keyframes sway{0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(7deg);}}
+
+.plankton{position:absolute; border-radius:50%;
+  background:radial-gradient(circle, rgba(150,255,230,.95), rgba(150,255,230,0) 70%);
+  animation:planktonBlink ease-in-out infinite;}
+@keyframes planktonBlink{0%,100%{opacity:.1;} 50%{opacity:.9;}}
+
+.coral-row{position:absolute; left:0; right:0; bottom:-4px; opacity:.55; pointer-events:none;}
+
+/* Section text re-anchoring so light "cabin" cards stay readable
+   once their parent section switches to a dark/deep-sea tint */
+#journey{color:var(--sand); transition:background .3s;}
+.leg-card{color:var(--ink);}
+#itinerary{color:var(--sand); transition:background .3s;}
+.day-card{color:var(--ink);}
+#itinerary .btn-ghost{border-color:var(--sand); color:var(--sand);}
+.hero .btn-ghost{border-color:var(--sand); color:var(--sand);}
+.hero .btn-ghost:hover{background:var(--sand); color:var(--teal-900);}
+#itinerary .btn-ghost:hover{background:var(--sand); color:var(--teal-900);}
+#register{color:var(--sand); transition:background .3s;}
+#registerWizard{color:var(--ink);}
+.reg-status-wrap{color:var(--ink);}
+.card{color:var(--ink);}
+#registerClosedNote{color:var(--ink);}
+#gallery, #team, footer{position:relative;}
+
+.dive-fade-edge{position:absolute; left:0; right:0; height:80px; pointer-events:none; z-index:2;}
+
+/* ---------- Places collage (Goa polaroid wall) ---------- */
+.collage-wrap{position:relative; display:flex; flex-wrap:wrap; gap:26px 18px; justify-content:center; padding:20px 0 10px;}
+.polaroid{background:#fdfaf3; padding:10px 10px 40px; border-radius:3px; box-shadow:0 18px 34px -14px rgba(0,0,0,.55); width:230px; flex:0 0 auto; position:relative; transition:transform .35s ease, box-shadow .35s ease; cursor:default;}
+.polaroid:hover{transform:translateY(-8px) rotate(0deg) scale(1.04) !important; box-shadow:0 26px 46px -14px rgba(0,0,0,.6); z-index:5;}
+.polaroid .ph{overflow:hidden; border-radius:1px; background:#000;}
+.polaroid .ph img{width:100%; height:190px; object-fit:cover; display:block; filter:saturate(1.05);}
+.polaroid figcaption{position:absolute; left:0; right:0; bottom:10px; text-align:center;}
+.polaroid figcaption .pn{font-family:'Fraunces',serif; font-weight:600; font-size:15px; color:var(--teal-900);}
+.polaroid figcaption .pt{font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mango-2); margin-top:2px;}
+.tape{position:absolute; top:-10px; width:56px; height:20px; background:rgba(255,230,150,.55); box-shadow:0 2px 4px rgba(0,0,0,.15); left:50%; transform:translateX(-50%) rotate(-3deg);}
+.polaroid.p1{transform:rotate(-6deg) translateY(6px);}
+.polaroid.p2{transform:rotate(4deg) translateY(-10px);}
+.polaroid.p3{transform:rotate(-2deg) translateY(18px);}
+.polaroid.p4{transform:rotate(7deg) translateY(0);}
+.polaroid.p5{transform:rotate(-8deg) translateY(-4px);}
+.polaroid.p6{transform:rotate(3deg) translateY(12px);}
+.polaroid.reveal{opacity:0; transition:opacity .7s ease, transform .7s ease;}
+.polaroid.reveal.in{opacity:1;}
+@media (max-width:640px){ .polaroid{width:44vw;} .polaroid .ph img{height:130px;} }
+.pin-string{position:absolute; height:2px; background:repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 8px, transparent 8px 14px); left:0; right:0; top:-2px; z-index:0;}
+
+@media (prefers-reduced-motion: reduce){
+  .bubble,.sea-fish,.jelly,.seaweed,.plankton,#oceanBg .rays{animation:none !important;}
+}
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 </head>
 <body>
 
+<!-- ============ OCEAN DIVE BACKGROUND (fixed, behind everything) ============ -->
+<div id="oceanBg" aria-hidden="true">
+  <div id="oceanGradient"></div>
+  <div class="rays"></div>
+  <div class="glow-deep"></div>
+  <div class="bubble-layer" id="bubbleLayer"></div>
+  <div id="creatureLayer">
+    <svg class="sea-fish" style="top:24%; width:40px; animation-duration:24s; opacity:.5;" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#FFD8A8"/><path d="M0 17l10-8v16z" fill="#FFD8A8"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
+    <svg class="sea-fish rev" style="top:72%; width:26px; animation-duration:31s; opacity:.4;" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#7fd0ff"/><path d="M0 17l10-8v16z" fill="#7fd0ff"/><circle cx="40" cy="14" r="1.6" fill="#05203a"/></svg>
+    <div class="seaweed-row">
+      <svg class="seaweed" style="animation-duration:4.6s;" width="20" height="90" viewBox="0 0 20 90"><path d="M10 90 C -2 60 22 40 8 0" stroke="#0f6b56" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+      <svg class="seaweed" style="animation-duration:5.4s;" width="16" height="60" viewBox="0 0 16 60"><path d="M8 60 C -2 40 18 26 6 0" stroke="#137a63" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+      <svg class="seaweed" style="animation-duration:3.9s;" width="22" height="100" viewBox="0 0 22 100"><path d="M11 100 C -3 66 25 44 9 0" stroke="#0c5a48" stroke-width="6" fill="none" stroke-linecap="round"/></svg>
+      <svg class="seaweed" style="animation-duration:5.1s;" width="18" height="70" viewBox="0 0 18 70"><path d="M9 70 C -2 46 20 30 7 0" stroke="#137a63" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+</div>
+
 <!-- ============ NAV ============ -->
 <nav id="topnav" class="px-5 md:px-10 py-4 flex items-center justify-between">
-  <div class="mono text-white text-sm tracking-widest">GOA · PNQ→LONDA · 2026</div>
-  <div class="hidden md:flex gap-7">
+  <div class="mono text-white text-sm tracking-widest"></div>
+
+  <!-- Live cluster: countdown, stuck to the navbar itself (not floating
+       separately on the page) so it travels with the fixed nav on scroll. -->
+  <div class="nav-live-cluster">
+    <div class="nav-countdown" id="navCountdown" title="Trip starts in">
+      <span class="nav-countdown-icon">🕐</span>
+      <span id="navCountdownText" class="mono">--D --H --M --S</span>
+    </div>
+  </div>
+
+  <div class="navlinks-rail hidden lg:flex items-center gap-4 xl:gap-5" id="navRail">
     <span class="navlink" data-target="#gallery">Gallery</span>
+    <span class="navlink" data-target="#places">Places</span>
     <span class="navlink" data-target="#journey">Journey</span>
     <span class="navlink" data-target="#itinerary">Itinerary</span>
     <span class="navlink" data-target="#register">Register</span>
-    <a class="navlink" href="itinerary.html">Plan Itinerary</a>
-    <a class="navlink" href="boarding-pass.html">Boarding Pass</a>
-    <a class="navlink navlink-wallet" href="goa-wallet.html">💰 Trip Wallet</a>
     <span class="navlink" data-target="#team">Crew</span>
+    <span class="rail-divider" aria-hidden="true"></span>
+    <a class="navlink" href="itinerary.html">Plan</a>
+    <a class="navlink" href="boarding-pass.html">Boarding Pass</a>
+    <a class="navlink navlink-wallet" href="goa-wallet.html">💰 Wallet</a>
+    <div class="rail-track" aria-hidden="true"></div>
+    <div class="rail-signal" id="railSignal" aria-hidden="true"></div>
   </div>
-  <span class="navlink md:hidden" onclick="toggleMobileMenu()">Menu</span>
+  <span class="navlink lg:hidden" onclick="toggleMobileMenu()">Menu</span>
 </nav>
 <div id="menuBackdrop" onclick="closeMobileMenu()"></div>
 <div id="mobilemenu" class="md:hidden">
   <span class="navlink" data-target="#gallery">Gallery</span>
+  <span class="navlink" data-target="#places">Places</span>
   <span class="navlink" data-target="#journey">Journey</span>
   <span class="navlink" data-target="#itinerary">Itinerary</span>
   <span class="navlink" data-target="#register">Register</span>
@@ -285,25 +787,51 @@ textarea:focus{border-color:var(--mango);}
   <span class="navlink" data-target="#team">Crew</span>
 </div>
 
-<a id="walletFab" href="goa-wallet.html" class="fixed z-[90] bottom-6 right-5 md:bottom-8 md:right-8 btn-primary shadow-lg flex items-center gap-2">
-  <span>💰</span><span class="hidden sm:inline">Trip Wallet</span>
+<a id="walletFab" href="goa-wallet.html" title="Trip Wallet">
+  <span class="fab-icon">💰</span>
+  <span>Trip Wallet</span>
 </a>
 
-<!-- ============ HERO ============ -->
+<!-- ============ HERO — illustrated, animated beach scene (no video) ============ -->
 <header class="hero">
-  <!--<div class="hero-bg" style="background-image:url('pictures/background.jpg')"></div>-->
-  <video class="hero-video" id="heroVideo" autoplay muted loop playsinline preload="auto" poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3E%3Crect fill='%230B3D3A' width='1920' height='1080'/%3E%3C/svg%3E" onerror="this.style.display='none'">
-    <!-- Spline export goes here: render your scene in Spline, then
-         File → Export → Video, and save the .mp4 as videos/hero-spline.mp4.
-         Until that file exists the browser silently falls through to the
-         line below — nothing changes, no JS, no CSP edits needed. -->
-    <source src="videos/hero-spline.mp4" type="video/mp4">
-    <source src="videos/1.mp4" type="video/mp4">
-  </video>
-  <div class="hero-spline" id="heroSpline" aria-hidden="true"></div>
+  <div class="hero-sky" aria-hidden="true"></div>
+  <div class="hero-sun" aria-hidden="true"></div>
+
+  <svg class="hero-cloud c1" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
+  <svg class="hero-cloud c2" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
+  <svg class="hero-cloud c3" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
+
+  <svg class="hero-bird b1" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
+  <svg class="hero-bird b2" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
+  <svg class="hero-bird b3" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
+
+  <svg class="hero-palm left" viewBox="0 0 120 340" aria-hidden="true">
+    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
+    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
+    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
+    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
+    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
+    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
+  </svg>
+  <svg class="hero-palm right" viewBox="0 0 120 340" aria-hidden="true">
+    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
+    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
+    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
+    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
+    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
+    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
+  </svg>
+
+  <svg class="hero-boat" viewBox="0 0 64 50" aria-hidden="true">
+    <path d="M4 34h56l-8 12H12z" fill="#16324D"/>
+    <rect x="30" y="6" width="2.5" height="28" fill="#7A4B2A"/>
+    <path d="M32.5 8 L52 30 L32.5 30 Z" fill="#FFF7EC"/>
+    <path d="M32.5 12 L18 30 L32.5 30 Z" fill="#FFD9A0"/>
+  </svg>
+
   <div class="hero-scrim"></div>
-  <div class="hero-blob hero-blob-a"></div>
-  <div class="hero-blob hero-blob-b"></div>
   <div class="grain"></div>
 
   <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-32 pb-20">
@@ -315,78 +843,94 @@ textarea:focus{border-color:var(--mango);}
         <div class="flex-1 border-t border-dashed border-white/30"></div>
         <span class="stamp mono text-[11px] w-16 h-16 shrink-0">ARRIVE<br>GOA</span>
       </div>
-      <p class="section-eyebrow mb-3" style="color:#FFAB85">Boarding Card No. GA‑2026 · 12 travellers</p>
-      <h1 class="display font-semibold text-[14vw] md:text-[6.2rem] leading-[0.9]">
-        The Goa<br><span style="color:var(--mango)">Run.</span>
+
+      <p class="section-eyebrow mb-3" style="color:#FFAB85">Now boarding · Flight GA‑2026 · Gate: Villa</p>
+      <h1 class="display font-semibold text-[13vw] md:text-[5.6rem] leading-[0.92]">
+        Twelve tickets.<br>
+        <span style="color:var(--mango)">One Goa.</span>
       </h1>
       <p class="max-w-md mt-6 text-[15px] leading-relaxed opacity-85">
-        One overnight train from Pune, one winding cab ride from Londa station, and a villa full of your people
-        at the other end. Scroll to trace the route, lock your seat, and split the bill without the group‑chat math.
+        An overnight train out of Pune, a cab ride through the fog of the Western Ghats,
+        and four days where the only itinerary is the tide. Everything below — the where,
+        the when, the who's-paying-for-what — lives on this page.
       </p>
-      <div class="trip-meta mt-7 flex flex-wrap items-center gap-2.5 mono text-[12.5px] opacity-90">
-        <span>📅 <strong style="color:var(--mango)">2–5 Oct 2026</strong></span>
-        <span class="opacity-35">·</span>
-        <span>🚆 Pune Jn → Londa Jn → Pune Jn</span>
-        <span class="opacity-35">·</span>
-        <span>👥 12 seats</span>
+
+      <!-- SURPRISE: split-flap departure board, ties into the boarding-pass motif -->
+      <div class="dep-board mt-8" id="depBoard" aria-label="Trip departure board">
+        <div class="dep-board-head">
+          <span class="dep-dot"></span><span class="dep-dot"></span><span class="dep-dot"></span>
+          <span class="dep-board-title">DEPARTURES</span>
+        </div>
+        <div class="dep-row">
+          <span class="dep-label">FROM</span>
+          <span class="dep-value" data-final="PUNE JN · PNQ">PUNE JN · PNQ</span>
+        </div>
+        <div class="dep-row">
+          <span class="dep-label">TO</span>
+          <span class="dep-value" data-final="LONDA JN → VILLA">LONDA JN → VILLA</span>
+        </div>
+        <div class="dep-row">
+          <span class="dep-label">DEPARTS</span>
+          <span class="dep-value" data-final="02 OCT · 01:50 HRS">02 OCT · 01:50 HRS</span>
+        </div>
+        <div class="dep-row">
+          <span class="dep-label">STATUS</span>
+          <span class="dep-value dep-status" data-final="BOARDING SOON">BOARDING SOON</span>
+        </div>
+        <div class="dep-row">
+          <span class="dep-label">SEATS</span>
+          <span class="dep-value" data-final="12 / 12 CONFIRMED">12 / 12 CONFIRMED</span>
+        </div>
       </div>
+
       <div class="flex flex-wrap gap-3 mt-9">
-        <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">See the vibe ↓</button>
-        <button class="btn-ghost" style="border-color:var(--sand); color:var(--sand)" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+        <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip ↓</button>
+        <button class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
       </div>
     </div>
   </div>
 
-  <div class="scroll-cue"><span class="mono text-[10px] tracking-widest">SCROLL</span><span class="line"></span></div>
+  <div class="bubble" style="left:8%; width:8px; height:8px; animation-duration:11s;"></div>
+  <div class="bubble" style="left:22%; width:5px; height:5px; animation-duration:8s; animation-delay:1.5s;"></div>
+  <div class="bubble" style="left:80%; width:10px; height:10px; animation-duration:13s; animation-delay:.6s;"></div>
+  <div class="bubble" style="left:91%; width:6px; height:6px; animation-duration:9s; animation-delay:2.2s;"></div>
+
+  <div class="scroll-cue"><span class="mono text-[10px] tracking-widest">SCROLL TO DIVE IN</span><span class="line"></span></div>
 </header>
 
 <!-- ============ GALLERY ============ -->
-<section id="gallery" class="py-20 md:py-24" style="background:var(--teal-900); color:var(--sand);">
-  <div class="max-w-6xl mx-auto px-5 md:px-10">
-    <div class="section-num mb-4"><span>01</span><span class="rule"></span><span>The vibe</span></div>
-    <h2 class="display text-4xl md:text-5xl font-semibold mb-2">What we're chasing.</h2>
-    <p class="opacity-70 max-w-lg mb-8">Golden coastline, cashew groves off the Ghats, and villa evenings that run long. Swipe through.</p>
+<section id="gallery" class="py-20 md:py-24" style="background:linear-gradient(180deg, rgba(6,26,24,1) 0px, rgba(6,26,24,1) 30px, rgba(8,42,38,.95) 120px, rgba(11,61,58,.85) 240px, rgba(16,100,100,.65) 380px, rgba(24,150,165,.45) 520px, rgba(31,184,202,.35) 640px, rgba(11,61,58,.72) 100%); color:var(--sand);">
+  <svg class="sea-fish" style="top:18%; width:46px; animation-duration:26s;" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#FFAB85"/><path d="M0 17l10-8v16z" fill="#FFAB85"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
+  <svg class="sea-fish rev" style="top:62%; width:34px; animation-duration:19s;" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#8FE3E8"/><path d="M0 17l10-8v16z" fill="#8FE3E8"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
+  <div class="max-w-6xl mx-auto px-5 md:px-10 relative">
+    <div class="section-num mb-4"><span>01</span><span class="rule"></span><span>Places to visit</span></div>
+    <h2 class="display text-4xl md:text-5xl font-semibold mb-2">Places to visit in Goa.</h2>
+    <p class="opacity-70 max-w-lg mb-8" id="placesIntro">Six spots worth building a day around — swipe through, or let it auto-play while you scroll.</p>
   </div>
-  <div id="motionCarouselContainer">
-    <div class="motion-carousel-wrapper">
-      <div class="motion-carousel-inner" id="motionCarouselInner"></div>
-    </div>
-    <div class="carousel-controls">
-      <button class="carousel-arrow" id="carouselPrevBtn" aria-label="Previous slide">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-      </button>
-      <button class="carousel-arrow" id="carouselNextBtn" aria-label="Next slide">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </button>
-      <div id="galleryCarouselDots"></div>
-    </div>
+
+  <div class="swiper placesSwiper max-w-6xl mx-auto px-5 md:px-10">
+    <div class="swiper-wrapper" id="placesWrapper"></div>
+  </div>
+  <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
+    <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
+    <div class="swiper-pagination places-pagination"></div>
+    <button class="carousel-arrow carousel-next" aria-label="Next place">›</button>
   </div>
 </section>
 
+<!-- ============ PLACES (Goa collage) ============ -->
 <!-- ============ JOURNEY / PARALLAX SCROLL ROUTE ============ -->
-<section id="journey" class="journey py-24 px-5 md:px-10">
-  <div class="max-w-5xl mx-auto">
-    <div class="section-num mb-4"><span>02</span><span class="rule"></span><span>Route</span></div>
+<section id="journey" class="journey py-24 px-5 md:px-10" style="background:linear-gradient(180deg, rgba(11,61,58,.7), rgba(12,58,86,.82)); position:relative; overflow:hidden;">
+  <svg class="jelly" style="top:10%; right:8%; width:52px; opacity:.7;" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(255,171,133,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(255,171,133,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+  <svg class="jelly" style="top:55%; left:4%; width:34px; opacity:.55; animation-duration:9s;" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(143,227,232,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(143,227,232,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+  <div class="max-w-5xl mx-auto relative">
+    <div class="section-num mb-4"><span>03</span><span class="rule"></span><span>Route</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">Rail, then road.</h2>
-    <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go.</p>
+    <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket, 12 of us. Scroll through the journey — the marker below tracks your progress along the line as you go, and yes, you're still sinking deeper into the sea as you do it.</p>
     <p class="text-xs opacity-50 mb-12 mono">Onward: 2 Oct 2026 · Return: same route, reversed, on 5 Oct 2026</p>
 
-    <div class="sticky top-[70px] z-10 mb-2 flex justify-end">
-      <span class="mono text-xs px-3 py-1 rounded-full bg-[var(--teal-900)] text-[var(--sand)]" id="progress-pill">0% travelled</span>
-    </div>
-
-    <div class="relative">
-      <svg id="route-svg" viewBox="0 0 800 340" preserveAspectRatio="xMidYMid meet">
-        <path id="route-track" class="route-path" d="M40,60 C 220,20 260,120 400,140 S 560,260 760,290"/>
-        <path id="route-fill" class="route-progress" d="M40,60 C 220,20 260,120 400,140 S 560,260 760,290" stroke-dasharray="1" stroke-dashoffset="1"/>
-        <circle cx="40" cy="60" r="7" fill="#0B3D3A"/>
-        <text x="40" y="42" text-anchor="middle" class="mono" font-size="13" fill="#0B3D3A">PUNE</text>
-        <circle cx="400" cy="140" r="7" fill="#1E6091"/>
-        <text x="400" y="122" text-anchor="middle" class="mono" font-size="13" fill="#1E6091">LONDA JN</text>
-        <circle cx="760" cy="290" r="7" fill="#FF7A45"/>
-        <text x="712" y="272" text-anchor="middle" class="mono" font-size="13" fill="#E85D2A">VILLA, GOA</text>
-        <g id="mover-train" class="mover"><circle r="9" fill="#FF7A45"/></g>
-      </svg>
+    <div class="sticky top-[70px] z-10 mb-8 flex justify-end">
+      <span class="mono text-xs px-3 py-1 rounded-full" style="background:rgba(255,255,255,.12); color:var(--sand); border:1px solid rgba(255,255,255,.2);" id="progress-pill">0% travelled</span>
     </div>
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
@@ -404,7 +948,7 @@ textarea:focus{border-color:var(--mango);}
         </div>
       </div>
       <div class="leg-card" id="leg2">
-        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=600&fit=crop" alt="Coastal road toward Goa lined with palm trees"></div>
+        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1584111728495-7d9599602355?w=600&h=600&fit=crop" alt="Coastal road toward Goa, sea view from Fort Aguada"></div>
         <div class="p-7">
           <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD · 2 OCT</span>
           <h3 class="display text-2xl font-semibold mt-2 mb-3">Londa Jn → Villa</h3>
@@ -417,7 +961,7 @@ textarea:focus{border-color:var(--mango);}
         </div>
       </div>
       <div class="leg-card" id="leg3">
-        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=600&fit=crop" alt="Goa coastline at golden hour"></div>
+        <div class="leg-photo"><img src="https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=600&h=600&fit=crop" alt="Golden hour at Querim Beach, Goa"></div>
         <div class="p-7">
           <span class="mono text-xs" style="color:var(--palm)">LEG 03 — RETURN · 5 OCT</span>
           <h3 class="display text-2xl font-semibold mt-2 mb-3">Villa → Londa Jn → Pune</h3>
@@ -434,9 +978,13 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ ITINERARY ============ -->
-<section id="itinerary" class="py-24 px-5 md:px-10" style="background:var(--paper)">
+<section id="itinerary" class="py-24 px-5 md:px-10" style="background:linear-gradient(180deg, rgba(12,58,86,.85), rgba(9,48,87,.9)); position:relative; overflow:hidden;">
+  <div class="plankton" style="top:14%; left:10%; width:6px; height:6px; animation-duration:3s;"></div>
+  <div class="plankton" style="top:30%; left:80%; width:4px; height:4px; animation-duration:4.2s;"></div>
+  <div class="plankton" style="top:70%; left:22%; width:5px; height:5px; animation-duration:2.6s;"></div>
+  <div class="plankton" style="top:85%; left:65%; width:4px; height:4px; animation-duration:3.8s;"></div>
   <div class="max-w-5xl mx-auto relative">
-    <div class="section-num mb-4"><span>03</span><span class="rule"></span><span>Day by day</span></div>
+    <div class="section-num mb-4"><span>04</span><span class="rule"></span><span>Day by day</span></div>
     <div class="flex flex-wrap items-end justify-between gap-4 mb-2">
       <h2 class="display text-4xl md:text-5xl font-semibold mt-2">The itinerary.</h2>
       <a href="itinerary.html" class="btn-ghost text-sm">Organiser? Edit itinerary →</a>
@@ -450,9 +998,14 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ REGISTER ============ -->
-<section id="register" class="py-24 px-5 md:px-10" style="background:var(--sand)">
-  <div class="max-w-3xl mx-auto">
-    <div class="section-num mb-4"><span>04</span><span class="rule"></span><span>Lock your seat</span></div>
+<section id="register" class="py-24 px-5 md:px-10" style="background:linear-gradient(180deg, rgba(9,48,87,.92), rgba(5,26,56,.95)); position:relative; overflow:hidden;">
+  <div class="plankton" style="top:8%; left:6%; width:5px; height:5px; animation-duration:3.4s;"></div>
+  <div class="plankton" style="top:22%; left:88%; width:4px; height:4px; animation-duration:2.8s;"></div>
+  <div class="plankton" style="top:60%; left:92%; width:6px; height:6px; animation-duration:4s;"></div>
+  <div class="plankton" style="top:92%; left:14%; width:4px; height:4px; animation-duration:3.1s;"></div>
+  <svg class="sea-fish rev" style="top:20%; width:30px; animation-duration:32s; opacity:.6;" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#9fd8ff"/><path d="M0 17l10-8v16z" fill="#9fd8ff"/><circle cx="40" cy="14" r="1.6" fill="#05203a"/></svg>
+  <div class="max-w-3xl mx-auto relative">
+    <div class="section-num mb-4"><span>05</span><span class="rule"></span><span>Lock your seat</span></div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <h2 class="display text-4xl md:text-5xl font-semibold mt-2">Register for the run.</h2>
       <div class="reg-status-wrap card px-4 py-3">
@@ -502,7 +1055,7 @@ textarea:focus{border-color:var(--mango);}
             <input type="tel" id="reg-phone" class="wiz-input" placeholder="10-digit mobile number" autocomplete="tel"/>
             <p class="wiz-error" id="err-phone">⚠ We need a phone number for the cab / room plan</p>
             <label class="wiz-hint block mt-6 mb-2" style="text-transform:none; font-size:12.5px; opacity:.6;">Email (optional)</label>
-            <input type="email" id="reg-email" class="wiz-input" placeholder="you@example.com" autocomplete="email" style="font-size:16px;"/>
+            <input type="email" id="reg-email" class="wiz-input" placeholder="you@example.com" autocomplete="email" style="font-size:16px;" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"/>
           </div>
 
           <!-- Step 2: travelling from -->
@@ -590,595 +1143,419 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ TEAM ============ -->
-<section id="team" class="py-24 px-5 md:px-10" style="background:var(--teal-900); color:var(--sand); position:relative; overflow:hidden;">
+<section id="team" class="py-24 px-5 md:px-10" style="background:linear-gradient(180deg, rgba(5,26,56,.9), rgba(2,12,28,.94)); color:var(--sand); position:relative; overflow:hidden;">
+  <div class="plankton" style="top:12%; left:92%; width:5px; height:5px; animation-duration:3.6s;"></div>
+  <div class="plankton" style="top:70%; left:4%; width:6px; height:6px; animation-duration:2.9s;"></div>
   <div class="team-video-wrap">
-    <video autoplay muted loop playsinline preload="none" loading="lazy" onerror="this.style.display='none'">
-      <source src="videos/5.mp4" type="video/mp4">
-    </video>
+    <img src="https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=1600&q=70&auto=format&fit=crop" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.35; filter:saturate(.7) brightness(.6);">
   </div>
   <div class="max-w-5xl mx-auto" style="position:relative; z-index:1;">
-    <div class="section-num mb-4"><span>05</span><span class="rule"></span><span>Who's running this</span></div>
+    <div class="section-num mb-4"><span>06</span><span class="rule"></span><span>Who's running this</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12">The crew.</h2>
     <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
   </div>
 </section>
 
-<footer class="py-10 px-5 md:px-10 text-center text-xs opacity-50" style="background:var(--teal-900); color:var(--sand)">
-  Pune → Londa → Goa · built for the crew, edit freely.
+<footer class="py-10 px-5 md:px-10 text-center text-xs opacity-50" style="background:linear-gradient(180deg, rgba(2,12,28,.94), #010610); color:var(--sand)">
+  🫧 Pune → Londa → Goa · built for the crew, edit freely.
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="shared.js"></script>
 <script>
 /* ============================================================
-   GALLERY — slides are picked automatically from whatever the
-   itinerary (DEFAULT_ITINERARY, then whatever loadItinerary()
-   syncs from the backend) actually mentions. Each day's title +
-   plan items are scanned for keywords; the first category whose
-   keyword shows up gets added, in the order the days run, so the
-   carousel roughly retells the trip. Falls back to showing all
-   five if the itinerary is too sparse (e.g. still mostly TBD).
+   SWIPER LOADER — tries a few CDNs in turn (JS + matching CSS)
+   A single blocked/unreachable CDN domain (mobile carrier
+   filtering, ad/tracker blocklist, flaky network) previously left
+   window.Swiper permanently undefined with no fallback, so
+   initPlacesSwiper() below would just silently return and the
+   "Places to visit" cards sat in the DOM as plain stacked blocks —
+   no carousel behaviour, which is exactly what showed up as
+   "carousel not showing" on mobile. Mirrors the same 3-CDN retry
+   pattern already used for ECharts on the wallet page.
 =============================================================*/
-/* Straight-line "as the crow flies" home base for the distance/direction
-   feature below. This is Parra village centre — swap in the villa's exact
-   pin (long-press it in Google Maps → coordinates shown at the bottom) for
-   genuinely accurate numbers once you have it. */
-const HOME_BASE = { name:'Smalltown Villa, Parra', lat:15.56667, lng:73.78333 };
-
-const GALLERY_MEDIA = [
-  { id:'coastline', num:'01', tag:'COASTLINE', caption:"Coves you can't reach by road.",
-    keywords:['beach','water sport','watersport','swim','cove','coast','sea','ocean','snorkel'],
-    type:'image', src:'https://images.unsplash.com/photo-1602088113235-229c19758e9f?w=600&h=800&fit=crop',
-    alt:'Aerial view of a secluded Goa cove, turquoise water meeting golden sand',
-    place:'Anjuna Beach', lat:15.5833, lng:73.7333 },
-  { id:'palms', num:'02', tag:'PALMS', caption:'Shade for the slow afternoons.',
-    keywords:['villa','pool','lunch','dinner','check-in','check in','relax','shade','afternoon','settle'],
-    type:'video', video:'videos/4.mp4', poster:'https://images.unsplash.com/photo-1495314491516-51411f83a52b?w=600&h=800&fit=crop',
-    alt:'Coconut palm trees silhouetted at a quiet South Goa beach' /* no place — this one's the villa itself */ },
-  { id:'drive', num:'03', tag:'THE DRIVE', caption:'Jungle roads to the shore.',
-    keywords:['train','cab','drive','road','londa','pune','checkout','board','station','jungle','transfer'],
-    type:'video', video:'videos/3.mp4', poster:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=800&fit=crop',
-    alt:'Car threading through jungle road toward the coast',
-    place:'Londa Junction', lat:15.4489, lng:74.4960 },
-  { id:'tideline', num:'04', tag:'TIDE LINE', caption:'Sunset walk, every evening.',
-    keywords:['sunset','evening','cruise','walk','tide','dusk'],
-    type:'video', video:'videos/2.mp4', poster:'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',
-    alt:'Golden sunset sky with birds in flight over the sea',
-    place:'Vagator Beach', lat:15.6025, lng:73.73361 },
-  { id:'lookout', num:'05', tag:'LOOKOUT', caption:'Cliffside views, first morning.',
-    keywords:['old goa','fort','market','heritage','church','basilica','temple','waterfall','falls','plantation','lookout','cliff','view'],
-    type:'image', src:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=800&fit=crop',
-    alt:'Coastal grove overlooking the Arabian Sea near a Goan fort',
-    place:'Chapora Fort', lat:15.6059, lng:73.7362 },
+const SWIPER_SOURCES = [
+  { css:'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css', js:'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js' },
+  { css:'https://unpkg.com/swiper@11/swiper-bundle.min.css',            js:'https://unpkg.com/swiper@11/swiper-bundle.min.js' },
+  { css:'https://cdnjs.cloudflare.com/ajax/libs/Swiper/11.1.14/swiper-bundle.min.css', js:'https://cdnjs.cloudflare.com/ajax/libs/Swiper/11.1.14/swiper-bundle.min.js' },
 ];
-
-/* ---------- Places-driven gallery ----------
-   Each day in the itinerary can carry a `places` array (added via
-   itinerary.html), where every place already has a real photo
-   fetched from Wikipedia/Unsplash at save time — one card per named
-   place, no keyword guessing, no collisions between e.g. "Palolem
-   Beach" and "Baga Beach". Falls back to the curated GALLERY_MEDIA
-   set only when nobody has added any real places yet, so the
-   carousel is never empty on a fresh itinerary. */
-function matchGalleryFromItinerary(days){
-  const ordered = [];
-  const seen = new Set();
-  (days||[]).forEach(d=>{
-    (d.places||[]).forEach(p=>{
-      if(!p || !p.photo || !p.name) return;
-      const key = p.name.trim().toLowerCase();
-      if(!key || seen.has(key)) return;
-      seen.add(key);
-      ordered.push({
-        id: 'place-' + key.replace(/[^a-z0-9]+/g,'-'),
-        tag: p.name.toUpperCase(),
-        caption: p.caption && p.caption !== p.name ? p.caption : p.name,
-        type: 'image', src: p.photo, alt: p.name,
-        place: p.name,
-        // Only set when the itinerary place-picker recorded real
-        // coordinates (e.g. via Google Places) — otherwise the flip
-        // card's back face shows the "no location yet" note instead
-        // of a fabricated distance.
-        lat: typeof p.lat === 'number' ? p.lat : null,
-        lng: typeof p.lng === 'number' ? p.lng : null,
-      });
-    });
-  });
-  // no real places added anywhere yet — show the curated fallback set
-  return ordered.length ? ordered : GALLERY_MEDIA.slice();
-}
-
-/* ---------- Flip-card back face: distance + bearing from HOME_BASE ----------
-   Only rendered when the media item carries lat/lng (real named places do,
-   via the itinerary place-picker; the curated fallback set has them baked
-   in above). Cards without coordinates flip to a plain "no location yet"
-   note instead of a fabricated distance. */
-function galleryBackFaceHTML(m){
-  if(m.lat == null || m.lng == null){
-    return `<div class="flip-face flip-back">
-      <div class="fb-top"><p class="fb-name">${escapeHtml(m.place || m.tag)}</p></div>
-      <p class="fb-note">No exact location pinned for this one yet — add it as a place in the itinerary planner to get distance &amp; directions here.</p>
-    </div>`;
-  }
-  const dest = { lat:m.lat, lng:m.lng };
-  const km = haversineKm(HOME_BASE, dest);
-  const brg = Math.round(bearingDeg(HOME_BASE, dest));
-  const url = mapsDirectionsUrl(HOME_BASE, dest);
-  return `<div class="flip-face flip-back">
-    <div class="fb-top">
-      <p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${escapeHtml(m.tag)}</p>
-      <p class="fb-name">${escapeHtml(m.place)}</p>
-      <p class="fb-dist"><span class="num">${km.toFixed(1)}</span>km from the villa</p>
-    </div>
-    <div class="compass" aria-hidden="true">
-      <span class="n-label">N</span>
-      <span class="needle" style="transform:translateX(-50%) rotate(${brg}deg)"></span>
-    </div>
-    <a class="fb-directions" href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
-      <span>Get directions</span><span aria-hidden="true">↗</span>
-    </a>
-  </div>`;
-}
-
-function galleryCardHTML(m, i, extraClass){
-  const media = m.type === 'video'
-    ? `<video autoplay muted loop playsinline preload="none" loading="lazy" poster="${m.poster}" onerror="this.replaceWith(Object.assign(new Image(),{src:'${m.poster}',alt:'${m.alt}'}))"><source src="${m.video}" type="video/mp4"></video>`
-    : `<img src="${m.src}" alt="${m.alt}">`;
-  return `<div class="gallery-item${extraClass ? ' ' + extraClass : ''}" data-index="${i}">
-    <div class="flip-hint" aria-hidden="true">⤵</div>
-    <div class="flip-inner">
-      <div class="flip-face flip-front">
-        ${media}
-        <div class="cap"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${String(i+1).padStart(2,'0')} — ${m.tag}</p><p class="display text-lg font-semibold">${m.caption}</p></div>
-      </div>
-      ${galleryBackFaceHTML(m)}
-    </div>
-  </div>`;
-}
-
-function gallerySlideHTML(m, i){
-  return galleryCardHTML(m, i, 'swiper-slide');
-}
-
-/* ============================================================
-   MOTION CAROUSEL PARALLAX — Pure JavaScript, Framer Motion
-   inspired parallax carousel without dependencies. Renders items
-   with scale + opacity based on distance from center, creating
-   depth and visual hierarchy. Touch-friendly with smooth animation.
-=============================================================*/
-let motionCarouselState = { current: 0, items: [], autoplayInterval: null, isDragging: false, startX: 0, currentX: 0, dragMoved: false };
-
-function renderMotionCarousel(mediaList){
-  if(!mediaList || mediaList.length === 0) return;
-  
-  motionCarouselState.items = mediaList;
-  motionCarouselState.current = 0;
-  
-  const container = document.getElementById('motionCarouselInner');
-  if(!container) return;
-  
-  // Render all items into the carousel as a flat row (motion.dev style — no scale/opacity falloff)
-  container.innerHTML = mediaList.map((m, i) => galleryCardHTML(m, i)).join('');
-
-  // Enable drag/touch + tap-to-flip/maps — guarded so re-rendering the
-  // carousel (e.g. when the itinerary's places change) doesn't stack up
-  // duplicate listeners on the same container.
-  if(!container.dataset.listenersBound){
-    container.addEventListener('mousedown', motionCarouselStartDrag);
-    container.addEventListener('touchstart', motionCarouselStartDrag);
-    // Tap-to-flip (desktop) / tap-to-open-Google-Maps (mobile). A drag that
-    // moves the slide shouldn't also trigger a flip — see the moved-guard
-    // in motionCarouselStartDrag/EndDrag.
-    container.addEventListener('click', motionCarouselCardClick);
-    container.dataset.listenersBound = '1';
-  }
-
-  // Start autoplay
-  motionCarouselStartAutoplay();
-  
-  // Initial render
-  motionCarouselUpdatePosition();
-}
-
-function motionCarouselCardClick(e){
-  if(motionCarouselState.dragMoved) return; // this click was really the end of a drag
-  const card = e.target.closest('.gallery-item');
-  if(!card || !container_contains_card(card)) return;
-  const idx = Number(card.dataset.index);
-  const m = motionCarouselState.items[idx];
-  if(!m) return;
-
-  const isMobile = window.innerWidth < 768 || 'ontouchstart' in window;
-  if(isMobile && m.lat != null && m.lng != null){
-    // Skip the flip entirely on mobile — go straight to native Google Maps,
-    // exactly like the flip card's "Get directions" button does on desktop.
-    window.open(mapsDirectionsUrl(HOME_BASE, { lat:m.lat, lng:m.lng }), '_blank', 'noopener');
+let swiperReadyCallbacks = [];
+function onSwiperReady(cb){ window.Swiper ? cb() : swiperReadyCallbacks.push(cb); }
+function loadSwiper(sources, i){
+  i = i || 0;
+  if(window.Swiper){ swiperReadyCallbacks.forEach(cb=>cb()); swiperReadyCallbacks = []; return; }
+  if(i >= sources.length){
+    console.warn('All Swiper CDN sources were blocked or unreachable — the places carousel will stay as a plain (non-swipeable) stack, the rest of the page still works.');
     return;
   }
-  // FIX: Toggle the clicked card FIRST, then unflip all others.
-  // Previously, unflipAll() was called first, which would unflip the clicked card,
-  // then the toggle would flip it back — making it impossible to close a card by
-  // clicking it again (it would just stay flipped).
-  card.classList.toggle('flipped');
-  document.querySelectorAll('#motionCarouselInner .gallery-item.flipped').forEach(el => {
-    if(el !== card) el.classList.remove('flipped');
-  });
+  const src = sources[i];
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = src.css;
+  document.head.appendChild(link);
+  const script = document.createElement('script');
+  script.src = src.js;
+  script.onload = () => { swiperReadyCallbacks.forEach(cb=>cb()); swiperReadyCallbacks = []; };
+  script.onerror = () => { link.remove(); loadSwiper(sources, i+1); };
+  document.head.appendChild(script);
 }
-function container_contains_card(card){
-  return document.getElementById('motionCarouselInner')?.contains(card);
-}
-function motionCarouselUnflipAll(){
-  document.querySelectorAll('#motionCarouselInner .gallery-item.flipped').forEach(el => el.classList.remove('flipped'));
-}
-
-function motionCarouselUpdatePosition(){
-  const container = document.getElementById('motionCarouselInner');
-  if(!container) return;
-  
-  const items = container.querySelectorAll('.gallery-item');
-  const count = items.length;
-  if(count === 0) return;
-  
-  const current = motionCarouselState.current;
-  const first = items[0];
-  const gap = parseFloat(getComputedStyle(container).gap) || 16;
-  const slideWidth = first.getBoundingClientRect().width + gap;
-  
-  // Flat slide — translate the whole track, no per-item scale/opacity (motion.dev style)
-  container.style.transform = `translateX(-${current * slideWidth}px)`;
-  
-  // Disable arrows at the ends
-  const prevBtn = document.getElementById('carouselPrevBtn');
-  const nextBtn = document.getElementById('carouselNextBtn');
-  if(prevBtn) prevBtn.disabled = current === 0;
-  if(nextBtn) nextBtn.disabled = current === count - 1;
-
-  // A slide change is a good moment to reset any flipped card — mirrors
-  // the auto-unflip behaviour already used on the itinerary places carousel.
-  motionCarouselUnflipAll();
-}
-
-function motionCarouselNext(){
-  motionCarouselState.current = Math.min(motionCarouselState.current + 1, motionCarouselState.items.length - 1);
-  motionCarouselUpdatePosition();
-  motionCarouselResetAutoplay();
-}
-
-function motionCarouselPrev(){
-  motionCarouselState.current = Math.max(motionCarouselState.current - 1, 0);
-  motionCarouselUpdatePosition();
-  motionCarouselResetAutoplay();
-}
-
-function motionCarouselGoTo(index){
-  motionCarouselState.current = Math.max(0, Math.min(index, motionCarouselState.items.length - 1));
-  motionCarouselUpdatePosition();
-  motionCarouselResetAutoplay();
-}
-
-function motionCarouselStartDrag(e){
-  if(motionCarouselState.items.length < 2) return;
-  motionCarouselState.isDragging = true;
-  motionCarouselState.dragMoved = false;
-  motionCarouselState.startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-  motionCarouselState.currentX = motionCarouselState.startX;
-  document.addEventListener('mousemove', motionCarouselDrag);
-  document.addEventListener('touchmove', motionCarouselDrag);
-  document.addEventListener('mouseup', motionCarouselEndDrag);
-  document.addEventListener('touchend', motionCarouselEndDrag);
-  motionCarouselClearAutoplay();
-}
-
-function motionCarouselDrag(e){
-  if(!motionCarouselState.isDragging) return;
-  motionCarouselState.currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
-  if(Math.abs(motionCarouselState.startX - motionCarouselState.currentX) > 6){
-    motionCarouselState.dragMoved = true; // real swipe, not a tap — suppress the click-to-flip
-  }
-}
-
-function motionCarouselEndDrag(){
-  if(!motionCarouselState.isDragging) return;
-  motionCarouselState.isDragging = false;
-  
-  const delta = motionCarouselState.startX - motionCarouselState.currentX;
-  if(Math.abs(delta) > 40){
-    if(delta > 0) motionCarouselNext(); else motionCarouselPrev();
-  }
-  
-  document.removeEventListener('mousemove', motionCarouselDrag);
-  document.removeEventListener('touchmove', motionCarouselDrag);
-  document.removeEventListener('mouseup', motionCarouselEndDrag);
-  document.removeEventListener('touchend', motionCarouselEndDrag);
-  
-  motionCarouselStartAutoplay();
-  // Clear the drag-moved guard just after this tick so the click event that
-  // (in some browsers) follows touchend/mouseup doesn't get suppressed too.
-  setTimeout(() => { motionCarouselState.dragMoved = false; }, 0);
-}
-
-function motionCarouselStartAutoplay(){
-  if(motionCarouselState.autoplayInterval) return;
-  motionCarouselState.autoplayInterval = setInterval(() => {
-    motionCarouselNext();
-  }, 3800);
-}
-
-function motionCarouselClearAutoplay(){
-  if(motionCarouselState.autoplayInterval){
-    clearInterval(motionCarouselState.autoplayInterval);
-    motionCarouselState.autoplayInterval = null;
-  }
-}
-
-function motionCarouselResetAutoplay(){
-  motionCarouselClearAutoplay();
-  motionCarouselStartAutoplay();
-}
-
-// Keyboard navigation
-document.addEventListener('keydown', e => {
-  if(e.key === 'ArrowLeft') motionCarouselPrev();
-  if(e.key === 'ArrowRight') motionCarouselNext();
-});
-
-// Arrow button navigation
-document.getElementById('carouselPrevBtn')?.addEventListener('click', motionCarouselPrev);
-document.getElementById('carouselNextBtn')?.addEventListener('click', motionCarouselNext);
-
-// Recompute slide offset on resize (card width is responsive)
-let motionCarouselResizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(motionCarouselResizeTimer);
-  motionCarouselResizeTimer = setTimeout(motionCarouselUpdatePosition, 120);
-});
-
-function renderGallery(mediaList){ renderMotionCarousel(mediaList); }
-function refreshGallery(days){ renderGallery(matchGalleryFromItinerary(days)); }
-
-// ---------- Loading skeleton ----------
-function renderGallerySkeleton(){
-  const container = document.getElementById('motionCarouselInner');
-  if(!container) return;
-  container.innerHTML = Array.from({length:3}).map((_, i) => 
-    `<div class="gallery-item gallery-skel" data-index="${i}"></div>`
-  ).join('');
-  motionCarouselState.items = [];
-  motionCarouselClearAutoplay();
-}
-
-// First paint — loading placeholder
-renderGallerySkeleton();
+loadSwiper(SWIPER_SOURCES);
 </script>
-<script src="shared.js"></script>
-<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
-<script>initSmoothScroll();</script>
 <script>
 /* ============================================================
-   HERO 3D — optional LIVE Spline scene, swapped in for the hero video.
-   This is the heavier, interactive path (real-time WebGL) and is
-   intentionally desktop-only — see the width/reduced-motion guard
-   below. For a cheaper, mobile-safe option that still gets you a
-   Spline look, just export the scene as a video from the Spline
-   editor and drop it at videos/hero-spline.mp4 — the <video> tag
-   above already prefers that file automatically, no code needed.
-
-   TODO (only if you want the LIVE version too): paste your exported
-   scene URL here once it's built in the Spline editor
-   (Export → Public URL → "Code export" panel). Leave it as '' and
-   this whole block quietly does nothing — the video hero keeps
-   working exactly as before.
+   PLACES CAROUSEL (Swiper.js) — cards are generated from
+   PLACES_CATALOG below, then automatically filtered/ordered to
+   match whatever's actually in the itinerary. syncPlacesFromItinerary()
+   is called every time renderItinerary() runs (both the default
+   plan on load, and again whenever the backend itinerary syncs),
+   so this list adds or drops cards on its own as days change —
+   no manual upkeep needed here.
 =============================================================*/
-const SPLINE_SCENE_URL = ''; // e.g. 'https://prod.spline.design/XXXXXXXXXXXX/scene.splinecode'
+const PLACES_CATALOG = [
+  { label:'BUTTERFLY BEACH', tagline:"Coves you can't reach by road.",
+    img:'https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=700&h=900&fit=crop',
+    imgAlt:'Aerial view of Butterfly Beach, a secluded cove in South Goa',
+    keywords:['butterfly beach','butterfly'],
+    route:{ title:'Villa, Parra → Butterfly Beach', place:'Butterfly Beach',
+      distIcon:'🚗', distVal:'~78 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~2h 15m', timeLbl:'Drive time',
+      desc:"Head south on NH366 past Margao to Agonda or Palolem — there's no direct road in. From either beach, hop a 15–20 min boat/kayak, or hike ~40 min over the headland.",
+      daddr:'Butterfly+Beach,+Goa,+India', zoom:10, note:'Approx, based on typical road + boat times — confirm on maps before you go.' } },
+  { label:'PALOLEM', tagline:'Shade for the slow afternoons.',
+    img:'https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=700&h=900&fit=crop',
+    imgAlt:'Beach huts and palm trees at Palolem Beach, Goa',
+    keywords:['palolem'],
+    route:{ title:'Villa, Parra → Palolem', place:'Palolem Beach',
+      distIcon:'🚗', distVal:'~68 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~1h 50m', timeLbl:'Drive time',
+      desc:'Straight down NH66 through Margao and Chaudi — mostly highway, easy drive. Parking fills up by late morning in season, so leave early or plan for a short walk in.',
+      daddr:'Palolem+Beach,+Goa,+India', zoom:10, note:'Approx — traffic through Margao adds 15–20 min at peak hours.' } },
+  { label:'FORT AGUADA', tagline:'Ramparts, lighthouse, sea view.',
+    img:'https://images.unsplash.com/photo-1584111728495-7d9599602355?w=700&h=900&fit=crop',
+    imgAlt:'View of the Arabian Sea from Fort Aguada, Candolim, Goa',
+    keywords:['fort aguada','aguada'],
+    route:{ title:'Villa, Parra → Fort Aguada', place:'Fort Aguada',
+      distIcon:'🛵', distVal:'~8 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~20 min', timeLbl:'Ride time',
+      desc:'The closest one on this list. Down through Saligao and Candolim, sea on your left the last stretch. Easy on a scooter — no highway needed.',
+      daddr:'Fort+Aguada,+Goa,+India', zoom:12, note:'Approx — good for a quick sunset run before dinner.' } },
+  { label:'QUERIM, SUNSET', tagline:'Sunset walk, every evening.',
+    img:'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=700&h=900&fit=crop',
+    imgAlt:'Golden hour sunset over Querim Beach, Goa',
+    keywords:['querim','keri beach'],
+    route:{ title:'Villa, Parra → Querim', place:'Querim (Keri) Beach',
+      distIcon:'🚗', distVal:'~34 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~55 min', timeLbl:'Drive + ferry',
+      desc:'North on NH66 through Mapusa and Arambol, then the Tiracol river ferry crossing (free, ~10 min, runs till late evening). Time it so you\'re not stuck waiting on either bank.',
+      daddr:'Querim+Beach,+Goa,+India', zoom:10, note:'Approx — ferry frequency varies, build in slack.' } },
+  { label:'HIDDEN COVE', tagline:'North Goa, off the map.',
+    img:'https://images.unsplash.com/photo-1695411560021-9374401d38b4?w=700&h=900&fit=crop',
+    imgAlt:'A hidden, secluded beach in North Goa',
+    keywords:['hidden cove','vagator','anjuna'],
+    route:{ title:'Villa, Parra → Hidden Cove', place:'Hidden Cove, N. Goa',
+      distIcon:'🛵', distVal:'~12 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~30 min', timeLbl:'Ride time',
+      desc:'Via Anjuna and Vagator, then a short unpaved stretch on foot or scooter down to the cove. No signage — ask locally or drop a pin once you\'ve scouted it once.',
+      daddr:'Vagator+Beach,+Goa,+India', zoom:12, note:"Approx — last bit isn't reliably mapped, treat as a rough guide." } },
+  { label:'DUDHSAGAR FALLS', tagline:'A full day trip into the Ghats.',
+    img:'https://images.unsplash.com/photo-1667760334198-d3958029a08b?w=700&h=900&fit=crop',
+    imgAlt:'Dudhsagar Falls, a four-tiered waterfall on the Mandovi River, Goa',
+    keywords:['dudhsagar'],
+    route:{ title:'Villa, Parra → Dudhsagar', place:'Dudhsagar Falls',
+      distIcon:'🚗', distVal:'~72 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~2h 10m', timeLbl:'Drive + jeep',
+      desc:'Drive to Mollem via Ponda, then switch to a shared jeep safari (~45 min) through the sanctuary — private cars aren\'t allowed the whole way. Block out a full day.',
+      daddr:'Dudhsagar+Falls,+Goa,+India', zoom:10, note:'Approx — jeeps queue up in peak season, go early.' } },
+  { label:'OLD GOA', tagline:'Baroque churches, 400 years deep.',
+    img:'https://images.unsplash.com/photo-1587922546931-b3d3a06adfd1?w=700&h=900&fit=crop',
+    imgAlt:'Basilica of Bom Jesus in Old Goa',
+    keywords:['old goa'],
+    route:{ title:'Villa, Parra → Old Goa', place:'Old Goa',
+      distIcon:'🚗', distVal:'~28 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~50 min', timeLbl:'Drive time',
+      desc:'East via Mapusa and Panjim, crossing the Mandovi — the Basilica of Bom Jesus and Sé Cathedral are a few minutes apart, both walkable once you\'re there.',
+      daddr:'Old+Goa,+Goa,+India', zoom:11, note:'Approx — the churches close mid-afternoon on some days, check before driving out.' } },
+];
 
-(function initHeroSpline(){
-  if(!SPLINE_SCENE_URL) return;
+function toggleFlip(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.toggle('flipped');
+  if(el.classList.contains('flipped')){
+    const routeMap = el.querySelector('.route-map');
+    const iframe = routeMap && routeMap.querySelector('iframe');
+    if(iframe && !iframe.getAttribute('src') && iframe.dataset.src){
+      iframe.addEventListener('load', () => routeMap.classList.add('loaded'), { once:true });
+      // Fallback for slow networks — mark loaded after 3s regardless.
+      setTimeout(() => routeMap.classList.add('loaded'), 3000);
+      iframe.src = iframe.dataset.src;
+    }
+  }
+}
 
-  // Skip on reduced-motion and on small/mobile viewports — a live
-  // WebGL scene is exactly the kind of thing that runs a phone warm
-  // on a beach trip, and the video hero already looks good there.
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reducedMotion || window.innerWidth < 768) return;
+function buildPlaceCardHTML(place, index, badge){
+  const n = index + 1;
+  const num = String(n).padStart(2,'0');
+  const id = 'flip-' + n;
+  const badgeHTML = badge ? `<span class="gallery-badge mono" data-swiper-parallax="-50" data-swiper-parallax-opacity="0.4" data-swiper-parallax-duration="500">${escapeHtml(badge)}</span>` : '';
+  return `
+    <div class="swiper-slide">
+      <div class="gallery-item" id="${id}" onclick="toggleFlip('${id}')" onkeypress="if(event.key==='Enter') toggleFlip('${id}')" tabindex="0" role="button" aria-label="${escapeHtml(place.label)} — Press Enter to see directions">
+        <div class="flip-card-inner">
+          <div class="flip-face flip-front">
+            <div class="parallax-photo" data-swiper-parallax="-8%" data-swiper-parallax-scale="0.88" data-swiper-parallax-duration="650">
+              <img src="${place.img}" alt="${escapeHtml(place.imgAlt)}">
+            </div>
+            ${badgeHTML}
+            <div class="cap" data-swiper-parallax="-70" data-swiper-parallax-opacity="0.55" data-swiper-parallax-duration="550"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${num} — ${place.label}</p><p class="display text-lg font-semibold">${place.tagline}</p><p class="text-[10px] opacity-55 mt-1">Tap card for directions →</p></div>
+          </div>
+          <div class="flip-face flip-back">
+            <p class="route-title">${place.route.title}</p>
+            <p class="route-place">${place.route.place}</p>
+            <div class="route-stat"><span class="rs-icon">${place.route.distIcon}</span><span class="rs-val">${place.route.distVal}</span><span class="rs-lbl">${place.route.distLbl}</span></div>
+            <div class="route-stat"><span class="rs-icon">${place.route.timeIcon}</span><span class="rs-val">${place.route.timeVal}</span><span class="rs-lbl">${place.route.timeLbl}</span></div>
+            <p class="route-desc">${place.route.desc}</p>
+            <div class="route-map"><iframe data-src="https://maps.google.com/maps?saddr=Villa,+Parra,+Goa,+India&daddr=${place.route.daddr}&output=embed&z=${place.route.zoom}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Route from Villa, Parra"></iframe></div>
+            <a class="route-open-link" href="https://www.google.com/maps/dir/?api=1&origin=Villa,+Parra,+Goa,+India&destination=${place.route.daddr}&travelmode=driving" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open directions in Google Maps ↗</a>
+            <p class="route-note">${place.route.note}</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
 
-  const splineScript = document.createElement('script');
-  splineScript.type = 'module';
-  splineScript.src = 'https://unpkg.com/@splinetool/viewer/build/spline-viewer.js';
-  splineScript.onload = () => {
-    const wrap = document.getElementById('heroSpline');
-    const video = document.getElementById('heroVideo');
-    if(!wrap) return;
-    const viewer = document.createElement('spline-viewer');
-    viewer.setAttribute('url', SPLINE_SCENE_URL);
-    viewer.setAttribute('loading', 'eager');
-    wrap.appendChild(viewer);
-    wrap.classList.add('active');
-    if(video){ video.pause(); video.style.display = 'none'; }
-  };
-  // If the script itself fails to load (offline, CSP, CDN down), the
-  // video hero is untouched — nothing to catch or fall back to here.
-  document.head.appendChild(splineScript);
-})();
-</script>
-<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-<script>
+let placesSwiperInstance = null;
+function initPlacesSwiper(){
+  if(!window.Swiper){
+    // Swiper hasn't finished loading yet (slow network, or still
+    // trying a fallback CDN) — re-run this exact init once it's
+    // ready instead of giving up, so the carousel still activates
+    // even if it loses the race against the CDN script.
+    onSwiperReady(initPlacesSwiper);
+    return;
+  }
+  if(placesSwiperInstance){ placesSwiperInstance.destroy(true, true); placesSwiperInstance = null; }
+  const slideCount = document.querySelectorAll('.placesSwiper .swiper-slide').length;
+  // Swiper's loop mode duplicates slides to fake infinite scroll — with
+  // too few real slides (e.g. only 1-2 places matched from the
+  // itinerary) it can't build that duplicate set correctly and slides
+  // end up stacked on top of each other with no transform applied,
+  // instead of scrolling into place. Only loop when there are enough
+  // slides to actually support it; otherwise fall back to a plain,
+  // non-looping (but still swipeable) carousel.
+  const canLoop = slideCount >= 6;
+  placesSwiperInstance = new Swiper('.placesSwiper', {
+    direction: 'horizontal',
+    effect: 'slide',
+    // Parallax replaces the old coverflow 3D tilt: photo, badge and
+    // caption inside each slide now shift/scale/fade based on that
+    // slide's own progress (see data-swiper-parallax* attributes in
+    // buildPlaceCardHTML). Progress is computed the same way whether
+    // slides are moved by touch/drag, the arrow buttons, or autoplay,
+    // so the effect is identical on mobile and desktop — nothing here
+    // is gated behind a breakpoint or hover state.
+    parallax: true,
+    slidesPerView: 1.15,
+    spaceBetween: 20,
+    centeredSlides: true,
+    loop: canLoop,
+    watchSlidesProgress: true,
+    observer: true,
+    observeParents: true,
+    breakpoints: {
+      640:  { slidesPerView: 1.4, spaceBetween: 24 },
+      900:  { slidesPerView: 1.8, spaceBetween: 28 },
+      1280: { slidesPerView: 2.1, spaceBetween: 32 },
+    },
+    autoplay: slideCount > 1 ? { delay: 3200, disableOnInteraction: true, pauseOnMouseEnter: true } : false,
+    speed: 650,
+    grabCursor: true,
+    pagination: { el: '.places-pagination', clickable: true },
+    navigation: { nextEl: '.carousel-next', prevEl: '.carousel-prev' },
+    on: {
+      // If a card is flipped to its "route" back face and the user then
+      // swipes/arrows/autoplays to a different slide, flip it back to
+      // the front so nobody navigates away with the answer still showing.
+      slideChange(){
+        document.querySelectorAll('.placesSwiper .gallery-item.flipped').forEach(el => toggleFlip(el.id));
+      },
+    },
+  });
+}
+
+function renderGalleryCards(entries, fromItinerary){
+  const wrap = document.getElementById('placesWrapper');
+  const intro = document.getElementById('placesIntro');
+  if(!wrap) return;
+  wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e.place, i, e.badge)).join('');
+  if(intro){
+    intro.textContent = fromItinerary
+      ? `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — swipe through, or let it auto-play while you scroll.`
+      : "Six spots worth building a day around — swipe through, or let it auto-play while you scroll.";
+  }
+  initPlacesSwiper();
+}
+
+/**
+ * Scans each itinerary day's title + items for a catalog place's
+ * keywords. A match ties that card to the day it was found in
+ * (shown as a small badge) and pulls it to the front of the
+ * carousel in day order. If nothing in the itinerary matches yet
+ * (e.g. days are still marked TBD), falls back to the full catalog
+ * so the carousel is never empty.
+ */
+function syncPlacesFromItinerary(days){
+  const haystacks = (days||[]).map((d,idx)=>({
+    day:d, idx,
+    text:((d.title||'') + ' ' + (d.items||[]).join(' ')).toLowerCase()
+  }));
+  const matches = [];
+  PLACES_CATALOG.forEach(place=>{
+    const hit = haystacks.find(h => place.keywords.some(k => h.text.includes(k)));
+    if(hit) matches.push({ place, idx:hit.idx, badge: [hit.day.day, hit.day.date].filter(Boolean).join(' · ') });
+  });
+  matches.sort((a,b)=>a.idx-b.idx);
+  const entries = matches.length >= 3 ? matches : PLACES_CATALOG.map(place=>({ place, badge:null }));
+  renderGalleryCards(entries, matches.length >= 3);
+}
+
+// Paint the full catalog immediately so the section isn't empty
+// while the itinerary script (further down the page) loads and
+// runs the real sync.
+renderGalleryCards(PLACES_CATALOG.map(place=>({ place, badge:null })), false);
+
 /* ============================================================
-   HERO 3D (built-in) — a procedural WebGL "Golden Hour Goa" scene:
-   sun, drifting clouds, a wireframe-free animated ocean, two palm
-   silhouettes, a bobbing boat and a few birds. Everything here is
-   generated at runtime from Three.js primitives + canvas textures —
-   there's no .splinecode file to export, upload or keep in sync,
-   and it runs the instant this file loads.
-
-   This only takes over when SPLINE_SCENE_URL above is left empty,
-   so a real Spline scene (if you add one later) always wins. Same
-   guards as the live-Spline path: desktop only, skipped entirely
-   on prefers-reduced-motion or narrow/mobile viewports, where the
-   video hero keeps doing the job.
+   OCEAN DIVE: scroll-linked depth + ambient bubbles
 =============================================================*/
-(function initHeroWebGL(){
-  if(SPLINE_SCENE_URL) return; // a real Spline scene takes priority
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reducedMotion || window.innerWidth < 768) return;
-
-  const wrap = document.getElementById('heroSpline');
-  const video = document.getElementById('heroVideo');
-  if(!wrap || typeof THREE === 'undefined') return;
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, wrap.clientWidth / Math.max(wrap.clientHeight,1), 0.1, 100);
-  camera.position.set(0, 2.3, 9);
-  camera.lookAt(0, 1.1, 0);
-
-  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-  renderer.domElement.style.cssText = 'width:100%;height:100%;display:block;';
-  wrap.appendChild(renderer.domElement);
-
-  function makeCanvasTexture(draw, w, h){
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
-    draw(c.getContext('2d'), w, h);
-    const tex = new THREE.CanvasTexture(c);
-    tex.needsUpdate = true;
-    return tex;
+(function(){
+  const root = document.documentElement;
+  let ticking = false;
+  function updateDepth(){
+    const max = document.body.scrollHeight - window.innerHeight;
+    const frac = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    root.style.setProperty('--depth', frac.toFixed(4));
+    ticking = false;
   }
-
-  // ---- sky gradient (Golden Hour Goa palette) ----
-  scene.background = makeCanvasTexture((ctx,w,h)=>{
-    const g = ctx.createLinearGradient(0,0,0,h);
-    g.addColorStop(0, '#0B3D3A');
-    g.addColorStop(0.55, '#E85D2A');
-    g.addColorStop(1, '#FF7A45');
-    ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
-  }, 4, 256);
-
-  function glowTexture(hex){
-    return makeCanvasTexture((ctx)=>{
-      const g = ctx.createRadialGradient(128,128,0,128,128,128);
-      g.addColorStop(0, hex + 'ff'); g.addColorStop(0.45, hex + '80'); g.addColorStop(1, hex + '00');
-      ctx.fillStyle = g; ctx.fillRect(0,0,256,256);
-    }, 256, 256);
-  }
-
-  // ---- sun ----
-  const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture('#FF7A45'), transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
-  sunGlow.scale.set(9,9,1);
-  sunGlow.position.set(1.4, 3.3, -6);
-  scene.add(sunGlow);
-  const sunCore = new THREE.Mesh(new THREE.CircleGeometry(0.85, 48), new THREE.MeshBasicMaterial({ color:0xFFD9A0 }));
-  sunCore.position.copy(sunGlow.position);
-  scene.add(sunCore);
-
-  scene.add(new THREE.DirectionalLight(0xFFDAB0, 1.1)).position.set(2,4,3);
-  scene.add(new THREE.AmbientLight(0x224a45, 0.95));
-
-  // ---- clouds ----
-  const cloudTex = glowTexture('#FBF6EC');
-  const clouds = [];
-  for(let i=0;i<4;i++){
-    const cl = new THREE.Sprite(new THREE.SpriteMaterial({ map:cloudTex, transparent:true, opacity:0.45 }));
-    cl.scale.set(4+Math.random()*2, 1.6+Math.random(), 1);
-    cl.position.set(-8+Math.random()*16, 2.8+Math.random()*1.6, -5-Math.random()*3);
-    scene.add(cl); clouds.push(cl);
-  }
-
-  // ---- ocean: displaced plane, recolored per-vertex each frame ----
-  const oceanGeo = new THREE.PlaneGeometry(30, 16, 100, 50);
-  oceanGeo.rotateX(-Math.PI/2.15);
-  const oceanPos = oceanGeo.attributes.position;
-  const oceanColorArr = new Float32Array(oceanPos.count * 3);
-  oceanGeo.setAttribute('color', new THREE.BufferAttribute(oceanColorArr, 3));
-  const ocean = new THREE.Mesh(oceanGeo, new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.35, metalness:0.05, transparent:true, opacity:0.94 }));
-  ocean.position.y = -0.4;
-  scene.add(ocean);
-  const deepC = new THREE.Color('#123F3C'), shallowC = new THREE.Color('#3B82C4'), foamC = new THREE.Color('#FBF6EC');
-  const tmpColor = new THREE.Color();
-
-  // ---- palm silhouettes ----
-  const palmTex = makeCanvasTexture((ctx)=>{
-    ctx.strokeStyle = '#2F5F44'; ctx.lineCap = 'round';
-    ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(64,192); ctx.quadraticCurveTo(50,90,60,40); ctx.stroke();
-    for(let a=0;a<6;a++){
-      const ang = (a/6)*Math.PI*1.4 - 0.7;
-      ctx.beginPath(); ctx.moveTo(60,40);
-      ctx.quadraticCurveTo(60+Math.cos(ang)*40, 40+Math.sin(ang)*20-20, 60+Math.cos(ang)*72, 40+Math.sin(ang)*46-8);
-      ctx.lineWidth = 11; ctx.strokeStyle = '#3E7C59'; ctx.stroke();
+  window.addEventListener('scroll', ()=>{
+    if(!ticking){ requestAnimationFrame(updateDepth); ticking = true; }
+    
+    // Update right-side route map with page scroll
+    const progressLine = document.getElementById('scrollbarProgress');
+    const trainIndicator = document.getElementById('trainIndicator');
+    
+    if(progressLine && trainIndicator){
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollProgress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+      const scrollY = scrollProgress * 1200;
+      
+      progressLine.setAttribute('y2', scrollY);
+      trainIndicator.setAttribute('cy', scrollY);
+      
+      // Update stop markers and details
+      const stops = [
+        { y: 100, id: 1 },
+        { y: 500, id: 2 },
+        { y: 900, id: 3 }
+      ];
+      
+      let closestStop = stops[0];
+      let minDist = Math.abs(scrollY - stops[0].y);
+      
+      for(let stop of stops){
+        const dist = Math.abs(scrollY - stop.y);
+        if(dist < minDist){
+          minDist = dist;
+          closestStop = stop;
+        }
+      }
+      
+      // Update stop markers
+      document.querySelectorAll('.stop-marker').forEach((marker, idx) => {
+        marker.classList.remove('active');
+        if(Math.abs(scrollY - stops[idx].y) < 150){
+          marker.classList.add('active');
+        }
+      });
+      
+      // Update detail stops
+      document.querySelectorAll('.detail-stop').forEach((detail, idx) => {
+        detail.classList.remove('active');
+        if(Math.abs(scrollY - stops[idx].y) < 150){
+          detail.classList.add('active');
+        }
+      });
     }
-  }, 128, 200);
-  [-4.4, 4.7].forEach(x=>{
-    const p = new THREE.Sprite(new THREE.SpriteMaterial({ map:palmTex, transparent:true }));
-    p.scale.set(3, 4.6, 1);
-    p.position.set(x, 1.7, -1);
-    scene.add(p);
-  });
+  }, {passive:true});
+  window.addEventListener('resize', updateDepth);
+  updateDepth();
 
-  // ---- boat ----
-  const boatTex = makeCanvasTexture((ctx)=>{
-    ctx.fillStyle = '#0F2622';
-    ctx.beginPath(); ctx.moveTo(20,60); ctx.quadraticCurveTo(80,80,140,60); ctx.lineTo(120,45); ctx.lineTo(40,45); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#0F2622'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(80,45); ctx.lineTo(80,10); ctx.stroke();
-  }, 160, 90);
-  const boat = new THREE.Sprite(new THREE.SpriteMaterial({ map:boatTex, transparent:true }));
-  boat.scale.set(2.1, 1.2, 1);
-  boat.position.set(-0.6, -0.05, 1.6);
-  scene.add(boat);
-
-  // ---- birds ----
-  const birdTex = makeCanvasTexture((ctx)=>{
-    ctx.strokeStyle = '#0F2622'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(4,20); ctx.quadraticCurveTo(16,4,32,16); ctx.quadraticCurveTo(48,4,60,20); ctx.stroke();
-  }, 64, 32);
-  const birds = [];
-  for(let i=0;i<3;i++){
-    const b = new THREE.Sprite(new THREE.SpriteMaterial({ map:birdTex, transparent:true }));
-    b.scale.set(0.8, 0.4, 1);
-    b.position.set(-6+i*2.4, 3.5+Math.random()*0.6, -3);
-    scene.add(b); birds.push(b);
-  }
-
-  // ---- animate ----
-  const clock = new THREE.Clock();
-  let raf = null;
-  function tick(){
-    raf = requestAnimationFrame(tick);
-    const t = clock.getElapsedTime();
-
-    for(let i=0;i<oceanPos.count;i++){
-      const x = oceanPos.getX(i), z = oceanPos.getZ(i);
-      const y = Math.sin(x*0.6 + t*1.1)*0.18 + Math.cos(z*0.8 + t*0.8)*0.12;
-      oceanPos.setY(i, y);
-      const h = Math.min(1, Math.max(0, (y+0.3)/0.6));
-      tmpColor.copy(h > 0.78 ? foamC : deepC).lerp(shallowC, h);
-      oceanColorArr[i*3] = tmpColor.r; oceanColorArr[i*3+1] = tmpColor.g; oceanColorArr[i*3+2] = tmpColor.b;
+  // ambient rising bubbles, spawned continuously behind the whole page
+  const layer = document.getElementById('bubbleLayer');
+  if(layer && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    function spawnBubble(){
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 4 + Math.random()*16;
+      b.style.width = size+'px';
+      b.style.height = size+'px';
+      b.style.left = (Math.random()*100)+'%';
+      b.style.setProperty('--drift', (Math.random()*60-30)+'px');
+      const dur = 9 + Math.random()*10;
+      b.style.animationDuration = dur+'s';
+      layer.appendChild(b);
+      setTimeout(()=>b.remove(), dur*1000 + 500);
     }
-    oceanPos.needsUpdate = true;
-    oceanGeo.attributes.color.needsUpdate = true;
-    oceanGeo.computeVertexNormals();
-
-    clouds.forEach((c,i)=>{ c.position.x += 0.0025*(i%2?1:-1); if(c.position.x>10) c.position.x=-10; if(c.position.x<-10) c.position.x=10; });
-    birds.forEach((b,i)=>{ b.position.x += 0.008+i*0.002; b.position.y += Math.sin(t*3+i)*0.0015; if(b.position.x>8) b.position.x=-8; });
-    boat.position.y = -0.05 + Math.sin(t*1.4)*0.05;
-    sunGlow.material.opacity = 0.82 + Math.sin(t*0.6)*0.12;
-
-    renderer.render(scene, camera);
+    for(let i=0;i<14;i++) setTimeout(spawnBubble, i*350);
+    setInterval(spawnBubble, 900);
   }
-  tick();
-
-  function onResize(){
-    if(!wrap.clientWidth || !wrap.clientHeight) return;
-    camera.aspect = wrap.clientWidth / wrap.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
-  }
-  window.addEventListener('resize', onResize);
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.hidden){ if(raf) cancelAnimationFrame(raf); raf = null; }
-    else if(!raf){ tick(); }
-  });
-
-  wrap.classList.add('active');
-  if(video){ video.pause(); video.style.display = 'none'; }
 })();
-</script>
-<script>
+
+/* ============================================================
+   DEPARTURE BOARD — split-flap scramble-to-reveal, airport-style.
+   Plays once on load since the board sits in the hero (always
+   in view on first paint).
+=============================================================*/
+(function(){
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·:/→ '.split('');
+  function flap(el, delay){
+    const final = el.dataset.final || el.textContent;
+    const duration = 650;
+    setTimeout(()=>{
+      const start = performance.now();
+      function tick(now){
+        const elapsed = now - start;
+        if(elapsed < duration){
+          const revealCount = Math.floor((elapsed / duration) * final.length);
+          el.textContent = final.split('').map((c,i)=>{
+            if(c === ' ') return ' ';
+            return i < revealCount ? c : CHARS[Math.floor(Math.random()*CHARS.length)];
+          }).join('');
+          requestAnimationFrame(tick);
+        } else {
+          el.textContent = final;
+        }
+      }
+      requestAnimationFrame(tick);
+    }, delay);
+  }
+  document.querySelectorAll('.dep-value').forEach((el, i)=> flap(el, 200 + i*180));
+})();
+
+/* ============================================================
+   NAV COUNTDOWN — compact live timer stuck to the navbar
+=============================================================*/
+const JOURNEY_START = new Date('2026-10-02T01:50:00').getTime();
+
+function updateNavCountdown(){
+  const el = document.getElementById('navCountdownText');
+  if(!el) return;
+  const remaining = Math.max(0, JOURNEY_START - Date.now());
+  if(remaining <= 0){
+    el.textContent = "In Goa! 🎉";
+    return;
+  }
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  el.textContent = `${days}D ${String(hours).padStart(2,'0')}H ${String(mins).padStart(2,'0')}M ${String(secs).padStart(2,'0')}S`;
+}
+updateNavCountdown();
+setInterval(updateNavCountdown, 1000);
+
 /* ============================================================
    NAV: active link tracking + hide-on-scroll-down
 =============================================================*/
@@ -1195,25 +1572,72 @@ navlinks.forEach(l=>l.addEventListener('click', e=>{
   closeMobileMenu();
   document.querySelector(l.dataset.target).scrollIntoView({behavior:'smooth'});
 }));
-const sections = ['#gallery','#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id));
+
+/* ---------- Rail signal: glides beneath the hovered/active nav link ---------- */
+(function(){
+  const rail = document.getElementById('navRail');
+  const signal = document.getElementById('railSignal');
+  if(!rail || !signal || typeof gsap === 'undefined') return;
+  const stations = Array.from(rail.querySelectorAll('.navlink'));
+  let lastTarget = null;
+
+  function glideTo(el){
+    if(!el) return;
+    lastTarget = el;
+    const railBox = rail.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    gsap.to(signal, {
+      left: box.left - railBox.left,
+      width: box.width,
+      opacity: 1,
+      duration: .55,
+      ease: 'elastic.out(1, 0.75)'
+    });
+  }
+  function currentActive(){
+    return rail.querySelector('.navlink.active') || stations[0];
+  }
+  stations.forEach(el => el.addEventListener('mouseenter', () => glideTo(el)));
+  rail.addEventListener('mouseleave', () => glideTo(currentActive()));
+  window.addEventListener('load', () => glideTo(currentActive()));
+  window.addEventListener('resize', () => { if(lastTarget) glideTo(lastTarget); });
+  // Exposed so the scroll handler below can re-glide when the active section changes.
+  window.__railGlideToActive = () => { if(!rail.matches(':hover')) glideTo(currentActive()); };
+})();
+
+const sections = ['#gallery','#places','#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id));
 let lastY = window.scrollY;
 window.addEventListener('scroll', ()=>{
   const y = window.scrollY;
   const nav = document.getElementById('topnav');
-  if(y > lastY && y > 200){ nav.classList.add('hide'); } else { nav.classList.remove('hide'); }
+  // Hide-on-scroll-down is a mobile-only space-saving behavior.
+  // On desktop (>=768px) the navbar should always stay visible.
+  if(window.innerWidth < 768 && y > lastY && y > 200){ nav.classList.add('hide'); } else { nav.classList.remove('hide'); }
+  nav.classList.toggle('scrolled', y > 60);
   lastY = y;
   let current = null;
   sections.forEach(s=>{ if(s.getBoundingClientRect().top < 140) current = s.id; });
   navlinks.forEach(l=> l.classList.toggle('active', current && l.dataset.target === '#'+current));
+  if(window.__railGlideToActive) window.__railGlideToActive();
 });
+
+/* Google Maps loading state is now handled inline in toggleFlip(), since
+   the maps iframes are lazy-loaded on first flip (see PLACES CAROUSEL
+   above) rather than present in the DOM from page load. */
 
 /* ============================================================
    REVEAL ON SCROLL
 =============================================================*/
 const io = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); } });
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('in');
+      // Stop observing after first appearance to prevent animation re-trigger on scroll back up
+      io.unobserve(e.target);
+    }
+  });
 },{threshold:.2});
-document.querySelectorAll('.leg-card').forEach(el=>io.observe(el));
+document.querySelectorAll('.leg-card, .polaroid').forEach(el=>io.observe(el));
 
 /* ============================================================
    ROUTE PARALLAX
@@ -1222,26 +1646,56 @@ const track = document.getElementById('route-track');
 const fillPath = document.getElementById('route-fill');
 const mover = document.getElementById('mover-train');
 const journeySection = document.getElementById('journey');
-const pathLen = track.getTotalLength();
-fillPath.style.strokeDasharray = pathLen;
-fillPath.style.strokeDashoffset = pathLen;
 const pill = document.getElementById('progress-pill');
 
-function updateRoute(){
-  const rect = journeySection.getBoundingClientRect();
-  const total = rect.height - window.innerHeight;
-  let progress = total > 0 ? (-rect.top) / total : 0;
-  progress = Math.max(0, Math.min(1, progress));
-  const point = track.getPointAtLength(progress * pathLen);
-  mover.setAttribute('transform', `translate(${point.x},${point.y})`);
-  fillPath.style.strokeDashoffset = pathLen * (1 - progress);
-  pill.textContent = Math.round(progress*100) + '% travelled';
-  document.getElementById('leg1').style.opacity = progress > 0.05 ? 1 : 0.5;
-  document.getElementById('leg2').style.opacity = progress > 0.55 ? 1 : 0.5;
+// Guard: these route-map SVG elements aren't present in the current markup.
+// Without this check, track.getTotalLength() on a null element would throw
+// synchronously and halt every script below it on the page.
+if (track && fillPath && mover && journeySection) {
+  const pathLen = track.getTotalLength();
+  fillPath.style.strokeDasharray = pathLen;
+  fillPath.style.strokeDashoffset = pathLen;
+
+  function updateRoute(){
+    const rect = journeySection.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    let progress = total > 0 ? (-rect.top) / total : 0;
+    progress = Math.max(0, Math.min(1, progress));
+    const point = track.getPointAtLength(progress * pathLen);
+    mover.setAttribute('transform', `translate(${point.x},${point.y})`);
+    fillPath.style.strokeDashoffset = pathLen * (1 - progress);
+    if (pill) pill.textContent = Math.round(progress*100) + '% travelled';
+    const leg1 = document.getElementById('leg1');
+    const leg2 = document.getElementById('leg2');
+    const leg3 = document.getElementById('leg3');
+    if (leg1) leg1.style.opacity = progress > 0.05 ? 1 : 0.5;
+    if (leg2) leg2.style.opacity = progress > 0.55 ? 1 : 0.5;
+    if (leg3) leg3.style.opacity = progress > 0.9 ? 1 : 0.5;
+  }
+  window.addEventListener('scroll', updateRoute);
+  window.addEventListener('resize', updateRoute);
+  updateRoute();
 }
-window.addEventListener('scroll', updateRoute);
-window.addEventListener('resize', updateRoute);
-updateRoute();
+
+/* ============================================================
+   FIXED ROUTE-MAP SIDEBAR: only show while #journey is in view.
+   This panel is position:fixed and lives outside the #journey
+   section in the DOM, so without this guard it stays pinned on
+   screen and overlaps every other section (itinerary, register,
+   footer, etc) instead of just the journey/route content it was
+   built for.
+=============================================================*/
+(function(){
+  const fixedRouteMap = document.getElementById('fixedRouteMap');
+  const journeySectionEl = document.getElementById('journey');
+  if(!fixedRouteMap || !journeySectionEl || !('IntersectionObserver' in window)) return;
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      fixedRouteMap.classList.toggle('in-view', entry.isIntersecting);
+    });
+  }, { threshold: 0.05 });
+  obs.observe(journeySectionEl);
+})();
 
 /* ============================================================
    ITINERARY — rendered from the shared backend (falls back to
@@ -1282,6 +1736,7 @@ function renderItinerary(days){
     itinWrap.appendChild(el);
     io.observe(el);
   });
+  if(typeof syncPlacesFromItinerary === 'function') syncPlacesFromItinerary(days);
 }
 renderItinerary(DEFAULT_ITINERARY);
 
@@ -1296,7 +1751,6 @@ const BACKEND_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd2
 async function loadItinerary(){
   if(!BACKEND_ENDPOINT || BACKEND_ENDPOINT.startsWith('PASTE_')){
     itinSyncNote.textContent = 'Showing the default plan — connect BACKEND_ENDPOINT to sync with the planner page.';
-    refreshGallery(DEFAULT_ITINERARY);
     return;
   }
   try{
@@ -1305,15 +1759,12 @@ async function loadItinerary(){
     if(data.error) throw new Error(data.error);
     if(Array.isArray(data.days) && data.days.length){
       renderItinerary(data.days);
-      refreshGallery(data.days);
       itinSyncNote.textContent = 'Synced with the itinerary planner.';
     } else {
       itinSyncNote.textContent = 'Showing the default plan — nothing saved in the planner yet.';
-      refreshGallery(DEFAULT_ITINERARY);
     }
   }catch(err){
     itinSyncNote.textContent = 'Showing the default plan — could not reach the planner backend.';
-    refreshGallery(DEFAULT_ITINERARY);
   }
 }
 loadItinerary();
@@ -1551,5 +2002,74 @@ document.getElementById('teamGrid').innerHTML = team.map(t=>`
   </div>`).join('');
 
 </script>
+
+<!-- FIXED VERTICAL ROUTE MAP - Right Side Scrollbar -->
+<div class="fixed-route-map" id="fixedRouteMap">
+  <svg viewBox="0 0 60 1200" preserveAspectRatio="none" class="route-map-scrollbar">
+    <defs>
+      <filter id="glowTrack">
+        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    <!-- Background track -->
+    <rect x="20" y="0" width="2" height="1200" class="scrollbar-track"/>
+
+    <!-- Traveled progress -->
+    <line x1="21" y1="0" x2="21" y2="300" class="scrollbar-progress" id="scrollbarProgress"/>
+
+    <!-- Stop markers -->
+    <circle cx="21" cy="100" r="6" class="stop-marker stop-marker-1" data-label="PUNE" data-time="01:50 AM"/>
+    <circle cx="21" cy="500" r="6" class="stop-marker stop-marker-2" data-label="LONDA" data-time="10:30 AM"/>
+    <circle cx="21" cy="900" r="6" class="stop-marker stop-marker-3" data-label="VILLA" data-time="02:30 PM"/>
+
+    <!-- Moving train indicator -->
+    <circle cx="21" cy="100" r="8" class="train-indicator" id="trainIndicator" fill="#FF7A45" filter="url(#glowTrack)"/>
+  </svg>
+
+  <!-- Details Panel -->
+  <div class="route-details" id="routeDetails">
+    <div class="detail-header">Journey Progress</div>
+    
+    <!-- Stop 1 Details -->
+    <div class="detail-stop" id="detail-stop-1">
+      <div class="detail-dot" style="background:#0f6b56;"></div>
+      <div class="detail-info">
+        <div class="detail-time">01:50 AM</div>
+        <div class="detail-place">Pune Jn.</div>
+        <div class="detail-type">🚂 START</div>
+      </div>
+    </div>
+
+    <!-- Stop 2 Details -->
+    <div class="detail-stop" id="detail-stop-2">
+      <div class="detail-dot" style="background:#3aa0e6;"></div>
+      <div class="detail-info">
+        <div class="detail-time">10:30 AM</div>
+        <div class="detail-place">Londa Jn.</div>
+        <div class="detail-type">🚂 TRANSIT</div>
+      </div>
+    </div>
+
+    <!-- Stop 3 Details -->
+    <div class="detail-stop" id="detail-stop-3">
+      <div class="detail-dot" style="background:#3E7C59;"></div>
+      <div class="detail-info">
+        <div class="detail-time">02:30 PM</div>
+        <div class="detail-place">Villa, Goa</div>
+        <div class="detail-type">🏠 END</div>
+      </div>
+    </div>
+
+    <div class="detail-footer" id="detailFooter">
+      <div class="footer-progress">8h 40m train • 3h 20m road</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
