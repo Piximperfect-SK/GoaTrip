@@ -266,6 +266,12 @@
       <select id="tripPicker"></select>
     </div>
 
+    <div class="subhead">
+      <h4>Pending admin requests</h4>
+      <p>Shows up here even if the notification email couldn't be sent.</p>
+      <div id="pendingAdminList"></div>
+    </div>
+
     <p class="cardsub" style="font-size:13px; opacity:.6; margin:-14px 0 18px;">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
     <div id="flagList"></div>
 
@@ -399,7 +405,7 @@ el('requestForm').addEventListener('submit', async e=>{
   try{
     const res = await callPost({ action:'requestAdmin', name: el('r-name').value.trim(), email: el('r-email').value.trim() });
     if(res.error) throw new Error(res.error);
-    showGateBanner('ok', 'Request sent — you\u2019ll be emailed once approved.');
+    showGateBanner('ok', res.message || 'Request sent — you\u2019ll be emailed once approved.');
     el('requestForm').reset();
   }catch(err){ showGateBanner('bad', err.message); }
   finally{ setBtnLoading(btn, false); }
@@ -475,6 +481,41 @@ function renderFlags(flags){
         const res = await callPost({ action:'updateFlag', token:getToken(), featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
         if(res.error) throw new Error(res.error);
         renderFlags(res.flags);
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
+    });
+  });
+}
+
+/* ---------- pending admin requests (fallback for when the email fails) ---------- */
+async function loadPendingAdmins(){
+  try{
+    const res = await callPost({ action:'listPendingAdmins', token:getToken() });
+    if(res.error) throw new Error(res.error);
+    renderPendingAdmins(res.pending || []);
+  }catch(err){ console.warn('loadPendingAdmins failed', err); }
+}
+function renderPendingAdmins(pending){
+  const box = el('pendingAdminList');
+  if(!pending.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No pending requests.</p>'; return; }
+  box.innerHTML = pending.map(p => `
+    <div class="flag-row">
+      <div class="flag-meta">
+        <div class="label">${escapeHtml(p.name)}</div>
+        <div class="page">${escapeHtml(p.email)}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" data-token="${escapeHtml(p.token)}" data-decision="approve">Approve</button>
+        <button class="btn-ghost" data-token="${escapeHtml(p.token)}" data-decision="reject">Reject</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        const res = await fetch(`${FUNCTIONS_BASE}/approve?action=${btn.dataset.decision}&token=${encodeURIComponent(btn.dataset.token)}`);
+        const data = await res.json();
+        showDashBanner(data.ok ? 'ok' : 'bad', data.message || 'Done.');
+        loadPendingAdmins();
       }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
     });
   });

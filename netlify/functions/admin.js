@@ -17,6 +17,11 @@ async function findAdminByName(name) {
   return rows[0] || null;
 }
 
+async function listPendingAdmins() {
+  const { rows } = await query("SELECT name, email, token, requested_at FROM admins WHERE status = 'Pending' ORDER BY requested_at");
+  return rows.map((r) => ({ name: r.name, email: r.email, token: r.token, requestedAt: r.requested_at }));
+}
+
 async function getPublicFlags(tripId) {
   const { rows } = await query(
     'SELECT feature_key, label, page, enabled FROM feature_flags WHERE trip_id = $1',
@@ -40,16 +45,27 @@ async function requestAdmin(name, email) {
     [name, email, token]
   );
 
+  // The request is persisted above regardless of what happens next — an
+  // email-delivery problem should never make it look like the request
+  // itself failed (the pending row is what approveAdmin/rejectAdmin act on).
   const siteBase = process.env.SITE_BASE_URL;
   const approverEmail = process.env.APPROVER_EMAIL;
-  if (!siteBase || !approverEmail) throw new Error('Admin request routing is not configured.');
+  if (!siteBase || !approverEmail) {
+    return { emailed: false, reason: 'Admin request routing is not configured on the server.' };
+  }
   const approveUrl = `${siteBase}/approve.html?action=approve&token=${encodeURIComponent(token)}`;
   const rejectUrl = `${siteBase}/approve.html?action=reject&token=${encodeURIComponent(token)}`;
-  await sendEmail({
-    to: approverEmail,
-    subject: `GoaTrip admin request: ${name}`,
-    text: `Admin access requested.\n\nName: ${name}\nEmail: ${email}\n\nApprove -> ${approveUrl}\nReject  -> ${rejectUrl}\n\nIf you did not expect this, click Reject or ignore this email.`,
-  });
+  try {
+    await sendEmail({
+      to: approverEmail,
+      subject: `GoaTrip admin request: ${name}`,
+      text: `Admin access requested.\n\nName: ${name}\nEmail: ${email}\n\nApprove -> ${approveUrl}\nReject  -> ${rejectUrl}\n\nIf you did not expect this, click Reject or ignore this email.`,
+    });
+    return { emailed: true };
+  } catch (err) {
+    console.error('requestAdmin: email send failed (request still recorded)', err);
+    return { emailed: false, reason: 'Could not send the notification email — ask the approver to check pending requests directly.' };
+  }
 }
 
 async function approveAdmin(token) {
@@ -66,12 +82,20 @@ async function approveAdmin(token) {
     [admin.id, hash, salt]
   );
 
-  await sendEmail({
-    to: admin.email,
-    subject: 'Your GoaTrip admin access is approved',
-    text: `You have been approved as a GoaTrip admin.\n\nYour temporary PIN: ${tempPin}\n\nLog in at admin.html with your name and this PIN. You'll be asked to set your own permanent 6-digit PIN immediately after.`,
-  });
-  return { ok: true, message: `Approved ${admin.name}. Temporary PIN emailed to ${admin.email}.` };
+  // Approval itself already happened above — an email failure here should
+  // surface the PIN to the approver directly (they're already authenticated
+  // by having clicked their own emailed approve link) rather than 500.
+  try {
+    await sendEmail({
+      to: admin.email,
+      subject: 'Your GoaTrip admin access is approved',
+      text: `You have been approved as a GoaTrip admin.\n\nYour temporary PIN: ${tempPin}\n\nLog in at admin.html with your name and this PIN. You'll be asked to set your own permanent 6-digit PIN immediately after.`,
+    });
+    return { ok: true, message: `Approved ${admin.name}. Temporary PIN emailed to ${admin.email}.` };
+  } catch (err) {
+    console.error('approveAdmin: email send failed (approval still applied)', err);
+    return { ok: true, message: `Approved ${admin.name}, but the email couldn't be sent — share this temporary PIN with them directly: ${tempPin}` };
+  }
 }
 
 async function rejectAdmin(token) {
@@ -138,8 +162,13 @@ exports.handler = async (event) => {
       if (!body) return badRequest('Invalid JSON body.');
 
       if (body.action === 'requestAdmin') {
-        await requestAdmin(body.name, body.email);
-        return ok({ ok: true, message: 'Request sent for approval.' });
+        const result = await requestAdmin(body.name, body.email);
+        return ok({
+          ok: true,
+          message: result.emailed
+            ? 'Request sent for approval.'
+            : `Request recorded, but the notification email couldn't be sent (${result.reason}). Ask the approver to check pending requests.`,
+        });
       }
       if (body.action === 'login') return ok(await loginAdmin(body.name, body.code));
       if (body.action === 'changePin') return ok(await changePin(body.token, body.newPin));
@@ -148,6 +177,11 @@ exports.handler = async (event) => {
         if (!n) return ok({ ok: false, name: null });
         const admin = await findAdminByName(n);
         return ok({ ok: true, name: n, mustChangePin: !!(admin && admin.must_change_pin) });
+      }
+      if (body.action === 'listPendingAdmins') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+        return ok({ ok: true, pending: await listPendingAdmins() });
       }
       if (body.action === 'updateFlag') {
         const name = verifySessionToken(body.token);
