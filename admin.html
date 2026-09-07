@@ -102,8 +102,8 @@
 
   .hidden{ display:none !important; }
 
-  /* ============ Dashboard (post-login) ============ */
-  #dashboardWrap{ width:100%; max-width:720px; position:relative; z-index:1; }
+  /* ============ Dashboard (post-login) — tabbed layout ============ */
+  #dashboardWrap{ width:100%; max-width:920px; position:relative; z-index:1; }
   #dashboard{
     background:linear-gradient(160deg, rgba(251,246,236,.98), rgba(239,230,214,.96));
     border-radius:26px; padding:34px 32px; box-shadow:0 30px 70px -20px rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.5);
@@ -116,6 +116,30 @@
   #dashboard .dash-sub{ font-size:12.5px; opacity:.55; margin-top:2px; }
   #dashboard .dash-sub b{ color:var(--mango-2); }
   #logoutBtn{ margin-left:auto; padding:9px 18px; font-size:12px; flex-shrink:0; }
+
+  .dash-tabs{ display:flex; gap:4px; background:rgba(15,38,34,.06); border-radius:9999px; padding:4px; margin:0 0 22px; overflow-x:auto; }
+  .dash-tab{ flex:1; white-space:nowrap; border:none; background:transparent; padding:9px 16px; border-radius:9999px; font-size:12.5px; font-weight:600; letter-spacing:.02em; color:var(--teal-700); cursor:pointer; transition:.2s; }
+  .dash-tab.active{ background:var(--ink); color:var(--paper); box-shadow:0 4px 10px -3px rgba(15,38,34,.35); }
+  .dash-panel.hidden{ display:none; }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:22px; }
+  .stat-card{ background:white; border-radius:16px; padding:16px; border:1px solid var(--line); }
+  .stat-card.warn{ border-color:rgba(232,93,42,.35); background:rgba(232,93,42,.06); }
+  .stat-val{ font-family:'Fraunces',serif; font-size:1.8rem; font-weight:600; line-height:1; }
+  .stat-lbl{ font-size:11px; opacity:.6; margin-top:6px; }
+
+  .data-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 2px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .data-row:last-child{ border-bottom:none; }
+  .data-meta .label{ font-weight:600; font-size:13.5px; }
+  .data-meta .sub{ font-size:11px; opacity:.6; margin-top:2px; }
+  .status-pill{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; padding:3px 9px; border-radius:9999px; }
+  .status-pill.Approved{ background:rgba(62,124,89,.15); color:#2C5940; }
+  .status-pill.Pending{ background:rgba(201,162,39,.18); color:#8A6D14; }
+  .status-pill.Rejected, .status-pill.Revoked{ background:rgba(232,93,42,.15); color:var(--mango-2); }
+  .row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .row-actions button{ font-size:11.5px; padding:6px 12px; }
+  .search-field{ margin-bottom:14px; }
+  .search-field input{ width:100%; border:1.5px solid var(--line); border-radius:13px; padding:10px 14px; font-family:inherit; font-size:13px; }
 
   .flag-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 2px; border-bottom:1px solid var(--line); }
   .flag-row:last-child{ border-bottom:none; }
@@ -253,7 +277,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </div>
       <div>
-        <h2>Feature control</h2>
+        <h2>Admin dashboard</h2>
         <p class="dash-sub">Logged in as <b id="whoName"></b></p>
       </div>
       <button class="btn-ghost" id="logoutBtn" type="button">Log out</button>
@@ -266,24 +290,61 @@
       <select id="tripPicker"></select>
     </div>
 
-    <div class="subhead">
-      <h4>Pending admin requests</h4>
-      <p>Shows up here even if the notification email couldn't be sent.</p>
-      <div id="pendingAdminList"></div>
+    <div class="dash-tabs" id="dashTabs">
+      <button type="button" class="dash-tab active" data-tab="overview">Overview</button>
+      <button type="button" class="dash-tab" data-tab="flags">Feature control</button>
+      <button type="button" class="dash-tab" data-tab="admins">Admins &amp; security</button>
+      <button type="button" class="dash-tab" data-tab="registrations">Registrations</button>
     </div>
 
-    <p class="cardsub" style="font-size:13px; opacity:.6; margin:-14px 0 18px;">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
-    <div id="flagList"></div>
+    <!-- ---- Overview ---- -->
+    <div class="dash-panel" id="panel-overview">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-val" id="statRegs">–</div><div class="stat-lbl">Registrations (this trip)</div></div>
+        <div class="stat-card"><div class="stat-val" id="statAdmins">–</div><div class="stat-lbl">Approved admins</div></div>
+        <div class="stat-card"><div class="stat-val" id="statPending">–</div><div class="stat-lbl">Pending admin requests</div></div>
+        <div class="stat-card" id="statLockedCard"><div class="stat-val" id="statLocked">–</div><div class="stat-lbl">Locked / flagged accounts</div></div>
+      </div>
+      <p style="font-size:12.5px; opacity:.6;">Switch tabs above to manage feature flags, admin access, or view/export registration data.</p>
+    </div>
 
-    <div class="subhead">
-      <h4>Add a new feature toggle</h4>
-      <p>Keys map to <span class="mono">data-feature="…"</span> attributes already on site elements.</p>
-      <form id="addFlagForm" class="row">
-        <div class="field-row"><label>Feature key</label><input id="nf-key" placeholder="e.g. wallet.exportCsv" required/></div>
-        <div class="field-row"><label>Label</label><input id="nf-label" placeholder="Human-readable name" required/></div>
-        <div class="field-row"><label>Page</label><input id="nf-page" placeholder="e.g. goa-wallet.html"/></div>
-        <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
-      </form>
+    <!-- ---- Feature control ---- -->
+    <div class="dash-panel hidden" id="panel-flags">
+      <p class="cardsub" style="font-size:13px; opacity:.6; margin:0 0 18px;">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
+      <div id="flagList"></div>
+
+      <div class="subhead">
+        <h4>Add a new feature toggle</h4>
+        <p>Keys map to <span class="mono">data-feature="…"</span> attributes already on site elements.</p>
+        <form id="addFlagForm" class="row">
+          <div class="field-row"><label>Feature key</label><input id="nf-key" placeholder="e.g. wallet.exportCsv" required/></div>
+          <div class="field-row"><label>Label</label><input id="nf-label" placeholder="Human-readable name" required/></div>
+          <div class="field-row"><label>Page</label><input id="nf-page" placeholder="e.g. goa-wallet.html"/></div>
+          <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ---- Admins & security ---- -->
+    <div class="dash-panel hidden" id="panel-admins">
+      <div class="subhead" style="border-top:none; padding-top:0; margin-top:0;">
+        <h4>Pending admin requests</h4>
+        <p>Shows up here even if the notification email couldn't be sent.</p>
+        <div id="pendingAdminList"></div>
+      </div>
+      <div class="subhead">
+        <h4>All admins</h4>
+        <p>Approve, revoke, restore access, or clear a login lockout. You can't revoke your own account.</p>
+        <div id="adminList"></div>
+      </div>
+    </div>
+
+    <!-- ---- Registrations ---- -->
+    <div class="dash-panel hidden" id="panel-registrations">
+      <div class="search-field">
+        <input id="regSearch" placeholder="Search by name, phone or email…" oninput="renderRegistrations()"/>
+      </div>
+      <div id="registrationList"></div>
     </div>
   </div>
 </div>
@@ -328,6 +389,11 @@ async function callPost(body){
   const res = await fetch(FUNCTIONS_BASE + '/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   return res.json();
 }
+async function callRegistrationPost(body){
+  const url = FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(currentTripId || '');
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
 
 /* ---------- session ---------- */
 function getToken(){ return sessionStorage.getItem('goaAdminToken'); }
@@ -343,6 +409,27 @@ function showLoggedIn(name){
   el('dashboardWrap').classList.remove('hidden');
   el('whoName').textContent = name;
   loadFlags();
+  loadPendingAdmins();
+  loadAdminList();
+  loadRegistrations();
+}
+
+/* ---------- dashboard tabs ---------- */
+document.querySelectorAll('.dash-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.dash-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.dash-panel').forEach(p=>p.classList.add('hidden'));
+    tab.classList.add('active');
+    el('panel-'+tab.dataset.tab).classList.remove('hidden');
+  });
+});
+function updateOverviewStats(){
+  el('statRegs').textContent = Array.isArray(currentRegistrations) ? currentRegistrations.length : '–';
+  el('statAdmins').textContent = Array.isArray(currentAdmins) ? currentAdmins.filter(a=>a.status==='Approved').length : '–';
+  el('statPending').textContent = Array.isArray(currentAdmins) ? currentAdmins.filter(a=>a.status==='Pending').length : '–';
+  const locked = Array.isArray(currentAdmins) ? currentAdmins.filter(a=>a.isLocked || a.failedAttempts>0).length : 0;
+  el('statLocked').textContent = locked;
+  el('statLockedCard').classList.toggle('warn', locked>0);
 }
 
 /* ---------- trip picker (admin manages flags per trip) ---------- */
@@ -355,7 +442,7 @@ async function populateTripPicker(){
   sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
   currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
   if(currentTripId) sel.value = currentTripId;
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); });
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -516,6 +603,97 @@ function renderPendingAdmins(pending){
         const data = await res.json();
         showDashBanner(data.ok ? 'ok' : 'bad', data.message || 'Done.');
         loadPendingAdmins();
+        loadAdminList();
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
+    });
+  });
+}
+
+/* ---------- admins & security ---------- */
+let currentAdmins = [];
+async function loadAdminList(){
+  try{
+    const res = await callPost({ action:'listAdmins', token:getToken() });
+    if(res.error) throw new Error(res.error);
+    currentAdmins = res.admins || [];
+    renderAdminList();
+    updateOverviewStats();
+  }catch(err){ console.warn('loadAdminList failed', err); }
+}
+function renderAdminList(){
+  const box = el('adminList');
+  const myName = sessionStorage.getItem('goaAdminName');
+  if(!currentAdmins.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No admins yet.</p>'; return; }
+  box.innerHTML = currentAdmins.map(a => {
+    const isSelf = myName && a.name.toLowerCase() === myName.toLowerCase();
+    const flags = [];
+    if(a.isLocked) flags.push('🔒 locked');
+    else if(a.failedAttempts > 0) flags.push(`⚠ ${a.failedAttempts} failed attempt${a.failedAttempts===1?'':'s'}`);
+    if(a.mustChangePin) flags.push('temp PIN not changed');
+    return `
+    <div class="data-row">
+      <div class="data-meta">
+        <div class="label">${escapeHtml(a.name)} <span class="status-pill ${a.status}">${a.status}</span></div>
+        <div class="sub">${escapeHtml(a.email)}${flags.length ? ' · ' + flags.join(' · ') : ''}</div>
+      </div>
+      <div class="row-actions">
+        ${a.status === 'Approved' && !isSelf ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
+        ${(a.status === 'Revoked' || a.status === 'Rejected') ? `<button class="btn-ghost" data-action="reinstate" data-name="${escapeHtml(a.name)}">Restore</button>` : ''}
+        ${(a.isLocked || a.failedAttempts > 0) ? `<button class="btn-ghost" data-action="unlock" data-name="${escapeHtml(a.name)}">Unlock</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        const res = await callPost({ action: btn.dataset.action + 'Admin', token:getToken(), name:btn.dataset.name });
+        if(res.error) throw new Error(res.error);
+        showDashBanner(res.ok !== false ? 'ok' : 'bad', res.message || 'Done.');
+        loadAdminList();
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
+    });
+  });
+}
+
+/* ---------- registrations ---------- */
+let currentRegistrations = [];
+async function loadRegistrations(){
+  if(!currentTripId) return;
+  try{
+    const res = await callRegistrationPost({ action:'listRegistrations', token:getToken() });
+    if(res.error) throw new Error(res.error);
+    currentRegistrations = res.registrations || [];
+    renderRegistrations();
+    updateOverviewStats();
+  }catch(err){ console.warn('loadRegistrations failed', err); }
+}
+function renderRegistrations(){
+  const box = el('registrationList');
+  const q = (el('regSearch').value || '').trim().toLowerCase();
+  const filtered = q
+    ? currentRegistrations.filter(r => [r.name, r.phone, r.email].some(v => (v||'').toLowerCase().includes(q)))
+    : currentRegistrations;
+  if(!filtered.length){ box.innerHTML = `<p style="font-size:13px; opacity:.5;">${currentRegistrations.length ? 'No matches.' : 'No registrations yet for this trip.'}</p>`; return; }
+  box.innerHTML = filtered.map(r => `
+    <div class="data-row">
+      <div class="data-meta">
+        <div class="label">${escapeHtml(r.name)}</div>
+        <div class="sub">${escapeHtml(r.phone||'')}${r.email ? ' · ' + escapeHtml(r.email) : ''}${r.travellingFrom ? ' · ' + escapeHtml(r.travellingFrom) : ''}${r.food ? ' · ' + escapeHtml(r.food) : ''}</div>
+        ${r.notes ? `<div class="sub">📝 ${escapeHtml(r.notes)}</div>` : ''}
+      </div>
+      <div class="row-actions">
+        <button class="btn-ghost" data-id="${r.id}">Delete</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('button[data-id]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Remove this registration? This does not remove any wallet/boarding-pass data tied to their name.')) return;
+      btn.disabled = true;
+      try{
+        const res = await callRegistrationPost({ action:'deleteRegistration', token:getToken(), id: Number(btn.dataset.id) });
+        if(res.error) throw new Error(res.error);
+        loadRegistrations();
       }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
     });
   });

@@ -104,6 +104,44 @@ async function rejectAdmin(token) {
   return { ok: true, message: `Request from ${rows[0].name} has been rejected.` };
 }
 
+// Full admin roster for the dashboard's Admins tab — never returns pin_hash/pin_salt/token.
+async function listAdmins() {
+  const { rows } = await query(
+    `SELECT name, email, status, must_change_pin, failed_attempts, locked_until, requested_at, approved_at
+     FROM admins ORDER BY requested_at DESC`
+  );
+  return rows.map((r) => ({
+    name: r.name, email: r.email, status: r.status, mustChangePin: r.must_change_pin,
+    failedAttempts: r.failed_attempts, lockedUntil: r.locked_until,
+    requestedAt: r.requested_at, approvedAt: r.approved_at,
+    isLocked: !!(r.locked_until && new Date(r.locked_until).getTime() > Date.now()),
+  }));
+}
+
+// Revokes an approved admin's access (blocks login without deleting their history/record).
+async function revokeAdmin(actorName, targetName) {
+  if (String(targetName).toLowerCase() === String(actorName).toLowerCase()) {
+    throw new Error('You cannot revoke your own access.');
+  }
+  const { rows } = await query("UPDATE admins SET status='Revoked' WHERE lower(name)=lower($1) AND status='Approved' RETURNING name", [targetName]);
+  if (!rows.length) throw new Error('Admin not found or not currently approved.');
+  return { ok: true, message: `Revoked access for ${rows[0].name}.` };
+}
+
+// Restores a previously revoked/rejected admin — they keep their existing PIN.
+async function reinstateAdmin(targetName) {
+  const { rows } = await query("UPDATE admins SET status='Approved' WHERE lower(name)=lower($1) RETURNING name", [targetName]);
+  if (!rows.length) throw new Error('Admin not found.');
+  return { ok: true, message: `Restored access for ${rows[0].name}.` };
+}
+
+// Manually clears a failed-login lockout — for when a legit admin got locked out.
+async function unlockAdmin(targetName) {
+  const { rows } = await query("UPDATE admins SET failed_attempts=0, locked_until=NULL WHERE lower(name)=lower($1) RETURNING name", [targetName]);
+  if (!rows.length) throw new Error('Admin not found.');
+  return { ok: true, message: `Unlocked ${rows[0].name}.` };
+}
+
 async function loginAdmin(name, pin) {
   const admin = await findAdminByName(name);
   if (!admin || admin.status !== 'Approved' || !admin.pin_hash) {
@@ -182,6 +220,26 @@ exports.handler = async (event) => {
         const name = verifySessionToken(body.token);
         if (!name) return unauthorized('Session expired or invalid — please log in again.');
         return ok({ ok: true, pending: await listPendingAdmins() });
+      }
+      if (body.action === 'listAdmins') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+        return ok({ ok: true, admins: await listAdmins() });
+      }
+      if (body.action === 'revokeAdmin') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+        return ok(await revokeAdmin(name, body.name));
+      }
+      if (body.action === 'reinstateAdmin') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+        return ok(await reinstateAdmin(body.name));
+      }
+      if (body.action === 'unlockAdmin') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+        return ok(await unlockAdmin(body.name));
       }
       if (body.action === 'updateFlag') {
         const name = verifySessionToken(body.token);

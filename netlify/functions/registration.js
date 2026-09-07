@@ -1,8 +1,9 @@
 // Registration: read config/participants, submit a new registration.
 const { query } = require('./lib/db');
-const { ok, badRequest, serverError, parseBody } = require('./lib/http');
+const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText, validatePayload } = require('./lib/validate');
 const { isFeatureEnabled } = require('./lib/flags');
+const { verifySessionToken } = require('./lib/auth');
 
 async function readParticipantNames(tripId) {
   const { rows } = await query(
@@ -39,7 +40,36 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'POST') {
       const body = parseBody(event);
-      if (!body || body.action !== 'register') return badRequest('Unknown action.');
+      if (!body) return badRequest('Invalid JSON body.');
+
+      // Admin-only management actions — require a valid session token.
+      if (body.action === 'listRegistrations' || body.action === 'deleteRegistration') {
+        const name = verifySessionToken(body.token);
+        if (!name) return unauthorized('Session expired or invalid — please log in again.');
+
+        if (body.action === 'listRegistrations') {
+          const { rows } = await query(
+            'SELECT id, ts, name, phone, email, travelling_from, food, notes FROM registrations WHERE trip_id = $1 ORDER BY ts DESC',
+            [tripId]
+          );
+          return ok({
+            ok: true,
+            registrations: rows.map((r) => ({
+              id: r.id, ts: r.ts, name: r.name, phone: r.phone, email: r.email,
+              travellingFrom: r.travelling_from, food: r.food, notes: r.notes,
+            })),
+          });
+        }
+
+        if (body.action === 'deleteRegistration') {
+          const id = Number(body.id);
+          if (!id) return badRequest('id is required.');
+          await query('DELETE FROM registrations WHERE trip_id = $1 AND id = $2', [tripId, id]);
+          return ok({ ok: true });
+        }
+      }
+
+      if (body.action !== 'register') return badRequest('Unknown action.');
       const { rows } = await query('SELECT registration_open FROM trips WHERE id = $1', [tripId]);
       if (!rows.length) return badRequest('Trip not found.');
       if (!rows[0].registration_open || !(await isFeatureEnabled(tripId, 'index.registration'))) {
