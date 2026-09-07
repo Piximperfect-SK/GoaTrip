@@ -184,14 +184,28 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .hero-dive-wave.w3 path{fill:var(--teal-900);}
 @keyframes diveDrift{0%{transform:translateX(0);} 100%{transform:translateX(-8%);}}
 @media (prefers-reduced-motion:reduce){
-  .hero-sun,.hero-cloud,.hero-bird,.hero-bird .wing,.hero-palm,.hero-boat,.hero-dive-wave{animation:none !important;}
+  .hero-sun,.hero-cloud,.hero-bird,.hero-bird .wing,.hero-palm,.hero-boat,.hero-dive-wave,.hero-crab{animation:none !important;}
+}
+
+/* Two small crab GIFs, scuttling along the shoreline just above the
+   wave line — a playful, hand-placed detail that fits the illustrated
+   beach scene rather than sitting on top of it as a sticker. */
+.hero-crab{position:absolute; z-index:3; pointer-events:none; filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
+.hero-crab img{display:block; width:100%; height:100%; object-fit:contain;}
+.hero-crab.c1{left:20%; bottom:19vh; width:46px; height:46px; animation:crabScuttle1 5.5s ease-in-out infinite;}
+.hero-crab.c2{right:24%; bottom:17.5vh; width:52px; height:52px; animation:crabScuttle2 6.5s ease-in-out infinite 1s;}
+@keyframes crabScuttle1{0%,100%{transform:translateX(0) rotate(-3deg);} 50%{transform:translateX(14px) rotate(3deg);}}
+@keyframes crabScuttle2{0%,100%{transform:translateX(0) rotate(3deg) scaleX(-1);} 50%{transform:translateX(-14px) rotate(-3deg) scaleX(-1);}}
+@media (max-width:640px){
+  .hero-crab.c1{bottom:17vh; width:34px; height:34px;}
+  .hero-crab.c2{bottom:16vh; width:38px; height:38px;}
 }
 
 /* ---------- Hero collage teaser ---------- */
 @keyframes heroBob{0%,100%{transform:translateY(0) rotate(var(--r,0deg));} 50%{transform:translateY(-14px) rotate(var(--r,0deg));}}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
 .team-video-wrap video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.7;}
-.team-video-wrap::after{content:"";position:absolute; inset:0; background:linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%);}
+.team-video-wrap::after{content:"";position:absolute; inset:0; background:var(--tvw-overlay, linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%));}
 @keyframes kenburns{from{transform:scale(1.06) translate(0,0);} to{transform:scale(1.16) translate(-1.5%,-1%);}}
 .hero-scrim{position:absolute; inset:0; z-index:1; background:
   linear-gradient(180deg, rgba(12,62,58,.32) 0%, rgba(12,62,58,.1) 26%, rgba(12,62,58,.28) 52%, rgba(12,62,58,.66) 74%, rgba(12,62,58,.94) 88%, rgba(12,62,58,1) 100%);}
@@ -831,6 +845,9 @@ textarea:focus{border-color:var(--mango);}
     <path d="M32.5 12 L18 30 L32.5 30 Z" fill="#FFD9A0"/>
   </svg>
 
+  <div class="hero-crab c1" aria-hidden="true"><img src="videos/crab_1.gif" alt=""></div>
+  <div class="hero-crab c2" aria-hidden="true"><img src="videos/crab_2.gif" alt=""></div>
+
   <div class="hero-scrim"></div>
   <div class="grain"></div>
 
@@ -1146,8 +1163,10 @@ textarea:focus{border-color:var(--mango);}
 <section id="team" class="py-24 px-5 md:px-10" style="background:linear-gradient(180deg, rgba(5,26,56,.9), rgba(2,12,28,.94)); color:var(--sand); position:relative; overflow:hidden;">
   <div class="plankton" style="top:12%; left:92%; width:5px; height:5px; animation-duration:3.6s;"></div>
   <div class="plankton" style="top:70%; left:4%; width:6px; height:6px; animation-duration:2.9s;"></div>
-  <div class="team-video-wrap">
-    <img src="https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=1600&q=70&auto=format&fit=crop" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.35; filter:saturate(.7) brightness(.6);">
+  <div class="team-video-wrap" style="--tvw-overlay:linear-gradient(180deg, rgba(11,61,58,.12), rgba(11,61,58,.18) 15%, rgba(11,61,58,.2) 100%);">
+    <video autoplay muted loop playsinline preload="auto" style="opacity:.75; filter:saturate(.9) brightness(.85);">
+      <source src="videos/beach_1.mp4" type="video/mp4">
+    </video>
   </div>
   <div class="max-w-5xl mx-auto" style="position:relative; z-index:1;">
     <div class="section-num mb-4"><span>06</span><span class="rule"></span><span>Who's running this</span></div>
@@ -1992,13 +2011,13 @@ const team = [
   {name:"Divya Kumari", role:"People Coordinator", note:"Headcounts, groups, who's-where, Non-Tulip members administration"},
 ];
 document.getElementById('teamGrid').innerHTML = team.map(t=>`
-  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.14)">
+  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.82); -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,0.6); box-shadow:0 12px 34px -14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7);">
     <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
       ${t.name.trim()[0]}
     </div>
-    <h3 class="display text-lg font-semibold mb-1">${t.name}</h3>
-    <p class="mono text-[11px] tracking-wide mb-3" style="color:#FFAB85">${t.role.toUpperCase()}</p>
-    <p class="text-sm opacity-70">${t.note}</p>
+    <h3 class="display text-lg font-semibold mb-1" style="color:#0F2622">${t.name}</h3>
+    <p class="mono text-[11px] tracking-wide mb-3" style="color:#D9622B">${t.role.toUpperCase()}</p>
+    <p class="text-sm" style="color:#123F3C; opacity:.75">${t.note}</p>
   </div>`).join('');
 
 </script>

@@ -911,6 +911,14 @@
           <div id="peAdjustmentList" class="divide-y" style="border-color:var(--line)"></div>
         </div>
       </div>
+
+      <!-- ---- Remove participant ---- -->
+      <div class="panel p-5 mt-5" style="border-color:rgba(232,93,42,.3); background:rgba(232,93,42,.03);">
+        <h4 class="font-semibold mb-1" style="color:var(--mango-2)">Remove participant</h4>
+        <p class="text-xs opacity-60 mb-1" id="peRemoveNote">Only possible if this person has no expenses, settlements, deposits or balance adjustments recorded against them — that way removing a stray/test name can never silently orphan real money data.</p>
+        <p class="text-xs mb-3" id="peRemoveBlockedReason" style="color:var(--mango-2); font-weight:600; display:none;"></p>
+        <button type="button" class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" id="peRemoveBtn" onclick="removeParticipantFlow()">Remove this participant</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2777,7 +2785,73 @@ function openParticipantEditModal(person){
     <div class="kpi"><p class="lbl">Current net</p><p class="val text-lg ${net>=0?'balance-pos':'balance-neg'}">${net>=0?'+':'−'}₹${Math.abs(net).toFixed(0)}</p></div>
   `;
   renderPeAdjustmentList(person);
+  updatePeRemoveState(person);
   openModal('participantEditModal');
+}
+
+/* ---------------------------------------------------------------
+   Checks every place a name could be "real data" tied to a person:
+   expense payer/split, settlement from/to, deposits, and manual
+   balance adjustments. Returns null if clear to remove, or a short
+   human-readable reason why not otherwise. This is the single
+   source of truth both the modal button and removeParticipant()
+   itself check, so the UI state can never drift from what's
+   actually enforced.
+------------------------------------------------------------------*/
+function participantHasHistory(person){
+  const asPayer = wallet.expenses.some(ex => ex.payer === person);
+  const inSplit = wallet.expenses.some(ex => (ex.split||[]).includes(person));
+  if(asPayer || inSplit) return 'They have expenses recorded (as payer or in a split) — remove or reassign those first.';
+  const inSettlement = wallet.settlements.some(s => s.from === person || s.to === person);
+  if(inSettlement) return 'They have a settlement recorded — remove that first.';
+  const inDeposits = (wallet.deposits||[]).some(d => d.person === person);
+  if(inDeposits) return 'They have a deposit/withdrawal recorded — remove that first.';
+  const inAdjustments = adjustments.some(a => a.person === person);
+  if(inAdjustments) return 'They have a manual balance adjustment recorded — remove that first.';
+  return null;
+}
+function updatePeRemoveState(person){
+  const reason = participantHasHistory(person);
+  const btn = document.getElementById('peRemoveBtn');
+  const reasonEl = document.getElementById('peRemoveBlockedReason');
+  if(reason){
+    btn.disabled = true;
+    btn.style.opacity = '.45';
+    btn.style.cursor = 'not-allowed';
+    reasonEl.style.display = 'block';
+    reasonEl.textContent = '⚠️ Can\'t remove — ' + reason;
+  }else{
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    reasonEl.style.display = 'none';
+  }
+}
+async function removeParticipantFlow(){
+  const person = peCurrentPerson;
+  if(!person) return;
+  const reason = participantHasHistory(person);
+  if(reason){ showBanner('err', `Can't remove <b>${person}</b> — ${reason}`); return; }
+
+  confirmAction('Remove this participant?', `"${person}" has no expenses, settlements, deposits or adjustments recorded, so this is safe — they'll disappear from every dropdown and the balances grid. This only affects this device; if they were auto-added from a registration, they'll come back if that registration row still exists in the sheet.`, async ()=>{
+    // Re-check right before acting — state could have changed while
+    // the confirm dialog was open (e.g. another tab/action ran).
+    const stillClear = !participantHasHistory(person);
+    if(!stillClear){
+      showBanner('err', `Can't remove <b>${person}</b> — new activity was recorded for them since this dialog opened.`);
+      return;
+    }
+    const actor = await checkWalletAdmin('remove participants');
+    if(!actor) return;
+
+    const idx = PARTICIPANTS.indexOf(person);
+    if(idx !== -1) PARTICIPANTS.splice(idx, 1);
+    persistParticipants();
+
+    closeModal('participantEditModal');
+    renderAll();
+    showBanner('ok', `Removed <b>${person}</b> from the participant list. This is saved on this device only.`);
+  });
 }
 
 async function checkWalletAdmin(actionLabel){
