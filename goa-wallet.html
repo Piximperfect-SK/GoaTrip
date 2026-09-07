@@ -636,6 +636,9 @@
 
     <!-- ============ PARTICIPANTS & BALANCES ============ -->
     <div class="page" id="page-participants">
+      <div class="flex justify-end mb-4">
+        <button type="button" class="btn-ghost" onclick="rebuildParticipantsFromRegistrations()">Rebuild from registrations</button>
+      </div>
       <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" id="participantGrid"></div>
     </div>
 
@@ -1166,6 +1169,37 @@ async function syncParticipantsFromRegistrations(){
     }
   }catch(err){
     console.warn('syncParticipantsFromRegistrations failed (non-fatal):', err);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Admin-only "hard reset" — replaces the entire participant list
+   with exactly what's currently registered (clears any stale local
+   cache, e.g. leftover test names added before this device's list
+   was tied to registrations). Blocked if it would delete someone
+   with recorded history, same guard as removing a single person.
+------------------------------------------------------------------*/
+async function rebuildParticipantsFromRegistrations(){
+  if(!window.TRIP) return;
+  const actor = await checkWalletAdmin('rebuild the participant list');
+  if(!actor) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
+    const data = await res.json();
+    if(data.error || !Array.isArray(data.participants)) throw new Error(data.error || 'No participant data returned.');
+    const registered = new Set(data.participants.map(n => String(n||'').trim().toLowerCase()));
+    const wouldRemove = PARTICIPANTS.filter(p => !registered.has(p.toLowerCase()) && participantHasHistory(p));
+    if(wouldRemove.length){
+      showBanner('err', `Can't rebuild \u2014 ${wouldRemove.join(', ')} ${wouldRemove.length===1?'has':'have'} recorded expenses/settlements/deposits but ${wouldRemove.length===1?'isn\u2019t':'aren\u2019t'} currently registered. Remove or reassign their history first.`);
+      return;
+    }
+    PARTICIPANTS = data.participants.map(n => String(n).trim()).filter(Boolean);
+    persistParticipants();
+    populateSelects();
+    renderAll();
+    showBanner('ok', 'Participant list rebuilt from current registrations.');
+  }catch(err){
+    showBanner('err', `Rebuild failed: ${err.message}`);
   }
 }
 let CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
