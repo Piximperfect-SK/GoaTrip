@@ -1116,16 +1116,15 @@
    CONFIG
 =============================================================*/
 function loadParticipants(){
-  // NOTE: this used to require saved.length === PARTICIPANTS_DEFAULT.length,
-  // which meant the very first registration auto-added on any page load
-  // (see syncParticipantsFromRegistrations below) got silently discarded
-  // again on the next reload, since the saved list was then "the wrong
-  // length". Any valid non-empty saved array is now trusted as-is.
+  // Participants are derived from registrations, not a fixed list —
+  // see syncParticipantsFromRegistrations(), called on every boot/refresh.
+  // Only a locally-saved draft (renames/manual removals on this device)
+  // is trusted here; there is no hardcoded fallback roster any more.
   try{
     const saved = JSON.parse(localStorage.getItem('goaWalletParticipants'));
     if(Array.isArray(saved) && saved.length > 0) return saved;
   }catch(e){}
-  return (window.TRIP && window.TRIP.walletParticipants || []).slice();
+  return [];
 }
 function persistParticipants(){ localStorage.setItem('goaWalletParticipants', JSON.stringify(PARTICIPANTS)); }
 let PARTICIPANTS = [];
@@ -1172,8 +1171,8 @@ async function syncParticipantsFromRegistrations(){
 let CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
 
 /* People allowed to rename participants or apply manual balance
-   corrections — the same admin gate as before, just reused for both. */
-const WALLET_ADMINS = ["Shubham Kumar","Nikhil Agrawal"];
+   corrections — tied to the real admin login (admin.html), not a
+   hardcoded name list. See checkWalletAdmin() below. */
 
 /* ---------------------------------------------------------------
    MANUAL BALANCE ADJUSTMENTS — a local-only correction ledger, kept
@@ -2735,12 +2734,12 @@ function viewPersonDeposits(person){
 
 /* ============================================================
    EDIT PARTICIPANT MODAL — rename + manual balance adjustment
-   Both actions gate behind the same "who's making this change?"
-   identity check (requestActor), restricted to WALLET_ADMINS —
-   anyone can open the modal and see the numbers, but only an admin
-   selection actually commits a change. Both are local-only (not
-   pushed to the shared Sheet), same as the original rename-only
-   behaviour this replaces.
+   Both actions gate behind checkWalletAdmin() — verifying a real
+   admin.html login session, not a hardcoded name list — anyone can
+   open the modal and see the numbers, but only a logged-in admin
+   actually commits a change. Both are local-only (not pushed to
+   the shared backend), same as the original rename-only behaviour
+   this replaces.
 =============================================================*/
 let peCurrentPerson = null;
 
@@ -2847,14 +2846,33 @@ async function removeParticipantFlow(){
   });
 }
 
+/* ---------------------------------------------------------------
+   Admin gate — verifies the visitor is logged into the real admin
+   console (admin.html), not a hardcoded name list. Reuses the same
+   sessionStorage token admin.html sets, so logging in there is
+   enough; this page never handles PINs itself.
+------------------------------------------------------------------*/
 async function checkWalletAdmin(actionLabel){
-  const actor = await requestActor('Confirm your identity', `Only ${WALLET_ADMINS.join(' or ')} can ${actionLabel}.`);
-  if(!actor) return null;
-  if(!WALLET_ADMINS.includes(actor)){
-    showBanner('err', `Only <b>${WALLET_ADMINS.join(' or ')}</b> can ${actionLabel} — you selected <b>${actor}</b>, so no changes were made.`);
+  const token = sessionStorage.getItem('goaAdminToken');
+  if(!token){
+    showBanner('err', `You need to be logged in as an admin to ${actionLabel}. <a href="${withTrip('admin.html')}" style="text-decoration:underline;">Log in here</a>.`);
     return null;
   }
-  return actor;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'whoAmI', token })
+    });
+    const data = await res.json();
+    if(!data.ok || !data.name){
+      showBanner('err', `Your admin session has expired — <a href="${withTrip('admin.html')}" style="text-decoration:underline;">log in again</a> to ${actionLabel}.`);
+      return null;
+    }
+    return data.name;
+  }catch(err){
+    showBanner('err', `Could not verify admin session: ${err.message}`);
+    return null;
+  }
 }
 
 document.getElementById('renameForm').addEventListener('submit', async e=>{
