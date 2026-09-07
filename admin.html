@@ -478,7 +478,7 @@ function renderFlags(flags){
       const newVal = btn.dataset.enabled !== 'true';
       btn.disabled = true;
       try{
-        const res = await callPost({ action:'updateFlag', token:getToken(), featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
+        const res = await callPost({ action:'updateFlag', token:getToken(), tripId: currentTripId, featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
         if(res.error) throw new Error(res.error);
         renderFlags(res.flags);
       }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
