@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#0B3D3A" />
-<title>Trip Wallet — Goa Run</title>
+<title>Trip Wallet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -471,7 +471,7 @@
     </div>
     <div class="sb-deco-field" id="sbDecoField" aria-hidden="true"></div>
     <div class="brand">
-      <p class="mono text-[10px] tracking-widest opacity-60">GOA RUN · 2026</p>
+      <p class="mono text-[10px] tracking-widest opacity-60" id="walletSubtitle">TRIP WALLET</p>
       <h1 class="display text-xl font-semibold mt-1">Trip Wallet</h1>
     </div>
     <nav class="py-3">
@@ -513,7 +513,7 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="kpi"><p class="lbl">Total expenses</p><p class="val" id="kpi-total">₹0</p><p class="sub" id="kpi-total-sub">across the trip</p></div>
         <div class="kpi"><p class="lbl">Total contributions</p><p class="val" id="kpi-contrib">₹0</p><p class="sub">sum of all amounts paid in</p></div>
-        <div class="kpi"><p class="lbl">Average spend / person</p><p class="val" id="kpi-avg">₹0</p><p class="sub">across 11 participants</p></div>
+        <div class="kpi"><p class="lbl">Average spend / person</p><p class="val" id="kpi-avg">₹0</p><p class="sub" id="kpi-avg-sub">across participants</p></div>
         <div class="kpi"><p class="lbl">Transactions</p><p class="val" id="kpi-count">0</p><p class="sub">expenses logged</p></div>
         <div class="kpi"><p class="lbl">Outstanding settlements</p><p class="val" id="kpi-outstanding">0</p><p class="sub">payments needed to settle up</p></div>
         <div class="kpi"><p class="lbl">Highest category</p><p class="val text-lg" id="kpi-topcat">—</p><p class="sub" id="kpi-topcat-sub">by amount spent</p></div>
@@ -1115,15 +1115,6 @@
 /* ============================================================
    CONFIG
 =============================================================*/
-const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyObmwHNusbyIpzYI0xqr41HrX_4nFelQwZMY7bU39meyfMFmcuEFA-ACTWEJzDCqCN/exec";
-/* Same Apps Script deployment index.html/itinerary.html call for
-   registration + itinerary — reused here read-only, just to pull the
-   list of registered names for auto-adding wallet participants. */
-const REGISTRATIONS_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
-const PARTICIPANTS_DEFAULT = [
-  "Shubham Kumar","Divya Tanu Raj","Apoorv Pratik","Nikhil Agrawal","Tanmay Singh","Niranjan Chougule",
-  "Pratiksha K","Ritu","Rudra","Vikash Kumar","Hritik Saho","Divya Kumari"
-];
 function loadParticipants(){
   // NOTE: this used to require saved.length === PARTICIPANTS_DEFAULT.length,
   // which meant the very first registration auto-added on any page load
@@ -1134,10 +1125,10 @@ function loadParticipants(){
     const saved = JSON.parse(localStorage.getItem('goaWalletParticipants'));
     if(Array.isArray(saved) && saved.length > 0) return saved;
   }catch(e){}
-  return PARTICIPANTS_DEFAULT.slice();
+  return (window.TRIP && window.TRIP.walletParticipants || []).slice();
 }
 function persistParticipants(){ localStorage.setItem('goaWalletParticipants', JSON.stringify(PARTICIPANTS)); }
-let PARTICIPANTS = loadParticipants();
+let PARTICIPANTS = [];
 
 /* ============================================================
    REGISTRATION → PARTICIPANTS auto-add
@@ -1152,9 +1143,9 @@ let PARTICIPANTS = loadParticipants();
    required sync path like pullFromSheet().
 =============================================================*/
 async function syncParticipantsFromRegistrations(){
-  if(!REGISTRATIONS_ENDPOINT) return;
+  if(!window.TRIP) return;
   try{
-    const res = await fetch(REGISTRATIONS_ENDPOINT + '?type=participants');
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
     const data = await res.json();
     if(data.error || !Array.isArray(data.participants)) return;
     const existingLower = new Set(PARTICIPANTS.map(p => p.toLowerCase()));
@@ -1178,7 +1169,7 @@ async function syncParticipantsFromRegistrations(){
     console.warn('syncParticipantsFromRegistrations failed (non-fatal):', err);
   }
 }
-const CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
+let CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
 
 /* People allowed to rename participants or apply manual balance
    corrections — the same admin gate as before, just reused for both. */
@@ -1282,47 +1273,47 @@ function setSyncStatus(state, meta){
 }
 
 async function pullFromSheet(manual){
-  if(!SHEETS_ENDPOINT){ setSyncStatus('bad'); return; }
+  if(!window.TRIP){ setSyncStatus('bad'); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(SHEETS_ENDPOINT, {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {method:'GET'});
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
     catch(parseErr){
-      throw new Error('Sheet did not return JSON — usually means the Web App deployment needs "Anyone" access, or a redeploy after code changes. Raw response started with: ' + text.slice(0,120));
+      throw new Error('Backend did not return JSON — please try again shortly.');
     }
     if(data.error) throw new Error(data.error);
-    // deposits falls back to the existing local copy (not []) if the Sheet
-    // backend hasn't been updated yet to return a "deposits" field — so an
-    // un-upgraded Apps Script never silently wipes locally-logged deposits.
+    // deposits falls back to the existing local copy (not []) if the
+    // backend response is missing it for some reason, so a stale client
+    // never silently wipes locally-logged deposits.
     wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
     setSyncStatus('ok');
     clearBanner();
-    if(manual) showBanner('warn','Refreshed from the Google Sheet.');
+    if(manual) showBanner('warn','Refreshed from the backend.');
   }catch(err){
     setSyncStatus('bad');
-    showBanner('err', `<b>Couldn't reach the Google Sheet.</b> Working from the last saved local copy. ${err.message}`);
+    showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
   }
   renderAll();
   if(manual) syncParticipantsFromRegistrations();
 }
 
 async function pushToSheet(action, payload, actor){
-  if(!SHEETS_ENDPOINT){ setSyncStatus('bad'); return null; }
+  if(!window.TRIP){ setSyncStatus('bad'); return null; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(SHEETS_ENDPOINT, {
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
       method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({action, payload, actor, ts:new Date().toISOString()})
     });
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
     catch(parseErr){
-      throw new Error('Sheet did not return JSON on write — check the deployment is redeployed as a new version after any code change.');
+      throw new Error('Backend did not return JSON on write — please try again.');
     }
     if(data.error) throw new Error(data.error);
     wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
@@ -1332,7 +1323,7 @@ async function pushToSheet(action, payload, actor){
     return data;
   }catch(err){
     setSyncStatus('bad');
-    showBanner('err', `<b>Change saved locally, but the Sheet write failed.</b> ${err.message} It will show as synced again once the endpoint is reachable — hit Refresh to retry.`);
+    showBanner('err', `<b>Change saved locally, but the backend write failed.</b> ${err.message} It will show as synced again once the endpoint is reachable — hit Refresh to retry.`);
     return null;
   }
 }
@@ -2297,6 +2288,8 @@ function renderOverview(){
   animateValue(document.getElementById('kpi-avg'), avg, '₹');
   document.getElementById('kpi-count').textContent = count;
   document.getElementById('kpi-outstanding').textContent = settlements.length;
+  const avgSub = document.getElementById('kpi-avg-sub');
+  if(avgSub) avgSub.textContent = `across ${PARTICIPANTS.length} participant${PARTICIPANTS.length===1?'':'s'}`;
 
   const byCat = {};
   wallet.expenses.forEach(ex=>{ byCat[ex.category||'Misc'] = (byCat[ex.category||'Misc']||0) + Number(ex.amount); });
@@ -3058,9 +3051,18 @@ function renderAll(){
   });
 }
 try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
-applyFeatureFlags(REGISTRATIONS_ENDPOINT);
-pullFromSheet();
-syncParticipantsFromRegistrations();
+(async function boot(){
+  const trip = await initTripContext();
+  document.title = `Trip Wallet — ${trip.name}`;
+  const sub = document.getElementById('walletSubtitle');
+  if(sub) sub.textContent = (trip.shortDates ? `${trip.name.toUpperCase()} · ${trip.shortDates}` : trip.name.toUpperCase());
+  if(Array.isArray(trip.categories) && trip.categories.length) CATEGORIES = trip.categories;
+  PARTICIPANTS = loadParticipants();
+  populateSelects();
+  await applyFeatureFlags(trip.id);
+  await pullFromSheet();
+  await syncParticipantsFromRegistrations();
+})();
 
 /* ============================================================
    ECHARTS LOADER — tries a few CDNs in turn

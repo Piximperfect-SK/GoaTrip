@@ -1,6 +1,10 @@
 [build.environment]
   GIT_LFS_ENABLED = "true"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # ============================================================
 # Security headers — applies to every path on the site.
 # Added alongside the existing Cache-Control rules below; Netlify
@@ -32,7 +36,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

@@ -1,0 +1,13 @@
+{
+  "name": "goatrip-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GoaTrip multi-tenant trip platform backend (Netlify Functions + Neon Postgres)",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "resend": "^4.0.1"
+  }
+}

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Boarding Pass — Goa Run</title>
@@ -404,7 +404,7 @@
 
 <div id="topbar">
   <a href="index.html">← Back to trip site</a>
-  <div class="mono text-xs tracking-widest opacity-80">GOA · PNQ→LONDA</div>
+  <div class="mono text-xs tracking-widest opacity-80" id="topbarRoute">GOA · PNQ→LONDA</div>
   <a href="index.html#register">Register for the run →</a>
 </div>
 
@@ -453,29 +453,13 @@
 
 <script src="shared.js"></script>
 <script>
-/* ============================================================
-   GOOGLE SHEET SETUP (Apps Script backend)
-   1. Deploy boarding-pass-backend.gs as its own Apps Script Web App
-      bound to your trip sheet.
-   2. Paste the Web App URL below:
-      https://script.google.com/macros/s/AKfycb.../exec
-   3. Tickets tab: one row per journey leg. Name must match what the
-      passenger types in exactly (case/whitespace ignored). A round
-      trip = two rows, same Name, Leg = onward / return.
-   ============================================================ */
-const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx2AkwL-gL3HdGFabJuylOG9JLRiip-yY1OdFQOThzn0WdTLKk33FuaLGWzmEgD09-z/exec";
-
-/* Same Apps Script deployment index.html/itinerary.html use for
-   registration + itinerary — reused here read-only to autocomplete
-   the passenger name field with names people actually registered
-   with, since the lookup below is exact-match against that same name. */
-const REGISTRATIONS_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
-
+/* Backend calls now go to Netlify Functions (Neon Postgres), scoped
+   by the resolved trip's id — see initTripContext() in shared.js. */
 async function populateRegisteredNamesDatalist(){
   const list = document.getElementById('registered-names');
-  if(!list || !REGISTRATIONS_ENDPOINT) return;
+  if(!list || !window.TRIP) return;
   try{
-    const res = await fetch(REGISTRATIONS_ENDPOINT + '?type=participants');
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
     const data = await res.json();
     if(data.error || !Array.isArray(data.participants)) return;
     list.innerHTML = data.participants.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
@@ -483,7 +467,6 @@ async function populateRegisteredNamesDatalist(){
     console.warn('populateRegisteredNamesDatalist failed (non-fatal, field still works as free text):', err);
   }
 }
-populateRegisteredNamesDatalist();
 
 async function fetchTickets(name, opts){
   opts = opts || {};
@@ -495,7 +478,7 @@ async function fetchTickets(name, opts){
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try{
-      const url = SHEETS_ENDPOINT + '?name=' + encodeURIComponent(name) + '&cachebust=' + Date.now();
+      const url = FUNCTIONS_BASE + '/boarding-pass?tripId=' + encodeURIComponent(TRIP.id) + '&name=' + encodeURIComponent(name) + '&cachebust=' + Date.now();
       const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timer);
 
@@ -503,12 +486,7 @@ async function fetchTickets(name, opts){
       let data;
       try{ data = JSON.parse(text); }
       catch(parseErr){
-        // Apps Script most commonly returns non-JSON when the Web App
-        // isn't deployed with "Anyone" access (an HTML login/consent
-        // page comes back instead), or after a code change that wasn't
-        // redeployed as a new version. Surface that distinction instead
-        // of a generic parse error.
-        throw new Error('The trip sheet did not return valid data — usually this means the Apps Script Web App needs to be redeployed as a new version, or its access is not set to "Anyone".');
+        throw new Error('The trip backend did not return valid data — please try again shortly.');
       }
       if(!res.ok) throw new Error(data.error || `Trip sheet responded with an error (HTTP ${res.status}).`);
       if(data.error) throw new Error(data.error);
@@ -964,7 +942,12 @@ document.getElementById('lookupForm').addEventListener('submit', function(e){
    ticket details directly — see buildQrPayload) — this stays purely
    as a convenience for anyone manually sharing a direct link to their
    own pass, e.g. bookmark it or paste it in a chat. */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await initTripContext();
+  const topbar = document.getElementById('topbarRoute');
+  if(topbar) topbar.textContent = `${(TRIP.destination||'').toUpperCase()} · ${(TRIP.origin||'').toUpperCase()}→${(TRIP.waypoint||'').toUpperCase()}`;
+  await populateRegisteredNamesDatalist();
+
   const params = new URLSearchParams(window.location.search);
   const nameFromUrl = params.get('name');
   if(nameFromUrl){

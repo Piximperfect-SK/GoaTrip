@@ -5,6 +5,55 @@
    ids documented per-function) so any page can include it safely.
    ============================================================ */
 
+/* ============================================================
+   TRIP CONTEXT — resolves which trip is active for this page load
+   and exposes it as window.TRIP. Every page must call
+   `await initTripContext()` before rendering any trip-specific
+   content or calling other backend endpoints.
+   Trip selection order: ?trip= query param -> sessionStorage
+   (last one the visitor picked) -> the backend's active/default trip.
+   ============================================================ */
+const FUNCTIONS_BASE = '/.netlify/functions';
+
+function resolveTripIdFromUrl(){
+  return new URLSearchParams(window.location.search).get('trip');
+}
+
+async function loadTripConfig(tripId){
+  const url = tripId
+    ? FUNCTIONS_BASE + '/trips?id=' + encodeURIComponent(tripId)
+    : FUNCTIONS_BASE + '/trips?active=1';
+  const res = await fetch(url);
+  const data = await res.json();
+  if(!data || !data.trip) throw new Error(data && data.error || 'Trip not found.');
+  return data.trip;
+}
+
+/**
+ * Resolves the active trip and stores it on window.TRIP. Call once,
+ * before rendering trip-specific content. Returns the resolved trip.
+ */
+async function initTripContext(){
+  const urlTripId = resolveTripIdFromUrl();
+  const tripId = urlTripId || sessionStorage.getItem('goatrip:lastTrip') || null;
+  const trip = await loadTripConfig(tripId);
+  sessionStorage.setItem('goatrip:lastTrip', trip.id);
+  window.TRIP = trip;
+  return trip;
+}
+
+/**
+ * Appends the currently selected trip id to an internal link/URL so
+ * navigation between pages preserves it.
+ */
+function withTrip(url){
+  const tripId = window.TRIP && window.TRIP.id;
+  if(!tripId) return url;
+  const [path, hash] = String(url).split('#');
+  const sep = path.includes('?') ? '&' : '?';
+  return path + sep + 'trip=' + encodeURIComponent(tripId) + (hash ? '#' + hash : '');
+}
+
 /**
  * Escape a string for safe insertion into innerHTML.
  * (Covers what index.html called escapeHtml and itinerary.html called escAttr.)
@@ -170,18 +219,18 @@ function qrApiUrl(text){
 
 /* ============================================================
    FEATURE FLAGS (admin console)
-   Any page can call applyFeatureFlags(ADMIN_ENDPOINT) once on load.
-   It fetches the public flag list (no auth needed to read) and,
+   Any page can call applyFeatureFlags(tripId) once on load. It fetches
+   the public flag list for that trip (no auth needed to read) and,
    for every element on the page carrying data-feature="someKey",
    hides it (or disables it, for inputs/buttons/forms) if that
    flag is turned off in the admin console. A flag that doesn't
    exist yet defaults to enabled, so untagged pages are unaffected.
    ============================================================ */
-async function applyFeatureFlags(adminEndpoint){
-  if(!adminEndpoint) return {};
+async function applyFeatureFlags(tripId){
+  if(!tripId) return {};
   let flags = {};
   try{
-    const res = await fetch(adminEndpoint + '?action=flags');
+    const res = await fetch(FUNCTIONS_BASE + '/admin?action=flags&tripId=' + encodeURIComponent(tripId));
     const data = await res.json();
     (data.flags || []).forEach(f => { flags[f.featureKey] = !!f.enabled; });
   }catch(e){

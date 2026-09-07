@@ -193,7 +193,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     </div>
     <h1>Admin Gate</h1>
-    <p class="gate-sub">GoaTrip · Authorized crew only</p>
+    <p class="gate-sub" id="gateSub">GoaTrip · Authorized crew only</p>
 
     <div class="gate-switch">
       <button type="button" class="active" id="switchRequest" onclick="setMode('request')">Request access</button>
@@ -261,6 +261,11 @@
 
     <div class="gate-banner" id="dashBanner"></div>
 
+    <div class="gate-field" style="margin-bottom:14px;">
+      <span class="flabel">Managing trip</span>
+      <select id="tripPicker"></select>
+    </div>
+
     <p class="cardsub" style="font-size:13px; opacity:.6; margin:-14px 0 18px;">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
     <div id="flagList"></div>
 
@@ -306,18 +311,15 @@
 
 <script src="shared.js"></script>
 <script>
-/* Paste your deployed admin-backend.gs Web App /exec URL here */
-const ADMIN_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
-
 const el = id => document.getElementById(id);
 
 async function callGet(params){
-  const url = ADMIN_ENDPOINT + '?' + new URLSearchParams(params).toString();
+  const url = FUNCTIONS_BASE + '/admin?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
   return res.json();
 }
 async function callPost(body){
-  const res = await fetch(ADMIN_ENDPOINT, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body) });
+  const res = await fetch(FUNCTIONS_BASE + '/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   return res.json();
 }
 
@@ -335,6 +337,19 @@ function showLoggedIn(name){
   el('dashboardWrap').classList.remove('hidden');
   el('whoName').textContent = name;
   loadFlags();
+}
+
+/* ---------- trip picker (admin manages flags per trip) ---------- */
+let currentTripId = null;
+async function populateTripPicker(){
+  const sel = el('tripPicker');
+  if(!sel) return;
+  const res = await fetch(FUNCTIONS_BASE + '/trips').then(r=>r.json());
+  const trips = res.trips || [];
+  sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+  currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
+  if(currentTripId) sel.value = currentTripId;
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -466,7 +481,7 @@ function renderFlags(flags){
 }
 async function loadFlags(){
   try{
-    const res = await callGet({ action:'flags' });
+    const res = await callGet({ action:'flags', tripId: currentTripId });
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
   }catch(err){ showDashBanner('bad', err.message); }
@@ -476,7 +491,7 @@ el('addFlagForm').addEventListener('submit', async e=>{
   e.preventDefault();
   try{
     const res = await callPost({
-      action:'updateFlag', token:getToken(),
+      action:'updateFlag', token:getToken(), tripId: currentTripId,
       featureKey: el('nf-key').value.trim(), enabled:true,
       label: el('nf-label').value.trim(), page: el('nf-page').value.trim()
     });
@@ -489,6 +504,13 @@ el('addFlagForm').addEventListener('submit', async e=>{
 
 /* ---------- boot ---------- */
 (async function boot(){
+  try{
+    const trip = await initTripContext();
+    document.title = `Admin — ${trip.name}`;
+    const sub = el('gateSub');
+    if(sub) sub.textContent = `${trip.name} · Authorized crew only`;
+  }catch(e){ console.warn('No trip context yet', e); }
+  await populateTripPicker();
   const token = getToken();
   if(!token){ showLoggedOut(); setMode('request'); return; }
   const res = await callPost({ action:'whoAmI', token });

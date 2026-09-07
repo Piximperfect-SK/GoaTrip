@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://maps.google.com https://www.google.com; upgrade-insecure-requests" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://maps.google.com https://www.google.com; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#0C3E3A" />
-<title>The Goa Run — 2–5 Oct 2026</title>
+<title>Trip Site</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -854,11 +854,11 @@ textarea:focus{border-color:var(--mango);}
   <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-32 pb-20">
     <div class="hero-intro">
       <div class="flex items-center gap-3 mb-8 max-w-xl">
-        <span class="stamp mono text-[11px] w-16 h-16 shrink-0">DEPART<br>PUNE</span>
+        <span class="stamp mono text-[11px] w-16 h-16 shrink-0" id="heroStampDepart">DEPART<br>PUNE</span>
         <div class="flex-1 border-t border-dashed border-white/30"></div>
-        <span class="mono text-[11px] opacity-70">4D / 3N</span>
+        <span class="mono text-[11px] opacity-70" id="heroDuration">4D / 3N</span>
         <div class="flex-1 border-t border-dashed border-white/30"></div>
-        <span class="stamp mono text-[11px] w-16 h-16 shrink-0">ARRIVE<br>GOA</span>
+        <span class="stamp mono text-[11px] w-16 h-16 shrink-0" id="heroStampArrive">ARRIVE<br>GOA</span>
       </div>
 
       <p class="section-eyebrow mb-3" style="color:#FFAB85">Now boarding · Flight GA‑2026 · Gate: Villa</p>
@@ -880,15 +880,15 @@ textarea:focus{border-color:var(--mango);}
         </div>
         <div class="dep-row">
           <span class="dep-label">FROM</span>
-          <span class="dep-value" data-final="PUNE JN · PNQ">PUNE JN · PNQ</span>
+          <span class="dep-value" id="depFrom" data-final="PUNE JN · PNQ">PUNE JN · PNQ</span>
         </div>
         <div class="dep-row">
           <span class="dep-label">TO</span>
-          <span class="dep-value" data-final="LONDA JN → VILLA">LONDA JN → VILLA</span>
+          <span class="dep-value" id="depTo" data-final="LONDA JN → VILLA">LONDA JN → VILLA</span>
         </div>
         <div class="dep-row">
           <span class="dep-label">DEPARTS</span>
-          <span class="dep-value" data-final="02 OCT · 01:50 HRS">02 OCT · 01:50 HRS</span>
+          <span class="dep-value" id="depDeparts" data-final="02 OCT · 01:50 HRS">02 OCT · 01:50 HRS</span>
         </div>
         <div class="dep-row">
           <span class="dep-label">STATUS</span>
@@ -896,7 +896,7 @@ textarea:focus{border-color:var(--mango);}
         </div>
         <div class="dep-row">
           <span class="dep-label">SEATS</span>
-          <span class="dep-value" data-final="12 / 12 CONFIRMED">12 / 12 CONFIRMED</span>
+          <span class="dep-value" id="depSeats" data-final="12 / 12 CONFIRMED">12 / 12 CONFIRMED</span>
         </div>
       </div>
 
@@ -943,8 +943,8 @@ textarea:focus{border-color:var(--mango);}
   <div class="max-w-5xl mx-auto relative">
     <div class="section-num mb-4"><span>03</span><span class="rule"></span><span>Route</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">Rail, then road.</h2>
-    <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket, 12 of us. Scroll through the journey — the marker below tracks your progress along the line as you go, and yes, you're still sinking deeper into the sea as you do it.</p>
-    <p class="text-xs opacity-50 mb-12 mono">Onward: 2 Oct 2026 · Return: same route, reversed, on 5 Oct 2026</p>
+    <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go, and yes, you're still sinking deeper into the sea as you do it.</p>
+    <p class="text-xs opacity-50 mb-12 mono" id="journeyDatesNote">Onward: 2 Oct 2026 · Return: same route, reversed, on 5 Oct 2026</p>
 
     <div class="sticky top-[70px] z-10 mb-8 flex justify-end">
       <span class="mono text-xs px-3 py-1 rounded-full" style="background:rgba(255,255,255,.12); color:var(--sand); border:1px solid rgba(255,255,255,.2);" id="progress-pill">0% travelled</span>
@@ -954,8 +954,8 @@ textarea:focus{border-color:var(--mango);}
       <div class="leg-card" id="leg1">
         <div class="leg-photo"><img src="https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=600&h=600&fit=crop" alt="Railway line through the Western Ghats"></div>
         <div class="p-7">
-          <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL · 2 OCT</span>
-          <h3 class="display text-2xl font-semibold mt-2 mb-3">Pune Jn → Londa Jn</h3>
+          <span class="mono text-xs text-[var(--azulejo)]">LEG 01 — RAIL</span>
+          <h3 class="display text-2xl font-semibold mt-2 mb-3" id="leg1Title">Pune Jn → Londa Jn</h3>
           <p class="text-sm opacity-75 leading-relaxed">Overnight train, roughly 8–9 hours through the Western Ghats. Board late evening in Pune,
           wake up to fog over the hills as you roll into Londa around sunrise. Keep boarding‑pass details handy — seat numbers go on your digital pass below.</p>
           <div class="flex gap-6 mt-5 text-sm">
@@ -967,8 +967,8 @@ textarea:focus{border-color:var(--mango);}
       <div class="leg-card" id="leg2">
         <div class="leg-photo"><img src="https://images.unsplash.com/photo-1584111728495-7d9599602355?w=600&h=600&fit=crop" alt="Coastal road toward Goa, sea view from Fort Aguada"></div>
         <div class="p-7">
-          <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD · 2 OCT</span>
-          <h3 class="display text-2xl font-semibold mt-2 mb-3">Londa Jn → Villa</h3>
+          <span class="mono text-xs text-[var(--mango-2)]">LEG 02 — ROAD</span>
+          <h3 class="display text-2xl font-semibold mt-2 mb-3" id="leg2Title">Londa Jn → Villa</h3>
           <p class="text-sm opacity-75 leading-relaxed">Shared cabs pick up right outside Londa station for the ~3 hour drive down through
           the Ghats into Goa — cashew groves, hairpin bends, and your first smell of the coast. Group cabs will be arranged and shared here once headcount is final.</p>
           <div class="flex gap-6 mt-5 text-sm">
@@ -980,8 +980,8 @@ textarea:focus{border-color:var(--mango);}
       <div class="leg-card" id="leg3">
         <div class="leg-photo"><img src="https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=600&h=600&fit=crop" alt="Golden hour at Querim Beach, Goa"></div>
         <div class="p-7">
-          <span class="mono text-xs" style="color:var(--palm)">LEG 03 — RETURN · 5 OCT</span>
-          <h3 class="display text-2xl font-semibold mt-2 mb-3">Villa → Londa Jn → Pune</h3>
+          <span class="mono text-xs" style="color:var(--palm)">LEG 03 — RETURN</span>
+          <h3 class="display text-2xl font-semibold mt-2 mb-3" id="leg3Title">Villa → Londa Jn → Pune</h3>
           <p class="text-sm opacity-75 leading-relaxed">The same route in reverse: cabs from the villa back up to Londa Jn, then the overnight train
           home to Pune. Exact pickup time depends on the return train — will be confirmed and added to everyone's boarding pass.</p>
           <div class="flex gap-6 mt-5 text-sm">
@@ -1760,33 +1760,46 @@ function renderItinerary(days){
 renderItinerary(DEFAULT_ITINERARY);
 
 /* ============================================================
-   BACKEND CONFIG
-   Replace with your deployed Apps Script Web App URL (see the
-   Code.gs file shipped alongside this site). One endpoint serves
-   registration status, new registrations, and the itinerary.
+   HERO / DEPARTURE BOARD / JOURNEY — trip-driven text.
+   Falls back silently (leaves the hardcoded default markup as-is)
+   for any field the trip config doesn't provide, so an incomplete
+   trip config never renders a blank hero.
 =============================================================*/
-const BACKEND_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
+function renderHeroFromTrip(trip){
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
+  if(document.getElementById('heroStampDepart') && trip.origin) document.getElementById('heroStampDepart').innerHTML = `DEPART<br>${escapeHtml(trip.origin.toUpperCase())}`;
+  if(document.getElementById('heroStampArrive') && trip.destination) document.getElementById('heroStampArrive').innerHTML = `ARRIVE<br>${escapeHtml(trip.destination.toUpperCase())}`;
+  set('depFrom', trip.origin ? trip.origin.toUpperCase() : null);
+  set('depTo', (trip.waypoint || trip.destination) ? `${(trip.waypoint||'').toUpperCase()} \u2192 ${(trip.villa||trip.destination||'').toUpperCase()}` : null);
+  set('depDeparts', trip.shortDates || null);
+  set('depSeats', trip.participantCount ? `${trip.participantCount} / ${trip.participantCount} CONFIRMED` : null);
+  set('journeyDatesNote', trip.shortDates ? `Trip dates: ${trip.shortDates}` : null);
+  set('leg1Title', (trip.origin && trip.waypoint) ? `${trip.origin} \u2192 ${trip.waypoint}` : null);
+  set('leg2Title', (trip.waypoint && trip.villa) ? `${trip.waypoint} \u2192 ${trip.villa}` : null);
+  set('leg3Title', (trip.villa && trip.origin) ? `${trip.villa} \u2192 ${trip.origin}` : null);
+}
 
+/* ============================================================
+   BACKEND CONFIG — Netlify Functions (Neon Postgres), scoped to
+   whichever trip initTripContext() resolves for this page load.
+=============================================================*/
 async function loadItinerary(){
-  if(!BACKEND_ENDPOINT || BACKEND_ENDPOINT.startsWith('PASTE_')){
-    itinSyncNote.textContent = 'Showing the default plan — connect BACKEND_ENDPOINT to sync with the planner page.';
-    return;
-  }
+  if(!window.TRIP){ itinSyncNote.textContent = 'Showing the default plan.'; return; }
   try{
-    const res = await fetch(BACKEND_ENDPOINT + '?type=itinerary');
+    const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(TRIP.id));
     const data = await res.json();
     if(data.error) throw new Error(data.error);
     if(Array.isArray(data.days) && data.days.length){
       renderItinerary(data.days);
       itinSyncNote.textContent = 'Synced with the itinerary planner.';
-    } else {
+    } else if(Array.isArray(TRIP.defaultItinerary) && TRIP.defaultItinerary.length){
+      renderItinerary(TRIP.defaultItinerary);
       itinSyncNote.textContent = 'Showing the default plan — nothing saved in the planner yet.';
     }
   }catch(err){
     itinSyncNote.textContent = 'Showing the default plan — could not reach the planner backend.';
   }
 }
-loadItinerary();
 
 /* ============================================================
    REGISTRATION — status is read-only here (opened/closed from
@@ -1813,15 +1826,15 @@ function applyRegState(open){
 }
 
 async function loadRegistrationStatus(){
-  if(!BACKEND_ENDPOINT || BACKEND_ENDPOINT.startsWith('PASTE_')){
+  if(!window.TRIP){
     regDot.className = 'reg-dot pending';
     regStatusLabel.className = 'reg-status pending';
     regStatusLabel.textContent = 'Not connected';
-    setRegBanner('err', 'Connect <code>BACKEND_ENDPOINT</code> to a deployed Apps Script Web App to control registration from the backend Sheet and accept submissions.');
+    setRegBanner('err', 'Trip not resolved yet — try reloading the page.');
     return;
   }
   try{
-    const res = await fetch(BACKEND_ENDPOINT + '?type=config');
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=config');
     const data = await res.json();
     if(data.error) throw new Error(data.error);
     applyRegState(!!data.registrationOpen);
@@ -1832,7 +1845,13 @@ async function loadRegistrationStatus(){
     setRegBanner('err', `Couldn't reach the backend to check registration status. ${err.message}`);
   }
 }
-loadRegistrationStatus();
+(async function boot(){
+  await initTripContext();
+  document.title = `${TRIP.name} — ${TRIP.shortDates || ''}`;
+  renderHeroFromTrip(TRIP);
+  await loadItinerary();
+  await loadRegistrationStatus();
+})();
 
 /* ============================================================
    REGISTRATION WIZARD — rail-progress, one question at a time
@@ -1983,9 +2002,9 @@ registerForm?.addEventListener('submit', async (e)=>{
   const originalLabel = btn.textContent;
   btn.disabled = true; btn.textContent = 'Submitting…'; status.textContent = '';
   try{
-    const res = await fetch(BACKEND_ENDPOINT, {
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id), {
       method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({action:'register', payload, ts:new Date().toISOString()})
     });
     const data = await res.json();

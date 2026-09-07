@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
 <meta name="theme-color" content="#0B3D3A" />
-<title>Admin request — Goa Run</title>
+<title>Admin request</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
@@ -54,10 +54,8 @@
     <p class="sub" id="sub">Contacting the admin backend.</p>
   </div>
 
+<script src="shared.js"></script>
 <script>
-/* Same Apps Script Web App URL as admin.html's ADMIN_ENDPOINT. */
-const ADMIN_ENDPOINT = "https://script.google.com/macros/s/AKfycby5qf4Fj7c9hd223o_XQQOQmkpk44PoQSG_4rSisI0lUb6QhFGeOHdkjpgvvNaPc4cK/exec";
-
 const params = new URLSearchParams(location.search);
 const action = params.get('action'); // 'approve' | 'reject'
 const token = params.get('token');
@@ -81,23 +79,16 @@ function render(kind, title, sub){
     return;
   }
   try{
-    const url = ADMIN_ENDPOINT + '?' + new URLSearchParams({ action, token }).toString();
+    const url = FUNCTIONS_BASE + '/approve?' + new URLSearchParams({ action, token }).toString();
     const res = await fetch(url);
-    const html = await res.text();
-    // The backend returns a small HTML page (htmlOut_); pull the
-    // <h2> ok/notice + <p> message out of it rather than re-parsing
-    // JSON, since approve/reject respond as HTML, not JSON.
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const heading = doc.querySelector('h2');
-    const message = doc.querySelector('p');
-    const isOk = heading && heading.textContent.trim().toLowerCase() === 'done';
+    const data = await res.json();
     render(
-      isOk ? 'ok' : 'bad',
-      isOk ? (action === 'approve' ? 'Approved' : 'Rejected') : 'Notice',
-      (message && message.textContent.trim()) || 'Something went wrong — please try again from a laptop browser.'
+      data.ok ? 'ok' : 'bad',
+      data.ok ? (action === 'approve' ? 'Approved' : 'Rejected') : 'Notice',
+      data.message || 'Something went wrong — please try again.'
     );
   }catch(err){
-    render('bad', 'Could not reach the backend', 'Check your connection and try again, or open this link in Chrome/Safari instead.');
+    render('bad', 'Could not reach the backend', 'Check your connection and try again.');
   }
 })();
 </script>
