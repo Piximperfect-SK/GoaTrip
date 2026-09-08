@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Trip Cancellation — GoaTrip</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+
+  #topbar{ position:sticky; top:0; z-index:30; background:rgba(11,61,58,.96); color:var(--sand); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  #topbar a{ color:var(--sand); opacity:.85; text-decoration:none; font-size:13px; }
+  #topbar a:hover{ opacity:1; }
+  .tb-brand{ font-family:'Fraunces', serif; font-weight:700; font-size:17px; }
+
+  main{ max-width:900px; margin:0 auto; padding:36px 18px 80px; }
+
+  .cx-hero{ text-align:center; margin-bottom:28px; }
+  .cx-eyebrow{ font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--mango-2); }
+  .cx-hero h1{ font-size:2.1rem; margin:6px 0 8px; }
+  .cx-hero p{ opacity:.7; max-width:560px; margin:0 auto; font-size:14.5px; }
+
+  /* ---- option switcher ---- */
+  .cx-switch{ display:flex; gap:10px; max-width:560px; margin:0 auto 32px; background:rgba(15,38,34,.06); border-radius:16px; padding:6px; }
+  .cx-switch button{ flex:1; border:none; background:transparent; padding:14px 10px; border-radius:12px; font-weight:700; font-size:13.5px; color:var(--teal-700); cursor:pointer; transition:.2s; }
+  .cx-switch button.active{ background:var(--ink); color:var(--paper); box-shadow:0 8px 18px -8px rgba(15,38,34,.4); }
+
+  .cx-panel{ max-width:640px; margin:0 auto; }
+  .cx-panel.hidden{ display:none; }
+
+  .sec-card{ background:white; border:1px solid var(--line); border-radius:18px; padding:26px 24px; margin-bottom:18px; }
+  .sec-card h3{ margin:0 0 6px; font-size:1.15rem; }
+  .cardsub{ font-size:13px; opacity:.65; margin:0 0 18px; }
+
+  .field-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field-grid .full{ grid-column:1 / -1; }
+  @media (max-width:560px){ .field-grid{ grid-template-columns:1fr; } }
+
+  .gate-banner{ display:none; border-radius:12px; padding:12px 16px; font-size:13.5px; font-weight:500; margin-bottom:14px; }
+  .gate-banner.show{ display:block; }
+  .gate-banner.ok{ background:rgba(62,124,89,.10); color:var(--palm); border:1px solid rgba(62,124,89,.25); }
+  .gate-banner.bad{ background:rgba(232,93,42,.10); color:var(--mango-2); border:1px solid rgba(232,93,42,.25); }
+
+  .cx-submit-btn{ width:100%; border:none; border-radius:9999px; padding:15px 0; margin-top:6px; background:linear-gradient(120deg, var(--mango), var(--mango-2)); color:white; font-weight:700; font-size:13.5px; letter-spacing:.03em; cursor:pointer; }
+  .cx-submit-btn:disabled{ opacity:.6; cursor:default; }
+
+  .status-pill{ display:inline-block; padding:4px 12px; border-radius:9999px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .status-pill.review{ background:rgba(30,96,145,.12); color:var(--azulejo); }
+  .status-pill.approved{ background:rgba(62,124,89,.14); color:var(--palm); }
+  .status-pill.rejected{ background:rgba(232,93,42,.14); color:var(--mango-2); }
+
+  /* ============ CANCELLATION LETTER (A4 template, mirrors reference) ============ */
+  .letter-scroll{ overflow-x:auto; padding:6px 0 10px; }
+  #letterDoc{
+    width:794px; min-height:1123px; margin:0 auto; background:#fff; color:#1b2b29;
+    font-family:'Space Grotesk', sans-serif; position:relative; padding:0 0 40px;
+    border:1px solid var(--line); border-radius:4px; box-shadow:0 30px 70px -40px rgba(15,38,34,.4);
+  }
+  .ltr-topband{ height:8px; background:linear-gradient(90deg, var(--teal-900), var(--azulejo), var(--mango)); }
+  .ltr-head{ display:flex; align-items:center; justify-content:space-between; padding:22px 34px 14px; border-bottom:2px solid var(--teal-900); }
+  .ltr-brand{ display:flex; align-items:center; gap:12px; }
+  .ltr-logo{ width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--mango), var(--teal-900)); display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; }
+  .ltr-brand-name{ font-family:'Fraunces', serif; font-weight:700; font-size:20px; color:var(--teal-900); line-height:1.1; }
+  .ltr-brand-name span{ color:var(--mango-2); }
+  .ltr-brand-tag{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--azulejo); }
+  .ltr-brand-slogan{ font-family:'Fraunces', serif; font-style:italic; font-size:12px; color:var(--teal-700); text-align:right; }
+  .ltr-contact{ padding:8px 34px; background:var(--sand); font-size:10.5px; color:var(--teal-800); display:flex; gap:18px; flex-wrap:wrap; }
+  .ltr-refblock{ padding:12px 34px 0; text-align:right; font-size:11px; color:var(--teal-800); font-family:'Space Mono', monospace; }
+  .ltr-title{ text-align:center; padding:14px 34px 4px; }
+  .ltr-title h2{ margin:0; font-size:1.5rem; letter-spacing:.02em; color:var(--teal-900); }
+  .ltr-title p{ margin:4px 0 0; font-family:'Space Mono', monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--mango-2); }
+  .ltr-body{ padding:16px 34px 0; font-size:13px; line-height:1.65; color:#233c39; }
+  .ltr-subject{ background:#eef3f6; border-left:4px solid var(--azulejo); padding:9px 14px; margin:12px 0; font-size:12.5px; }
+  .ltr-terms-head{ background:var(--teal-900); color:#fff; padding:8px 14px; border-radius:6px 6px 0 0; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:18px; }
+  .ltr-term{ display:flex; gap:12px; padding:10px 14px; border:1px solid var(--line); border-top:none; font-size:11.8px; align-items:flex-start; }
+  .ltr-term:last-child{ border-radius:0 0 6px 6px; }
+  .ltr-term-num{ width:24px; height:24px; border-radius:50%; background:var(--teal-900); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  .ltr-term-title{ font-weight:700; color:var(--teal-900); font-size:12px; margin-bottom:2px; }
+  .ltr-sign-note{ font-size:11.5px; margin:16px 0 10px; color:#233c39; }
+  .ltr-board{ background:var(--sand); border-radius:8px; padding:14px; margin:0 34px 14px; display:flex; gap:10px; flex-wrap:wrap; }
+  .ltr-board-title{ width:100%; text-align:center; font-weight:700; font-size:11.5px; color:var(--teal-900); margin-bottom:8px; }
+  .ltr-board-col{ flex:1 1 150px; font-size:10.8px; line-height:1.9; }
+  .ltr-board-col b{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--azulejo); }
+  .ltr-board-col .sig{ font-family:'Fraunces', serif; font-style:italic; color:var(--teal-900); }
+  .ltr-seal{ flex:0 0 90px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:9px; }
+  .ltr-seal-ring{ width:70px; height:70px; border-radius:50%; border:2px solid var(--teal-900); display:flex; align-items:center; justify-content:center; color:var(--teal-900); font-size:8px; font-weight:700; text-align:center; padding:4px; }
+  .ltr-ack{ margin:0 34px 14px; border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .ltr-ack-title{ background:var(--teal-900); color:#fff; margin:-14px -14px 10px; padding:8px 14px; border-radius:8px 8px 0 0; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .ltr-ack p{ font-size:11.5px; margin:0 0 12px; }
+  .ltr-ack-row{ display:flex; justify-content:space-between; gap:14px; font-size:10.8px; flex-wrap:wrap; }
+  .ltr-footer{ margin:22px 34px 0; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--teal-700); }
+  .ltr-footer-tag{ font-style:italic; font-family:'Fraunces', serif; color:var(--mango-2); font-size:11px; }
+
+  .letter-actions{ display:flex; gap:10px; justify-content:center; margin:18px 0; flex-wrap:wrap; }
+
+  @media (max-width:820px){
+    .letter-scroll{ transform-origin:top left; }
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="tb-brand">GoaTrip · Support</div>
+  <a href="index.html">← Back to trip site</a>
+</div>
+
+<main>
+  <div class="cx-hero">
+    <div class="cx-eyebrow">Support · Cancellation</div>
+    <h1>Trip Cancellation</h1>
+    <p>Submit a voluntary trip cancellation request, or check the status of one you already submitted.</p>
+  </div>
+
+  <div class="cx-switch">
+    <button type="button" class="active" id="switchSubmit" onclick="setCxMode('submit')">Submit Cancellation Request</button>
+    <button type="button" id="switchStatus" onclick="setCxMode('status')">Check Cancellation Status</button>
+  </div>
+
+  <!-- ============ SUBMIT PANEL ============ -->
+  <div class="cx-panel" id="panelSubmit">
+    <div class="sec-card">
+      <h3>Cancellation request</h3>
+      <p class="cardsub">Please fill in your details accurately — your Cancellation ID will be generated automatically once submitted.</p>
+      <div class="gate-banner" id="submitBanner"></div>
+
+      <form id="submitForm">
+        <div class="field-grid">
+          <div class="field-row full"><label>Full Name *</label><input id="f-name" required maxlength="120"/></div>
+          <div class="field-row"><label>Email *</label><input id="f-email" type="email" required maxlength="120"/></div>
+          <div class="field-row"><label>Mobile Number *</label><input id="f-mobile" required maxlength="30"/></div>
+          <div class="field-row full"><label>Trip Name / Reference *</label><input id="f-trip" required maxlength="160"/></div>
+          <div class="field-row"><label>Destination *</label><input id="f-dest" required maxlength="120"/></div>
+          <div class="field-row"><label>Booking / Trip Reference Number *</label><input id="f-ref" required maxlength="80"/></div>
+          <div class="field-row"><label>Trip Start Date *</label><input id="f-start" type="date" required/></div>
+          <div class="field-row"><label>Trip End Date *</label><input id="f-end" type="date" required/></div>
+          <div class="field-row full"><label>Cancellation Reason *</label><textarea id="f-reason" rows="3" required maxlength="500"></textarea></div>
+          <div class="field-row full"><label>Additional Remarks (optional)</label><textarea id="f-remarks" rows="2" maxlength="800"></textarea></div>
+        </div>
+        <button type="submit" class="cx-submit-btn" id="submitBtn">Submit Cancellation Request</button>
+      </form>
+    </div>
+
+    <div class="sec-card hidden" id="ackCard"></div>
+  </div>
+
+  <!-- ============ STATUS PANEL ============ -->
+  <div class="cx-panel hidden" id="panelStatus">
+    <div class="sec-card">
+      <h3>Check your cancellation status</h3>
+      <p class="cardsub">Enter your Cancellation ID and full name exactly as submitted.</p>
+      <div class="gate-banner" id="statusBanner"></div>
+      <form id="statusForm">
+        <div class="field-grid">
+          <div class="field-row full"><label>Cancellation ID *</label><input id="s-id" placeholder="TTPL/CNL/0001" required maxlength="40"/></div>
+          <div class="field-row full"><label>Full Name *</label><input id="s-name" required maxlength="120"/></div>
+        </div>
+        <button type="submit" class="cx-submit-btn" id="statusBtn">Check Status</button>
+      </form>
+    </div>
+    <div id="statusResult"></div>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+const el = id => document.getElementById(id);
+
+function setCxMode(mode){
+  const isSubmit = mode === 'submit';
+  el('switchSubmit').classList.toggle('active', isSubmit);
+  el('switchStatus').classList.toggle('active', !isSubmit);
+  el('panelSubmit').classList.toggle('hidden', !isSubmit);
+  el('panelStatus').classList.toggle('hidden', isSubmit);
+}
+
+function showBanner2(id, kind, text){
+  const b = el(id);
+  b.className = 'gate-banner show ' + kind;
+  b.textContent = text;
+}
+function hideBanner2(id){ el(id).className = 'gate-banner'; }
+
+async function callCancellation(body){
+  const res = await fetch(FUNCTIONS_BASE + '/cancellation', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+/* ---------- submit ---------- */
+el('submitForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  hideBanner2('submitBanner');
+  const btn = el('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try{
+    const payload = {
+      fullName: el('f-name').value.trim(),
+      email: el('f-email').value.trim(),
+      mobile: el('f-mobile').value.trim(),
+      tripName: el('f-trip').value.trim(),
+      destination: el('f-dest').value.trim(),
+      bookingRef: el('f-ref').value.trim(),
+      startDate: el('f-start').value,
+      endDate: el('f-end').value,
+      reason: el('f-reason').value.trim(),
+      remarks: el('f-remarks').value.trim(),
+    };
+    const tripId = (window.TRIP && window.TRIP.id) || '';
+    const res = await callCancellation({ action:'submit', tripId, payload });
+    if(res.error) throw new Error(res.error);
+    el('submitForm').style.display = 'none';
+    renderAcknowledgement(res.request);
+  }catch(err){ showBanner2('submitBanner','bad', err.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Submit Cancellation Request'; }
+});
+
+function renderAcknowledgement(req){
+  const card = el('ackCard');
+  card.classList.remove('hidden');
+  card.innerHTML = `
+    <h3>Request submitted</h3>
+    <p class="cardsub">Your voluntary cancellation request has been recorded and is awaiting Board review.</p>
+    ${letterAcknowledgementHTML(req)}
+  `;
+  card.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ---------- status check ---------- */
+el('statusForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  hideBanner2('statusBanner');
+  el('statusResult').innerHTML = '';
+  const btn = el('statusBtn');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const res = await callCancellation({
+      action:'status',
+      cancellationId: el('s-id').value.trim(),
+      fullName: el('s-name').value.trim(),
+    });
+    if(res.error) throw new Error(res.error);
+    renderStatusResult(res.request);
+  }catch(err){ showBanner2('statusBanner','bad', err.message); }
+  finally{ btn.disabled = false; btn.textContent = 'Check Status'; }
+});
+
+function renderStatusResult(req){
+  const box = el('statusResult');
+  if(req.status === 'IN REVIEW'){
+    box.innerHTML = `<div class="sec-card">
+      <h3>Status: <span class="status-pill review">In Review</span></h3>
+      <p class="cardsub">Your cancellation is with the Executive Board for approval. Here is your acknowledgement.</p>
+      ${letterAcknowledgementHTML(req)}
+    </div>`;
+    return;
+  }
+  if(req.status === 'REJECTED'){
+    box.innerHTML = `<div class="sec-card">
+      <h3>Status: <span class="status-pill rejected">Rejected</span></h3>
+      <p class="cardsub">Your cancellation request was not approved.</p>
+      <p style="font-size:13px;"><b>Board remarks:</b> ${escapeHtml(req.adminRemarks || 'No remarks provided.')}</p>
+    </div>`;
+    return;
+  }
+  // APPROVED
+  box.innerHTML = `<div class="sec-card">
+      <h3>Status: <span class="status-pill approved">Approved</span></h3>
+      <p class="cardsub">Your cancellation has been approved by the Executive Board. View or download your official letter below.</p>
+      <div class="letter-actions">
+        <button class="btn-ghost" onclick="document.getElementById('letterWrap').scrollIntoView({behavior:'smooth'})">View Letter</button>
+        <button class="btn-primary" id="downloadLetterBtn" onclick="downloadLetterPdf('${escapeHtml(req.cancellationId)}')">Download PDF</button>
+      </div>
+    </div>
+    <div class="letter-scroll" id="letterWrap">${finalLetterHTML(req)}</div>`;
+}
+
+/* ---------- simple acknowledgement block (IN REVIEW) ---------- */
+function letterAcknowledgementHTML(req){
+  return `
+    <div style="border:1px solid var(--line); border-radius:12px; padding:16px 18px; background:var(--sand); font-size:13px;">
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+        <div><b>Ref No.</b> ${escapeHtml(req.cancellationId)}</div>
+        <div><b>Date</b> ${new Date(req.submittedAt).toLocaleDateString('en-IN')}</div>
+        <div><b>Place</b> ${escapeHtml(req.place)}</div>
+      </div>
+      <div><b>Participant:</b> ${escapeHtml(req.fullName)}</div>
+      <div><b>Trip:</b> ${escapeHtml(req.tripName)} — ${escapeHtml(req.destination)}</div>
+      <div><b>Status:</b> <span class="status-pill review">In Review</span></div>
+      <p style="opacity:.75; margin:10px 0 0;">This acknowledges receipt of your voluntary cancellation request. The final cancellation letter will be available once the Executive Board approves your request.</p>
+    </div>`;
+}
+
+/* ---------- final approved letter, mirrors the supplied template ---------- */
+function fmtDateParts(iso){
+  if(!iso) return { dd:'____', mm:'____', yyyy:'2026' };
+  const d = new Date(iso);
+  return { dd:String(d.getDate()).padStart(2,'0'), mm:String(d.getMonth()+1).padStart(2,'0'), yyyy:d.getFullYear() };
+}
+
+function finalLetterHTML(req){
+  const dp = fmtDateParts(req.processedAt || req.submittedAt);
+  const boards = (req.boardSignatures && req.boardSignatures.length ? req.boardSignatures : [{},{},{}]).slice(0,3);
+  while(boards.length < 3) boards.push({});
+  return `
+  <div id="letterDoc">
+    <div class="ltr-topband"></div>
+    <div class="ltr-head">
+      <div class="ltr-brand">
+        <div class="ltr-logo">🌷</div>
+        <div>
+          <div class="ltr-brand-name">TULIP <span>TRAVELS</span></div>
+          <div class="ltr-brand-tag">Pvt. Ltd. · Journeys Create Better Stories</div>
+        </div>
+      </div>
+      <div class="ltr-brand-slogan">Travel · Explore · Belong</div>
+    </div>
+    <div class="ltr-contact">
+      <span>📍 Hinjewadi, Pune, Maharashtra – 411057</span>
+      <span>✉️ info@tuliptravels.in</span>
+      <span>📞 +91 20 1234 5678</span>
+    </div>
+    <div class="ltr-refblock">
+      Ref No.: ${escapeHtml(req.cancellationId)}<br/>
+      Date: ${dp.dd} / ${dp.mm} / ${dp.yyyy}<br/>
+      Place: ${escapeHtml(req.place)}
+    </div>
+    <div class="ltr-title">
+      <h2>TRIP CANCELLATION LETTER &amp; UNDERTAKING</h2>
+      <p>A formal acknowledgement of voluntary withdrawal</p>
+    </div>
+    <div class="ltr-body">
+      <p>To,<br/><b>${escapeHtml(req.fullName)}</b><br/>Tulip Travels Pvt. Ltd.</p>
+      <div class="ltr-subject"><b>Subject:</b> Voluntary Cancellation of Trip Participation &amp; Acceptance of Cancellation Terms — ${escapeHtml(req.tripName)} (${escapeHtml(req.destination)})</div>
+      <p>Dear Sir/Madam,</p>
+      <p>This letter serves as a formal acknowledgement of your request to voluntarily withdraw and cancel your participation in the trip organised by Tulip Travels Pvt. Ltd., Hinjewadi.</p>
+      <p>By signing this document, you solemnly confirm that your decision to withdraw from the trip has been made voluntarily, independently, and without any force, coercion, pressure, or undue influence from Tulip Travels Pvt. Ltd., its representatives, organisers, or fellow trip participants.</p>
+      <p>Your cancellation request has been reviewed and <b>approved</b> by the Executive Board Members of Tulip Travels Pvt. Ltd.</p>
+
+      <div class="ltr-terms-head">Terms &amp; Conditions of Cancellation</div>
+      <div class="ltr-term"><div class="ltr-term-num">1</div><div><div class="ltr-term-title">💰 Non-Refundable Amount</div>You acknowledge and agree that all amounts paid or contributed towards the trip prior to cancellation shall be non-refundable. Any amount already paid shall be treated as a cancellation/administrative penalty and shall not be claimed back following approval of the cancellation.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">2</div><div><div class="ltr-term-title">⏱ Cancellation Processing Time</div>Following approval by the Executive Board Members, the cancellation may take approximately 1–2 working days to be formally processed and recorded.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">3</div><div><div class="ltr-term-title">🧍 Voluntary Withdrawal</div>You solemnly confirm that you are choosing to withdraw from the trip of your own free will and are not being compelled, pressured, or forced to do so by Tulip Travels Pvt. Ltd. or any person associated with the trip.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">4</div><div><div class="ltr-term-title">📝 Acceptance of Financial Penalty</div>You agree that you will not raise, dispute, or escalate any claim or grievance concerning the amount retained/penalised under the cancellation terms, having voluntarily accepted these conditions.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">5</div><div><div class="ltr-term-title">➕ Rejoining the Trip</div>Once your cancellation has been formally approved and processed, any subsequent request to rejoin the same trip shall be subject to availability and approval. If permitted, a rejoining fee of ₹1,000 (Rupees One Thousand only) shall be applicable in addition to any applicable trip-related charges.</div></div>
+
+      <p class="ltr-sign-note">Your signature below confirms that you have read, understood, and voluntarily accepted all the above terms and conditions before proceeding with the cancellation request. This document shall be retained as an official record of your voluntary cancellation.</p>
+    </div>
+
+    <div class="ltr-board">
+      <div class="ltr-board-title">For Tulip Travels Pvt. Ltd. — Digitally Signed by Executive Board Members</div>
+      ${boards.map(b => `
+        <div class="ltr-board-col">
+          <b>Name</b> ${escapeHtml(b.name || '_______________')}
+          <b>Designation</b> ${escapeHtml(b.designation || '_______________')}
+          <b>Digital Signature</b> <span class="sig">${b.name ? 'Digitally Signed' : '_______________'}</span>
+          <b>Date</b> ${dp.dd} / ${dp.mm} / ${dp.yyyy}
+        </div>`).join('')}
+      <div class="ltr-seal">
+        <div class="ltr-seal-ring">TULIP TRAVELS PVT. LTD. · HINJEWADI, PUNE</div>
+        <div style="margin-top:4px; opacity:.7;">Official Seal / Stamp</div>
+      </div>
+    </div>
+
+    <div class="ltr-ack">
+      <div class="ltr-ack-title">Participant Acknowledgement &amp; Signature</div>
+      <p>I hereby confirm that I have voluntarily chosen to cancel my participation in the trip and have read, understood, and accepted all terms and conditions mentioned above.</p>
+      <div class="ltr-ack-row">
+        <div><b>Participant Name:</b> ${escapeHtml(req.fullName)}</div>
+        <div><b>Signature:</b> _______________________</div>
+      </div>
+      <div class="ltr-ack-row" style="margin-top:8px;">
+        <div><b>Date:</b> ${dp.dd} / ${dp.mm} / ${dp.yyyy}</div>
+        <div><b>Place:</b> ${escapeHtml(req.place)}</div>
+      </div>
+    </div>
+
+    <div class="ltr-footer">
+      <span>🧭 PLAN &nbsp;|&nbsp; TRAVEL &nbsp;|&nbsp; CONNECT &nbsp;|&nbsp; EXPLORE &nbsp;|&nbsp; REPEAT</span>
+      <span class="ltr-footer-tag">See you on the next adventure!</span>
+    </div>
+  </div>`;
+}
+
+async function downloadLetterPdf(cancellationId){
+  const btn = el('downloadLetterBtn');
+  const prev = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing PDF…';
+  try{
+    if(typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) throw new Error('PDF library failed to load.');
+    const node = document.getElementById('letterDoc');
+    await waitForImagesToLoad(node);
+    const canvas = await html2canvas(node, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    const imgData = canvas.toDataURL('image/png');
+    if(imgH <= pageH){
+      doc.addImage(imgData, 'PNG', 0, 0, pageW, imgH);
+    }else{
+      // Paginate tall content across multiple A4 pages.
+      let remaining = canvas.height;
+      let position = 0;
+      const pageCanvasH = (pageH * canvas.width) / pageW;
+      while(remaining > 0){
+        const sliceH = Math.min(pageCanvasH, remaining);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceH;
+        sliceCanvas.getContext('2d').drawImage(canvas, 0, position, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        const sliceData = sliceCanvas.toDataURL('image/png');
+        const sliceHmm = (sliceH * pageW) / canvas.width;
+        if(position > 0) doc.addPage();
+        doc.addImage(sliceData, 'PNG', 0, 0, pageW, sliceHmm);
+        position += sliceH;
+        remaining -= sliceH;
+      }
+    }
+    doc.save(`cancellation-letter-${cancellationId.replace(/\//g,'-')}.pdf`);
+  }catch(err){
+    console.error('Cancellation letter PDF failed:', err);
+    alert(err.message || 'Could not generate the PDF. Please try again.');
+  }finally{ btn.disabled = false; btn.textContent = prev; }
+}
+
+/* ---------- boot ---------- */
+(async function boot(){
+  try{ await initTripContext(); }catch(e){ console.warn('No trip context', e); }
+})();
+</script>
+</body>
+</html>

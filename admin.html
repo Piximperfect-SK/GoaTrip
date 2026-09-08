@@ -502,6 +502,11 @@
         <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         Registrations
       </button>
+      <button type="button" class="dash-tab sb-link" data-tab="cancellations">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9.5 12.5 5 5M14.5 12.5l-5 5"/></svg></span>
+        Cancellations
+        <span class="sb-badge-count" id="sbCancelBadge" style="display:none;">0</span>
+      </button>
     </nav>
 
     <div class="sb-foot">
@@ -590,6 +595,39 @@
           <div id="registrationList"></div>
         </div>
       </div>
+
+      <!-- ---- Cancellations ---- -->
+      <div class="dash-panel hidden" id="panel-cancellations">
+        <div class="sec-card">
+          <h3>Cancellation requests</h3>
+          <p class="cardsub">Review, approve or reject voluntary trip-cancellation requests. Approving permanently updates the record and unlocks the final letter for the participant.</p>
+          <div class="search-field" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input id="cxSearch" placeholder="Search by name, ID, email or trip…" oninput="renderCancellations()" style="flex:1; min-width:200px;"/>
+            <select id="cxFilter" onchange="renderCancellations()" style="width:auto; min-width:160px;">
+              <option value="">All statuses</option>
+              <option value="IN REVIEW">In review</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+          <div id="cancellationList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CANCELLATION REVIEW MODAL ============ -->
+<div class="modal-overlay hidden" id="cxModalOverlay">
+  <div class="modal-card" style="max-width:560px; text-align:left;">
+    <h3 style="margin-top:0;">Cancellation request</h3>
+    <div class="gate-banner" id="cxModalBanner"></div>
+    <div id="cxModalBody" style="font-size:13.5px; line-height:1.7;"></div>
+    <div class="field-row" style="margin-top:14px;"><label>Board remarks</label><textarea id="cx-remarks" rows="3" maxlength="800" placeholder="Optional remarks shown to the participant"></textarea></div>
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+      <button type="button" class="btn-primary" id="cxApproveBtn" onclick="decideCancellation('approve')">Approve</button>
+      <button type="button" class="btn-danger" id="cxRejectBtn" onclick="decideCancellation('reject')">Reject</button>
+      <button type="button" class="btn-ghost" onclick="closeCxModal()">Close</button>
     </div>
   </div>
 </div>
@@ -662,6 +700,7 @@ function showLoggedIn(name){
   loadPendingAdmins();
   loadAdminList();
   loadRegistrations();
+  loadCancellations();
 }
 
 /* ---------- mobile sidebar toggle ---------- */
@@ -680,6 +719,7 @@ const TAB_TITLES = {
   flags: ['Console', 'Feature control'],
   admins: ['Console', 'Admins & security'],
   registrations: ['Console', 'Registrations'],
+  cancellations: ['Console', 'Cancellations'],
 };
 document.querySelectorAll('.dash-tab').forEach(tab=>{
   tab.addEventListener('click', ()=>{
@@ -717,7 +757,7 @@ async function populateTripPicker(){
   sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
   currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
   if(currentTripId) sel.value = currentTripId;
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); });
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -979,6 +1019,99 @@ async function loadFlags(){
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
   }catch(err){ showDashBanner('bad', err.message); }
+}
+
+/* ---------- cancellation requests ---------- */
+async function callCancellationPost(body){
+  const res = await fetch(FUNCTIONS_BASE + '/cancellation', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
+let currentCancellations = [];
+async function loadCancellations(){
+  try{
+    const res = await callCancellationPost({ action:'list', token:getToken(), tripId: currentTripId });
+    if(res.error) throw new Error(res.error);
+    currentCancellations = res.requests || [];
+    renderCancellations();
+    const pending = currentCancellations.filter(r=>r.status==='IN REVIEW').length;
+    const badge = el('sbCancelBadge');
+    if(badge){
+      if(pending>0){ badge.textContent = pending; badge.style.display='inline-block'; badge.classList.add('warn'); }
+      else{ badge.style.display='none'; }
+    }
+  }catch(err){ console.warn('loadCancellations failed', err); }
+}
+function statusPillHtml(status){
+  const cls = status === 'APPROVED' ? 'ok' : status === 'REJECTED' ? 'bad' : 'info';
+  return `<span class="status-pill ${status==='APPROVED'?'Approved':status==='REJECTED'?'Rejected':'Pending'}" style="padding:3px 10px; border-radius:9999px; font-size:11px; font-weight:700; text-transform:uppercase; background:${cls==='ok'?'rgba(62,124,89,.14)':cls==='bad'?'rgba(232,93,42,.14)':'rgba(30,96,145,.12)'}; color:${cls==='ok'?'var(--palm)':cls==='bad'?'var(--mango-2)':'var(--azulejo)'};">${escapeHtml(status)}</span>`;
+}
+function renderCancellations(){
+  const box = el('cancellationList');
+  const q = (el('cxSearch').value || '').trim().toLowerCase();
+  const statusFilter = el('cxFilter').value;
+  let filtered = currentCancellations;
+  if(statusFilter) filtered = filtered.filter(r => r.status === statusFilter);
+  if(q) filtered = filtered.filter(r => [r.fullName, r.cancellationId, r.email, r.tripName, r.bookingRef].some(v => (v||'').toLowerCase().includes(q)));
+  if(!filtered.length){ box.innerHTML = `<p style="font-size:13px; opacity:.5;">${currentCancellations.length ? 'No matches.' : 'No cancellation requests yet.'}</p>`; return; }
+  box.innerHTML = filtered.map(r => `
+    <div class="data-row">
+      <div class="data-meta">
+        <div class="label">${escapeHtml(r.fullName)} <span class="mono" style="font-size:11px; opacity:.6;">${escapeHtml(r.cancellationId)}</span> ${statusPillHtml(r.status)}</div>
+        <div class="sub">${escapeHtml(r.tripName)} · ${escapeHtml(r.destination)} · submitted ${new Date(r.submittedAt).toLocaleString('en-IN')}</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn-ghost" data-id="${r.id}">Open</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('button[data-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openCxModal(Number(btn.dataset.id)));
+  });
+}
+let cxActiveId = null;
+function openCxModal(id){
+  const req = currentCancellations.find(r => r.id === id);
+  if(!req) return;
+  cxActiveId = id;
+  el('cxModalBanner').className = 'gate-banner';
+  el('cx-remarks').value = req.adminRemarks || '';
+  const decided = req.status !== 'IN REVIEW';
+  el('cxApproveBtn').style.display = decided ? 'none' : '';
+  el('cxRejectBtn').style.display = decided ? 'none' : '';
+  el('cxModalBody').innerHTML = `
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+      <div><b>${escapeHtml(req.cancellationId)}</b></div>
+      ${statusPillHtml(req.status)}
+    </div>
+    <div><b>Name:</b> ${escapeHtml(req.fullName)}</div>
+    <div><b>Email:</b> ${escapeHtml(req.email)} &nbsp; <b>Mobile:</b> ${escapeHtml(req.mobile)}</div>
+    <div><b>Trip:</b> ${escapeHtml(req.tripName)} — ${escapeHtml(req.destination)}</div>
+    <div><b>Dates:</b> ${escapeHtml(req.startDate)} to ${escapeHtml(req.endDate)}</div>
+    <div><b>Booking Ref:</b> ${escapeHtml(req.bookingRef)}</div>
+    <div style="margin-top:8px;"><b>Reason:</b> ${escapeHtml(req.reason)}</div>
+    ${req.remarks ? `<div><b>Participant remarks:</b> ${escapeHtml(req.remarks)}</div>` : ''}
+    <div style="margin-top:8px; font-size:11.5px; opacity:.65;">Submitted ${new Date(req.submittedAt).toLocaleString('en-IN')}${req.processedAt ? ' · Decided ' + new Date(req.processedAt).toLocaleString('en-IN') + (req.processedBy ? ' by ' + escapeHtml(req.processedBy) : '') : ''}</div>
+  `;
+  el('cxModalOverlay').classList.remove('hidden');
+}
+function closeCxModal(){ el('cxModalOverlay').classList.add('hidden'); cxActiveId = null; }
+async function decideCancellation(decision){
+  if(!cxActiveId) return;
+  const banner = el('cxModalBanner');
+  banner.className = 'gate-banner';
+  try{
+    const boardSignatures = [{ name: sessionStorage.getItem('goaAdminName') || '', designation: 'Executive Board Member' }];
+    const res = await callCancellationPost({
+      action:'decide', token:getToken(), id: cxActiveId, decision,
+      adminRemarks: el('cx-remarks').value.trim(), boardSignatures,
+    });
+    if(res.error) throw new Error(res.error);
+    closeCxModal();
+    showDashBanner('ok', `Request ${decision === 'approve' ? 'approved' : 'rejected'}.`);
+    loadCancellations();
+  }catch(err){
+    banner.className = 'gate-banner show bad';
+    banner.textContent = err.message;
+  }
 }
 
 el('addFlagForm').addEventListener('submit', async e=>{
