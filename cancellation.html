@@ -437,12 +437,22 @@ async function downloadLetterPdf(cancellationId){
     if(imgH <= pageH){
       doc.addImage(imgData, 'PNG', 0, 0, pageW, imgH);
     }else{
-      // Paginate tall content across multiple A4 pages.
+      // Paginate tall content across multiple A4 pages. The first page
+      // starts flush at the top (it continues straight from the on-screen
+      // letterhead), but every page after that gets a top margin so
+      // content pushed onto a new page (e.g. by the avoid-break logic
+      // below) doesn't render flush against the page edge.
+      const topMarginMm = 14;
+      const pxPerMm = canvas.width / pageW;
+      const marginPx = topMarginMm * pxPerMm;
+      const pageCanvasHFull = (pageH * canvas.width) / pageW;
+
       let remaining = canvas.height;
       let position = 0;
-      const pageCanvasH = (pageH * canvas.width) / pageW;
+      let isFirstPage = true;
       while(remaining > 0){
-        let sliceH = Math.min(pageCanvasH, remaining);
+        const availablePx = isFirstPage ? pageCanvasHFull : Math.max(1, pageCanvasHFull - marginPx);
+        let sliceH = Math.min(availablePx, remaining);
         let boundary = position + sliceH;
 
         // If this natural page boundary would fall inside a
@@ -465,10 +475,12 @@ async function downloadLetterPdf(cancellationId){
         sliceCanvas.getContext('2d').drawImage(canvas, 0, position, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
         const sliceData = sliceCanvas.toDataURL('image/png');
         const sliceHmm = (sliceH * pageW) / canvas.width;
-        if(position > 0) doc.addPage();
-        doc.addImage(sliceData, 'PNG', 0, 0, pageW, sliceHmm);
+        if(!isFirstPage) doc.addPage();
+        const yMm = isFirstPage ? 0 : topMarginMm;
+        doc.addImage(sliceData, 'PNG', 0, yMm, pageW, sliceHmm);
         position += sliceH;
         remaining -= sliceH;
+        isFirstPage = false;
       }
     }
     doc.save(`cancellation-letter-${cancellationId.replace(/\//g,'-')}.pdf`);
