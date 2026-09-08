@@ -61,43 +61,48 @@
   .letter-scroll{ overflow-x:auto; padding:6px 0 10px; }
   #letterDoc{
     width:794px; min-height:1123px; margin:0 auto; background:#fff; color:#1b2b29;
-    font-family:'Space Grotesk', sans-serif; position:relative; padding:0 0 40px;
+    font-family:'Space Grotesk', sans-serif; position:relative; padding:0 0 0;
     border:1px solid var(--line); border-radius:4px; box-shadow:0 30px 70px -40px rgba(15,38,34,.4);
+    overflow:hidden;
   }
-  .ltr-topband{ height:8px; background:linear-gradient(90deg, var(--teal-900), var(--azulejo), var(--mango)); }
-  .ltr-head{ display:flex; align-items:center; justify-content:space-between; padding:22px 34px 14px; border-bottom:2px solid var(--teal-900); }
+  .ltr-head{ display:flex; align-items:flex-start; justify-content:space-between; padding:26px 40px 10px; position:relative; }
   .ltr-brand{ display:flex; align-items:center; gap:12px; }
-  .ltr-logo{ width:46px; height:46px; border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--mango), var(--teal-900)); display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; }
-  .ltr-brand-name{ font-family:'Fraunces', serif; font-weight:700; font-size:20px; color:var(--teal-900); line-height:1.1; }
+  .ltr-logo{ width:48px; height:48px; flex-shrink:0; }
+  .ltr-brand-name{ font-family:'Fraunces', serif; font-weight:700; font-size:21px; color:var(--teal-900); line-height:1.15; letter-spacing:.01em; }
   .ltr-brand-name span{ color:var(--mango-2); }
-  .ltr-brand-tag{ font-family:'Space Mono', monospace; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--azulejo); }
-  .ltr-brand-slogan{ font-family:'Fraunces', serif; font-style:italic; font-size:12px; color:var(--teal-700); text-align:right; }
-  .ltr-contact{ padding:8px 34px; background:var(--sand); font-size:10.5px; color:var(--teal-800); display:flex; gap:18px; flex-wrap:wrap; }
-  .ltr-refblock{ padding:12px 34px 0; text-align:right; font-size:11px; color:var(--teal-800); font-family:'Space Mono', monospace; }
-  .ltr-title{ text-align:center; padding:14px 34px 4px; }
-  .ltr-title h2{ margin:0; font-size:1.5rem; letter-spacing:.02em; color:var(--teal-900); }
-  .ltr-title p{ margin:4px 0 0; font-family:'Space Mono', monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--mango-2); }
-  .ltr-body{ padding:16px 34px 0; font-size:13px; line-height:1.65; color:#233c39; }
-  .ltr-subject{ background:#eef3f6; border-left:4px solid var(--azulejo); padding:9px 14px; margin:12px 0; font-size:12.5px; }
-  .ltr-terms-head{ background:var(--teal-900); color:#fff; padding:8px 14px; border-radius:6px 6px 0 0; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:18px; }
-  .ltr-term{ display:flex; gap:12px; padding:10px 14px; border:1px solid var(--line); border-top:none; font-size:11.8px; align-items:flex-start; }
+  .ltr-brand-tag{ font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--azulejo); margin-top:2px; }
+  .ltr-brand-slogan{ font-family:'Fraunces', serif; font-style:italic; font-size:13px; color:var(--teal-700); text-align:right; padding-top:4px; }
+  .ltr-contactbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:10px 40px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .ltr-contact{ font-size:10.5px; color:var(--teal-800); display:flex; gap:16px; flex-wrap:wrap; }
+  .ltr-refblock{ text-align:right; font-size:10.5px; color:var(--teal-800); font-family:'Space Mono', monospace; line-height:1.7; white-space:nowrap; }
+  .ltr-title{ padding:18px 40px 4px; border-left:6px solid var(--mango); margin:16px 40px 0 40px; padding-left:14px; }
+  .ltr-title h2{ margin:0; font-size:1.55rem; letter-spacing:.01em; color:var(--teal-900); line-height:1.2; }
+  .ltr-title p{ margin:4px 0 0; font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--mango-2); }
+  .ltr-body{ padding:16px 40px 0; font-size:12.6px; line-height:1.65; color:#233c39; }
+  .ltr-subject{ background:#eef3f6; border-left:4px solid var(--azulejo); padding:9px 14px; margin:12px 0; font-size:12px; }
+  .ltr-terms-head{ background:var(--teal-900); color:#fff; padding:9px 14px; border-radius:6px 6px 0 0; font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:18px; }
+  .ltr-term{ display:flex; gap:12px; padding:11px 14px; border:1px solid var(--line); border-top:none; font-size:11.4px; align-items:flex-start; }
   .ltr-term:last-child{ border-radius:0 0 6px 6px; }
   .ltr-term-num{ width:24px; height:24px; border-radius:50%; background:var(--teal-900); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
-  .ltr-term-title{ font-weight:700; color:var(--teal-900); font-size:12px; margin-bottom:2px; }
-  .ltr-sign-note{ font-size:11.5px; margin:16px 0 10px; color:#233c39; }
-  .ltr-board{ background:var(--sand); border-radius:8px; padding:14px; margin:0 34px 14px; display:flex; gap:10px; flex-wrap:wrap; }
-  .ltr-board-title{ width:100%; text-align:center; font-weight:700; font-size:11.5px; color:var(--teal-900); margin-bottom:8px; }
-  .ltr-board-col{ flex:1 1 150px; font-size:10.8px; line-height:1.9; }
-  .ltr-board-col b{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--azulejo); }
+  .ltr-term-title{ font-weight:700; color:var(--teal-900); font-size:11.8px; margin-bottom:2px; display:flex; align-items:center; gap:6px; }
+  .ltr-sign-note{ font-size:11px; margin:16px 0 10px; color:#233c39; }
+  .ltr-board{ background:var(--sand); border-radius:10px; padding:16px; margin:0 40px 16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .ltr-board-title{ width:100%; text-align:center; font-weight:700; font-size:12px; color:var(--teal-900); margin-bottom:2px; }
+  .ltr-board-sub{ width:100%; text-align:center; font-size:9.5px; color:var(--azulejo); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+  .ltr-board-col{ flex:1 1 150px; font-size:10.4px; line-height:1.85; }
+  .ltr-board-col b{ display:block; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--azulejo); }
   .ltr-board-col .sig{ font-family:'Fraunces', serif; font-style:italic; color:var(--teal-900); }
-  .ltr-seal{ flex:0 0 90px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:9px; }
-  .ltr-seal-ring{ width:70px; height:70px; border-radius:50%; border:2px solid var(--teal-900); display:flex; align-items:center; justify-content:center; color:var(--teal-900); font-size:8px; font-weight:700; text-align:center; padding:4px; }
-  .ltr-ack{ margin:0 34px 14px; border:1px solid var(--line); border-radius:8px; padding:14px; }
-  .ltr-ack-title{ background:var(--teal-900); color:#fff; margin:-14px -14px 10px; padding:8px 14px; border-radius:8px 8px 0 0; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
-  .ltr-ack p{ font-size:11.5px; margin:0 0 12px; }
-  .ltr-ack-row{ display:flex; justify-content:space-between; gap:14px; font-size:10.8px; flex-wrap:wrap; }
-  .ltr-footer{ margin:22px 34px 0; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; font-size:10px; color:var(--teal-700); }
-  .ltr-footer-tag{ font-style:italic; font-family:'Fraunces', serif; color:var(--mango-2); font-size:11px; }
+  .ltr-seal{ flex:0 0 96px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:9px; }
+  .ltr-seal svg{ width:92px; height:92px; }
+  .ltr-seal-caption{ margin-top:4px; opacity:.65; font-size:9px; }
+  .ltr-ack{ margin:0 40px 6px; border:1px solid var(--line); border-radius:8px; padding:16px; position:relative; }
+  .ltr-ack-title{ background:var(--teal-900); color:#fff; margin:-16px -16px 10px; padding:8px 16px; border-radius:8px 8px 0 0; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .ltr-ack p{ font-size:11.3px; margin:0 0 12px; }
+  .ltr-ack-row{ display:flex; justify-content:space-between; gap:14px; font-size:10.6px; flex-wrap:wrap; }
+  .ltr-note{ text-align:right; margin:0 40px 10px; font-family:'Fraunces', serif; font-style:italic; color:var(--mango-2); font-size:12px; }
+  .ltr-footer{ margin-top:20px; background:linear-gradient(90deg, var(--teal-900), var(--azulejo)); color:#fff; padding:14px 40px; display:flex; justify-content:space-between; align-items:center; font-size:10px; flex-wrap:wrap; gap:8px; }
+  .ltr-footer-nav{ font-family:'Space Mono', monospace; letter-spacing:.1em; text-transform:uppercase; opacity:.9; }
+  .ltr-footer-tag{ text-align:right; opacity:.9; font-size:9.5px; line-height:1.5; }
 
   .letter-actions{ display:flex; gap:10px; justify-content:center; margin:18px 0; flex-wrap:wrap; }
 
@@ -300,6 +305,45 @@ function letterAcknowledgementHTML(req){
     </div>`;
 }
 
+/* ---------- brand logo + authentic seal artwork ---------- */
+function brandLogoSvg(){
+  return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="23" fill="#0B3D3A"/>
+    <circle cx="24" cy="24" r="23" fill="none" stroke="#E85D2A" stroke-width="1.2"/>
+    <g transform="translate(24,26)">
+      <path d="M0,-11 C4,-7 5,-2 0,3 C-5,-2 -4,-7 0,-11 Z" fill="#F4A340"/>
+      <path d="M0,-9 C7,-6 10,0 6,6 C1,3 -1,-2 0,-9 Z" fill="#E85D2A"/>
+      <path d="M0,-9 C-7,-6 -10,0 -6,6 C-1,3 1,-2 0,-9 Z" fill="#F4A340"/>
+      <path d="M0,3 C6,4 10,8 8,13 C2,12 -1,8 0,3 Z" fill="#0F6A63"/>
+      <path d="M0,3 C-6,4 -10,8 -8,13 C-2,12 1,8 0,3 Z" fill="#1E6091"/>
+    </g>
+  </svg>`;
+}
+function sealSvg(){
+  const id = 'sealArc' + Math.random().toString(36).slice(2,8);
+  return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <path id="${id}top" d="M 14,60 A 46,46 0 0 1 106,60" fill="none"/>
+      <path id="${id}bot" d="M 106,64 A 46,46 0 0 1 14,64" fill="none"/>
+    </defs>
+    <circle cx="60" cy="60" r="57" fill="none" stroke="#0B3D3A" stroke-width="2"/>
+    <circle cx="60" cy="60" r="50" fill="none" stroke="#0B3D3A" stroke-width="1"/>
+    <circle cx="60" cy="60" r="44" fill="none" stroke="#E85D2A" stroke-width="1" stroke-dasharray="2 3"/>
+    <text font-size="8.4" font-weight="700" letter-spacing="1.5" fill="#0B3D3A" font-family="Space Mono, monospace">
+      <textPath href="#${id}top" startOffset="50%" text-anchor="middle">TULIP TRAVELS PVT. LTD.</textPath>
+    </text>
+    <text font-size="8" font-weight="700" letter-spacing="1.5" fill="#0B3D3A" font-family="Space Mono, monospace">
+      <textPath href="#${id}bot" startOffset="50%" text-anchor="middle">★ HINJEWADI · PUNE ★</textPath>
+    </text>
+    <g transform="translate(60,60)">
+      <path d="M0,-13 C5,-8 6,-2 0,4 C-6,-2 -5,-8 0,-13 Z" fill="#0B3D3A"/>
+      <path d="M0,-11 C8,-7 11,0 7,7 C1,3 -1,-3 0,-11 Z" fill="#E85D2A"/>
+      <path d="M0,-11 C-8,-7 -11,0 -7,7 C-1,3 1,-3 0,-11 Z" fill="#0B3D3A"/>
+    </g>
+    <circle cx="60" cy="60" r="57" fill="none" stroke="#0B3D3A" stroke-width="0.6" opacity=".5"/>
+  </svg>`;
+}
+
 /* ---------- final approved letter, mirrors the supplied template ---------- */
 function fmtDateParts(iso){
   if(!iso) return { dd:'____', mm:'____', yyyy:'2026' };
@@ -313,10 +357,9 @@ function finalLetterHTML(req){
   while(boards.length < 3) boards.push({});
   return `
   <div id="letterDoc">
-    <div class="ltr-topband"></div>
     <div class="ltr-head">
       <div class="ltr-brand">
-        <div class="ltr-logo">🌷</div>
+        <div class="ltr-logo">${brandLogoSvg()}</div>
         <div>
           <div class="ltr-brand-name">TULIP <span>TRAVELS</span></div>
           <div class="ltr-brand-tag">Pvt. Ltd. · Journeys Create Better Stories</div>
@@ -324,18 +367,20 @@ function finalLetterHTML(req){
       </div>
       <div class="ltr-brand-slogan">Travel · Explore · Belong</div>
     </div>
-    <div class="ltr-contact">
-      <span>📍 Hinjewadi, Pune, Maharashtra – 411057</span>
-      <span>✉️ info@tuliptravels.in</span>
-      <span>📞 +91 20 1234 5678</span>
-    </div>
-    <div class="ltr-refblock">
-      Ref No.: ${escapeHtml(req.cancellationId)}<br/>
-      Date: ${dp.dd} / ${dp.mm} / ${dp.yyyy}<br/>
-      Place: ${escapeHtml(req.place)}
+    <div class="ltr-contactbar">
+      <div class="ltr-contact">
+        <span>📍 Hinjewadi, Pune, Maharashtra – 411057</span>
+        <span>✉️ shubhamee2017@zohomail.in</span>
+        <span>📞 +91 85989 12622</span>
+      </div>
+      <div class="ltr-refblock">
+        Ref No.: ${escapeHtml(req.cancellationId)}<br/>
+        Date: ${dp.dd} / ${dp.mm} / ${dp.yyyy}<br/>
+        Place: ${escapeHtml(req.place)}
+      </div>
     </div>
     <div class="ltr-title">
-      <h2>TRIP CANCELLATION LETTER &amp; UNDERTAKING</h2>
+      <h2>Trip Cancellation Letter &amp; Undertaking</h2>
       <p>A formal acknowledgement of voluntary withdrawal</p>
     </div>
     <div class="ltr-body">
@@ -357,7 +402,8 @@ function finalLetterHTML(req){
     </div>
 
     <div class="ltr-board">
-      <div class="ltr-board-title">For Tulip Travels Pvt. Ltd. — Digitally Signed by Executive Board Members</div>
+      <div class="ltr-board-title">For Tulip Travels Pvt. Ltd.</div>
+      <div class="ltr-board-sub">Digitally Signed by Executive Board Members</div>
       ${boards.map(b => `
         <div class="ltr-board-col">
           <b>Name</b> ${escapeHtml(b.name || '_______________')}
@@ -366,8 +412,8 @@ function finalLetterHTML(req){
           <b>Date</b> ${dp.dd} / ${dp.mm} / ${dp.yyyy}
         </div>`).join('')}
       <div class="ltr-seal">
-        <div class="ltr-seal-ring">TULIP TRAVELS PVT. LTD. · HINJEWADI, PUNE</div>
-        <div style="margin-top:4px; opacity:.7;">Official Seal / Stamp</div>
+        ${sealSvg()}
+        <div class="ltr-seal-caption">Official Seal / Stamp</div>
       </div>
     </div>
 
@@ -383,10 +429,11 @@ function finalLetterHTML(req){
         <div><b>Place:</b> ${escapeHtml(req.place)}</div>
       </div>
     </div>
+    <div class="ltr-note">See you on the next adventure!</div>
 
     <div class="ltr-footer">
-      <span>🧭 PLAN &nbsp;|&nbsp; TRAVEL &nbsp;|&nbsp; CONNECT &nbsp;|&nbsp; EXPLORE &nbsp;|&nbsp; REPEAT</span>
-      <span class="ltr-footer-tag">See you on the next adventure!</span>
+      <span class="ltr-footer-nav">🧭 Plan · Travel · Connect · Explore · Repeat</span>
+      <span class="ltr-footer-tag">More than trips,<br/>we create memories.</span>
     </div>
   </div>`;
 }
@@ -434,9 +481,30 @@ async function downloadLetterPdf(cancellationId){
   }finally{ btn.disabled = false; btn.textContent = prev; }
 }
 
+/* ---------- autofill: trip name/destination from active trip, booking ref from tickets ---------- */
+async function autofillBookingRef(){
+  const name = el('f-name').value.trim();
+  const tripId = (window.TRIP && window.TRIP.id) || '';
+  if(!name || !tripId) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/boarding-pass?tripId=' + encodeURIComponent(tripId) + '&name=' + encodeURIComponent(name));
+    const data = await res.json();
+    const tickets = (data && data.tickets) || [];
+    const refs = tickets.map(t => t.pnr).filter(Boolean);
+    if(refs.length) el('f-ref').value = refs.join(' / ');
+  }catch(e){ console.warn('booking ref autofill failed', e); }
+}
+el('f-name').addEventListener('blur', autofillBookingRef);
+
 /* ---------- boot ---------- */
 (async function boot(){
-  try{ await initTripContext(); }catch(e){ console.warn('No trip context', e); }
+  try{
+    await initTripContext();
+    if(window.TRIP){
+      if(window.TRIP.name) el('f-trip').value = window.TRIP.name;
+      if(window.TRIP.destination) el('f-dest').value = window.TRIP.destination;
+    }
+  }catch(e){ console.warn('No trip context', e); }
 })();
 </script>
 </body>

@@ -31,6 +31,15 @@ async function ensureSchema() {
       submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS board_members (
+      id SERIAL PRIMARY KEY,
+      trip_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      designation TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
   ensured = true;
 }
 
@@ -145,6 +154,31 @@ exports.handler = async (event) => {
       const { rows } = await query('SELECT * FROM cancellations WHERE id = $1', [id]);
       if (!rows.length) return badRequest('Request not found.');
       return ok({ ok: true, request: serializeRow(rows[0]) });
+    }
+
+    if (action === 'listBoardMembers') {
+      const tripId = sanitizeText(body.tripId || '', 80) || 'default';
+      const { rows } = await query('SELECT * FROM board_members WHERE trip_id = $1 ORDER BY created_at ASC', [tripId]);
+      return ok({ ok: true, members: rows.map((r) => ({ id: r.id, name: r.name, designation: r.designation })) });
+    }
+
+    if (action === 'addBoardMember') {
+      const tripId = sanitizeText(body.tripId || '', 80) || 'default';
+      const memberName = sanitizeText(body.name || '', 120);
+      const designation = sanitizeText(body.designation || '', 120);
+      if (!memberName || !designation) return badRequest('Name and designation are required.');
+      const { rows } = await query(
+        'INSERT INTO board_members (trip_id, name, designation) VALUES ($1,$2,$3) RETURNING *',
+        [tripId, memberName, designation]
+      );
+      return ok({ ok: true, member: { id: rows[0].id, name: rows[0].name, designation: rows[0].designation } });
+    }
+
+    if (action === 'removeBoardMember') {
+      const id = Number(body.id);
+      if (!id) return badRequest('id is required.');
+      await query('DELETE FROM board_members WHERE id = $1', [id]);
+      return ok({ ok: true });
     }
 
     if (action === 'decide') {
