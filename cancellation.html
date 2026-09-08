@@ -367,7 +367,7 @@ function finalLetterHTML(req){
       <p class="ltr-sign-note">Your signature below confirms that you have read, understood, and voluntarily accepted all the above terms and conditions before proceeding with the cancellation request. This document shall be retained as an official record of your voluntary cancellation.</p>
     </div>
 
-    <div class="ltr-board">
+    <div class="ltr-board avoid-break">
       <div class="ltr-board-title">For Tulip Travels Pvt. Ltd.</div>
       <div class="ltr-board-sub">Digitally Signed by Executive Board Members</div>
       ${boards.map(b => `
@@ -383,7 +383,7 @@ function finalLetterHTML(req){
       </div>
     </div>
 
-    <div class="ltr-ack">
+    <div class="ltr-ack avoid-break">
       <div class="ltr-ack-title">Participant Acknowledgement &amp; Signature</div>
       <p>I hereby confirm that I have voluntarily chosen to cancel my participation in the trip and have read, understood, and accepted all terms and conditions mentioned above.</p>
       <div class="ltr-ack-row">
@@ -412,7 +412,22 @@ async function downloadLetterPdf(cancellationId){
     if(typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) throw new Error('PDF library failed to load.');
     const node = document.getElementById('letterDoc');
     await waitForImagesToLoad(node);
-    const canvas = await html2canvas(node, { scale:2, backgroundColor:'#ffffff', useCORS:true });
+
+    // Measure "keep together" blocks (board signatures, acknowledgement
+    // box, etc.) BEFORE capture, in canvas-pixel coordinates, so the
+    // paginator below can avoid slicing a page boundary through the
+    // middle of one of them.
+    const nodeRectPre = node.getBoundingClientRect();
+    const captureScale = 2; // must match the html2canvas scale option below
+    const avoidRanges = Array.from(node.querySelectorAll('.avoid-break')).map(elm => {
+      const r = elm.getBoundingClientRect();
+      return {
+        top: (r.top - nodeRectPre.top) * captureScale,
+        bottom: (r.bottom - nodeRectPre.top) * captureScale,
+      };
+    });
+
+    const canvas = await html2canvas(node, { scale:captureScale, backgroundColor:'#ffffff', useCORS:true });
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -427,7 +442,23 @@ async function downloadLetterPdf(cancellationId){
       let position = 0;
       const pageCanvasH = (pageH * canvas.width) / pageW;
       while(remaining > 0){
-        const sliceH = Math.min(pageCanvasH, remaining);
+        let sliceH = Math.min(pageCanvasH, remaining);
+        let boundary = position + sliceH;
+
+        // If this natural page boundary would fall inside a
+        // "keep together" block (and that block didn't already start
+        // at or before this slice's own top), shrink the slice so it
+        // ends right before the block instead — pushing the whole
+        // block onto the next page rather than cutting through it.
+        for(const range of avoidRanges){
+          if(range.top > position && range.top < boundary && range.bottom > boundary){
+            const adjusted = range.top - position;
+            if(adjusted > 0) sliceH = adjusted;
+            break;
+          }
+        }
+        boundary = position + sliceH;
+
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = canvas.width;
         sliceCanvas.height = sliceH;
