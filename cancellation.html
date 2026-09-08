@@ -72,21 +72,26 @@
   .ltr-brand-name span{ color:var(--mango-2); }
   .ltr-brand-tag{ font-family:'Space Mono', monospace; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--azulejo); margin-top:2px; }
   .ltr-brand-slogan{ font-family:'Fraunces', serif; font-style:italic; font-size:13px; color:var(--teal-700); text-align:right; padding-top:4px; }
-  .ltr-header-banner{ width:100%; max-height:120px; overflow:hidden; display:block; }
-  .ltr-header-banner img{ width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
+  .ltr-header-split{ display:flex; align-items:stretch; width:100%; height:98px; overflow:hidden; }
+  .ltr-header-split .ltr-header-logo{ flex:0 0 200px; display:flex; align-items:center; justify-content:center; padding:10px 16px; box-sizing:border-box; }
+  .ltr-header-split .ltr-header-logo img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .ltr-header-split .ltr-header-banner{ flex:1; min-width:0; height:100%; overflow:hidden; }
+  .ltr-header-split .ltr-header-banner img{ width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
   .ltr-contactbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:10px 40px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
   .ltr-contact{ font-size:10.5px; color:var(--teal-800); display:flex; gap:16px; flex-wrap:wrap; }
   .ltr-refblock{ text-align:right; font-size:10.5px; color:var(--teal-800); font-family:'Space Mono', monospace; line-height:1.7; white-space:nowrap; }
   .ltr-title{ padding:18px 40px 4px; border-left:6px solid var(--mango); margin:16px 40px 0 40px; padding-left:14px; }
   .ltr-title h2{ margin:0; font-size:1.55rem; letter-spacing:.01em; color:var(--teal-900); line-height:1.2; }
   .ltr-title p{ margin:4px 0 0; font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--mango-2); }
-  .ltr-body{ padding:16px 40px 0; font-size:12.6px; line-height:1.65; color:#233c39; }
-  .ltr-subject{ background:#eef3f6; border-left:4px solid var(--azulejo); padding:9px 14px; margin:12px 0; font-size:12px; }
-  .ltr-terms-head{ background:var(--teal-900); color:#fff; padding:9px 14px; border-radius:6px 6px 0 0; font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:18px; }
-  .ltr-term{ display:flex; gap:12px; padding:14px; border:1px solid var(--line); border-top:none; font-size:11.4px; line-height:1.55; align-items:flex-start; box-sizing:border-box; }
+  .ltr-body{ padding:14px 40px 0; font-size:11.6px; line-height:1.5; color:#233c39; }
+  .ltr-subject{ background:#eef3f6; border-left:4px solid var(--azulejo); padding:8px 14px; margin:10px 0; font-size:11px; }
+  .ltr-terms-head{ background:var(--teal-900); color:#fff; padding:7px 14px; border-radius:6px 6px 0 0; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-top:14px; }
+  .ltr-term{ display:flex; gap:10px; padding:9px 14px; border:1px solid var(--line); border-top:none; font-size:10.2px; line-height:1.42; align-items:flex-start; box-sizing:border-box; }
   .ltr-term:last-child{ border-radius:0 0 6px 6px; }
-  .ltr-term-num{ width:24px; height:24px; border-radius:50%; background:var(--teal-900); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; margin-top:1px; }
-  .ltr-term-title{ font-weight:700; color:var(--teal-900); font-size:11.8px; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .ltr-term-num{ width:19px; height:19px; border-radius:50%; background:var(--teal-900); color:#fff; display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; flex-shrink:0; margin-top:1px; }
+  .ltr-term-icon{ flex:0 0 16px; font-size:13px; line-height:1.3; margin-top:1px; text-align:center; }
+  .ltr-term-label{ flex:0 0 118px; font-weight:700; color:var(--teal-900); font-size:10.5px; line-height:1.28; padding-top:1px; }
+  .ltr-term-desc{ flex:1; min-width:0; color:#233c39; }
   .ltr-sign-note{ font-size:11px; margin:16px 0 10px; color:#233c39; }
   .ltr-board{ background:var(--sand); border-radius:10px; padding:16px; margin:0 40px 16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
   .ltr-board-title{ width:100%; text-align:center; font-weight:700; font-size:12px; color:var(--teal-900); margin-bottom:2px; }
@@ -320,8 +325,13 @@ function finalLetterHTML(req){
   while(boards.length < 3) boards.push({});
   return `
   <div id="letterDoc">
-    <div class="ltr-header-banner">
-      <img src="pictures/header.png" alt="Tulip Travels Pvt. Ltd. letterhead">
+    <div class="ltr-header-split">
+      <div class="ltr-header-logo">
+        <img src="pictures/logo.png" alt="Tulip Travels Pvt. Ltd. logo">
+      </div>
+      <div class="ltr-header-banner">
+        <img src="pictures/header.png" alt="Tulip Travels Pvt. Ltd. letterhead">
+      </div>
     </div>
     <div class="ltr-contactbar">
       <div class="ltr-contact">
@@ -348,11 +358,11 @@ function finalLetterHTML(req){
       <p>Your cancellation request has been reviewed and <b>approved</b> by the Executive Board Members of Tulip Travels Pvt. Ltd.</p>
 
       <div class="ltr-terms-head">Terms &amp; Conditions of Cancellation</div>
-      <div class="ltr-term"><div class="ltr-term-num">1</div><div><div class="ltr-term-title">💰 Non-Refundable Amount</div>You acknowledge and agree that all amounts paid or contributed towards the trip prior to cancellation shall be non-refundable. Any amount already paid shall be treated as a cancellation/administrative penalty and shall not be claimed back following approval of the cancellation.</div></div>
-      <div class="ltr-term"><div class="ltr-term-num">2</div><div><div class="ltr-term-title">⏱ Cancellation Processing Time</div>Following approval by the Executive Board Members, the cancellation may take approximately 1–2 working days to be formally processed and recorded.</div></div>
-      <div class="ltr-term"><div class="ltr-term-num">3</div><div><div class="ltr-term-title">🧍 Voluntary Withdrawal</div>You solemnly confirm that you are choosing to withdraw from the trip of your own free will and are not being compelled, pressured, or forced to do so by Tulip Travels Pvt. Ltd. or any person associated with the trip.</div></div>
-      <div class="ltr-term"><div class="ltr-term-num">4</div><div><div class="ltr-term-title">📝 Acceptance of Financial Penalty</div>You agree that you will not raise, dispute, or escalate any claim or grievance concerning the amount retained/penalised under the cancellation terms, having voluntarily accepted these conditions.</div></div>
-      <div class="ltr-term"><div class="ltr-term-num">5</div><div><div class="ltr-term-title">➕ Rejoining the Trip</div>Once your cancellation has been formally approved and processed, any subsequent request to rejoin the same trip shall be subject to availability and approval. If permitted, a rejoining fee of ₹1,000 (Rupees One Thousand only) shall be applicable in addition to any applicable trip-related charges.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">1</div><div class="ltr-term-icon">💰</div><div class="ltr-term-label">Non-Refundable Amount</div><div class="ltr-term-desc">You acknowledge and agree that all amounts paid or contributed towards the trip prior to cancellation shall be non-refundable. Any amount already paid shall be treated as a cancellation/administrative penalty and shall not be claimed back following approval of the cancellation.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">2</div><div class="ltr-term-icon">⏱</div><div class="ltr-term-label">Cancellation Processing Time</div><div class="ltr-term-desc">Following approval by the Executive Board Members, the cancellation may take approximately 1–2 working days to be formally processed and recorded.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">3</div><div class="ltr-term-icon">🧍</div><div class="ltr-term-label">Voluntary Withdrawal</div><div class="ltr-term-desc">You solemnly confirm that you are choosing to withdraw from the trip of your own free will and are not being compelled, pressured, or forced to do so by Tulip Travels Pvt. Ltd. or any person associated with the trip.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">4</div><div class="ltr-term-icon">📝</div><div class="ltr-term-label">Acceptance of Financial Penalty</div><div class="ltr-term-desc">You agree that you will not raise, dispute, or escalate any claim or grievance concerning the amount retained/penalised under the cancellation terms, having voluntarily accepted these conditions.</div></div>
+      <div class="ltr-term"><div class="ltr-term-num">5</div><div class="ltr-term-icon">➕</div><div class="ltr-term-label">Rejoining the Trip</div><div class="ltr-term-desc">Once your cancellation has been formally approved and processed, any subsequent request to rejoin the same trip shall be subject to availability and approval. If permitted, a rejoining fee of ₹1,000 (Rupees One Thousand only) shall be applicable in addition to any applicable trip-related charges.</div></div>
 
       <p class="ltr-sign-note">Your signature below confirms that you have read, understood, and voluntarily accepted all the above terms and conditions before proceeding with the cancellation request. This document shall be retained as an official record of your voluntary cancellation.</p>
     </div>
