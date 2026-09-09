@@ -1172,8 +1172,26 @@ function openCxModal(id){
     <div style="margin-top:8px;"><b>Reason:</b> ${escapeHtml(req.reason)}</div>
     ${req.remarks ? `<div><b>Participant remarks:</b> ${escapeHtml(req.remarks)}</div>` : ''}
     <div style="margin-top:8px; font-size:11.5px; opacity:.65;">Submitted ${new Date(req.submittedAt).toLocaleString('en-IN')}${req.processedAt ? ' · Decided ' + new Date(req.processedAt).toLocaleString('en-IN') + (req.processedBy ? ' by ' + escapeHtml(req.processedBy) : '') : ''}</div>
+    ${req.pdfArchived
+      ? `<div style="margin-top:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+           <span style="font-size:11.5px; opacity:.7;">🔒 Archived copy on file${req.pdfArchivedAt ? ' · ' + new Date(req.pdfArchivedAt).toLocaleString('en-IN') : ''}</span>
+           <button type="button" class="btn-ghost" style="padding:6px 12px; font-size:12px;" onclick="downloadArchivedPdf(${req.id}, '${req.cancellationId.replace(/'/g,"\\'")}')">Download archived PDF</button>
+         </div>`
+      : (req.status === 'APPROVED' ? `<div style="margin-top:10px; font-size:11.5px; opacity:.55;">No archived copy yet — one is captured automatically the first time the participant views their approved letter.</div>` : '')}
   `;
   el('cxModalOverlay').classList.remove('hidden');
+}
+async function downloadArchivedPdf(id, cancellationId){
+  try{
+    const res = await callCancellationPost({ action:'getArchivedPdf', token:getToken(), id });
+    if(res.error) throw new Error(res.error);
+    const link = document.createElement('a');
+    link.href = res.pdfBase64;
+    link.download = `cancellation-letter-archived-${cancellationId.replace(/\//g,'-')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }catch(err){ showDashBanner('bad', `Could not fetch the archived PDF: ${err.message}`); }
 }
 function closeCxModal(){ el('cxModalOverlay').classList.add('hidden'); cxActiveId = null; }
 async function decideCancellation(decision){

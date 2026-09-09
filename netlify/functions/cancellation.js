@@ -37,6 +37,8 @@ async function ensureSchema() {
   // already in the CREATE TABLE above) and a safe migration on an
   // existing one.
   await query(`ALTER TABLE cancellations ADD COLUMN IF NOT EXISTS signature_image TEXT DEFAULT ''`);
+  await query(`ALTER TABLE cancellations ADD COLUMN IF NOT EXISTS pdf_snapshot TEXT DEFAULT ''`);
+  await query(`ALTER TABLE cancellations ADD COLUMN IF NOT EXISTS pdf_archived_at TIMESTAMPTZ`);
   await query(`
     CREATE TABLE IF NOT EXISTS board_members (
       id SERIAL PRIMARY KEY,
@@ -78,7 +80,24 @@ function serializeRow(r) {
     processedAt: r.processed_at,
     submittedAt: r.submitted_at,
     signatureImage: r.signature_image || '',
+    // Only a flag here, never the actual blob — list/status responses
+    // stay light. The real snapshot is only ever returned by
+    // getArchivedPdf, gated behind an admin session.
+    pdfArchived: !!(r.pdf_snapshot && r.pdf_snapshot.length > 0),
+    pdfArchivedAt: r.pdf_archived_at || null,
   };
+}
+
+// Same reasoning as sanitizeSignatureImage: this is a large base64 blob,
+// not short text, so it can't go through sanitizeText's truncation.
+// Capped generously (~5MB of actual PDF bytes) since a 1-2 page letter
+// with an embedded QR/signature comfortably fits well under that.
+const MAX_PDF_LEN = 7000000;
+function sanitizePdfDataUrl(value) {
+  if (typeof value !== 'string' || !value) return '';
+  if (!/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(value)) return '';
+  if (value.length > MAX_PDF_LEN) return '';
+  return value;
 }
 
 // The signature is a base64 PNG data URL, not a short text field, so it
@@ -161,9 +180,47 @@ exports.handler = async (event) => {
       return ok({ ok: true, request: serializeRow(rows[0]) });
     }
 
+    // Archives an immutable copy of the generated PDF the first time
+    // anyone (participant or admin) views/downloads an APPROVED letter.
+    // Authenticated the same lightweight way as 'status' (cancellation ID
+    // + matching name) rather than requiring an admin session, since it's
+    // triggered automatically from the public status-check page. Deliberately
+    // write-once: the WHERE clause only lets this succeed if no snapshot
+    // exists yet, so a later request (however it's issued) can never
+    // overwrite the original evidentiary copy — that's the whole point of
+    // keeping it as a defense against a false "that's not what I signed"
+    // claim.
+    if (action === 'archivePdf') {
+      const cancellationId = sanitizeText(body.cancellationId || '', 40);
+      const fullName = sanitizeText(body.fullName || '', 120);
+      if (!cancellationId || !fullName) return badRequest('Cancellation ID and full name are required.');
+      const pdfBase64 = sanitizePdfDataUrl(body.pdfBase64);
+      if (!pdfBase64) return badRequest('PDF data is missing, invalid, or too large.');
+      const { rows } = await query(
+        `UPDATE cancellations
+         SET pdf_snapshot = $1, pdf_archived_at = now()
+         WHERE cancellation_id = $2 AND lower(full_name) = lower($3)
+           AND status = 'APPROVED' AND (pdf_snapshot IS NULL OR pdf_snapshot = '')
+         RETURNING id`,
+        [pdfBase64, cancellationId, fullName]
+      );
+      return ok({ ok: true, archived: rows.length > 0 });
+    }
+
     // Everything below requires an authenticated admin session.
     const name = verifySessionToken(body.token);
     if (!name) return unauthorized('Session expired or invalid — please log in again.');
+
+    // Lets an admin pull back the exact PDF that was archived at the time
+    // it was first generated — the source of truth if a participant later
+    // disputes what they signed/agreed to.
+    if (action === 'getArchivedPdf') {
+      const id = Number(body.id);
+      if (!id) return badRequest('id is required.');
+      const { rows } = await query('SELECT pdf_snapshot, pdf_archived_at FROM cancellations WHERE id = $1', [id]);
+      if (!rows.length || !rows[0].pdf_snapshot) return badRequest('No archived PDF found for this request.');
+      return ok({ ok: true, pdfBase64: rows[0].pdf_snapshot, archivedAt: rows[0].pdf_archived_at });
+    }
 
     if (action === 'list') {
       const tripId = body.tripId ? sanitizeText(body.tripId, 80) : null;

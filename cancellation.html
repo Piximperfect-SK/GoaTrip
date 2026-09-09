@@ -443,8 +443,10 @@ function renderStatusResult(req){
         <button class="btn-ghost" onclick="document.getElementById('letterWrap').scrollIntoView({behavior:'smooth'})">View Letter</button>
         <button class="btn-primary" id="downloadLetterBtn" onclick="downloadLetterPdf('${escapeHtml(req.cancellationId)}')">Download PDF</button>
       </div>
+      <p class="text-xs" style="font-size:11.5px; opacity:.55; margin:10px 0 0;">🔒 A copy of this letter is archived on our records the first time it's generated, for both your protection and ours.</p>
     </div>
     <div class="letter-scroll" id="letterWrap">${finalLetterHTML(req)}</div>`;
+  autoArchiveApprovedLetter(req);
 }
 
 /* ---------- simple acknowledgement block (IN REVIEW) ---------- */
@@ -555,90 +557,119 @@ function finalLetterHTML(req){
   </div>`;
 }
 
+async function buildLetterPdfDoc(){
+  if(typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) throw new Error('PDF library failed to load.');
+  const node = document.getElementById('letterDoc');
+  await waitForImagesToLoad(node);
+
+  // Measure "keep together" blocks (board signatures, acknowledgement
+  // box, etc.) BEFORE capture, in canvas-pixel coordinates, so the
+  // paginator below can avoid slicing a page boundary through the
+  // middle of one of them.
+  const nodeRectPre = node.getBoundingClientRect();
+  const captureScale = 2; // must match the html2canvas scale option below
+  const avoidRanges = Array.from(node.querySelectorAll('.avoid-break')).map(elm => {
+    const r = elm.getBoundingClientRect();
+    return {
+      top: (r.top - nodeRectPre.top) * captureScale,
+      bottom: (r.bottom - nodeRectPre.top) * captureScale,
+    };
+  });
+
+  const canvas = await html2canvas(node, { scale:captureScale, backgroundColor:'#ffffff', useCORS:true });
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const imgH = (canvas.height * pageW) / canvas.width;
+  const imgData = canvas.toDataURL('image/png');
+  if(imgH <= pageH){
+    doc.addImage(imgData, 'PNG', 0, 0, pageW, imgH);
+  }else{
+    // Paginate tall content across multiple A4 pages. The first page
+    // starts flush at the top (it continues straight from the on-screen
+    // letterhead), but every page after that gets a top margin so
+    // content pushed onto a new page (e.g. by the avoid-break logic
+    // below) doesn't render flush against the page edge.
+    const topMarginMm = 14;
+    const pxPerMm = canvas.width / pageW;
+    const marginPx = topMarginMm * pxPerMm;
+    const pageCanvasHFull = (pageH * canvas.width) / pageW;
+
+    let remaining = canvas.height;
+    let position = 0;
+    let isFirstPage = true;
+    while(remaining > 0){
+      const availablePx = isFirstPage ? pageCanvasHFull : Math.max(1, pageCanvasHFull - marginPx);
+      let sliceH = Math.min(availablePx, remaining);
+      let boundary = position + sliceH;
+
+      // If this natural page boundary would fall inside a
+      // "keep together" block (and that block didn't already start
+      // at or before this slice's own top), shrink the slice so it
+      // ends right before the block instead — pushing the whole
+      // block onto the next page rather than cutting through it.
+      for(const range of avoidRanges){
+        if(range.top > position && range.top < boundary && range.bottom > boundary){
+          const adjusted = range.top - position;
+          if(adjusted > 0) sliceH = adjusted;
+          break;
+        }
+      }
+      boundary = position + sliceH;
+
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = canvas.width;
+      sliceCanvas.height = sliceH;
+      sliceCanvas.getContext('2d').drawImage(canvas, 0, position, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const sliceData = sliceCanvas.toDataURL('image/png');
+      const sliceHmm = (sliceH * pageW) / canvas.width;
+      if(!isFirstPage) doc.addPage();
+      const yMm = isFirstPage ? 0 : topMarginMm;
+      doc.addImage(sliceData, 'PNG', 0, yMm, pageW, sliceHmm);
+      position += sliceH;
+      remaining -= sliceH;
+      isFirstPage = false;
+    }
+  }
+  return doc;
+}
+
 async function downloadLetterPdf(cancellationId){
   const btn = el('downloadLetterBtn');
   const prev = btn.textContent;
   btn.disabled = true; btn.textContent = 'Preparing PDF…';
   try{
-    if(typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) throw new Error('PDF library failed to load.');
-    const node = document.getElementById('letterDoc');
-    await waitForImagesToLoad(node);
-
-    // Measure "keep together" blocks (board signatures, acknowledgement
-    // box, etc.) BEFORE capture, in canvas-pixel coordinates, so the
-    // paginator below can avoid slicing a page boundary through the
-    // middle of one of them.
-    const nodeRectPre = node.getBoundingClientRect();
-    const captureScale = 2; // must match the html2canvas scale option below
-    const avoidRanges = Array.from(node.querySelectorAll('.avoid-break')).map(elm => {
-      const r = elm.getBoundingClientRect();
-      return {
-        top: (r.top - nodeRectPre.top) * captureScale,
-        bottom: (r.bottom - nodeRectPre.top) * captureScale,
-      };
-    });
-
-    const canvas = await html2canvas(node, { scale:captureScale, backgroundColor:'#ffffff', useCORS:true });
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const imgH = (canvas.height * pageW) / canvas.width;
-    const imgData = canvas.toDataURL('image/png');
-    if(imgH <= pageH){
-      doc.addImage(imgData, 'PNG', 0, 0, pageW, imgH);
-    }else{
-      // Paginate tall content across multiple A4 pages. The first page
-      // starts flush at the top (it continues straight from the on-screen
-      // letterhead), but every page after that gets a top margin so
-      // content pushed onto a new page (e.g. by the avoid-break logic
-      // below) doesn't render flush against the page edge.
-      const topMarginMm = 14;
-      const pxPerMm = canvas.width / pageW;
-      const marginPx = topMarginMm * pxPerMm;
-      const pageCanvasHFull = (pageH * canvas.width) / pageW;
-
-      let remaining = canvas.height;
-      let position = 0;
-      let isFirstPage = true;
-      while(remaining > 0){
-        const availablePx = isFirstPage ? pageCanvasHFull : Math.max(1, pageCanvasHFull - marginPx);
-        let sliceH = Math.min(availablePx, remaining);
-        let boundary = position + sliceH;
-
-        // If this natural page boundary would fall inside a
-        // "keep together" block (and that block didn't already start
-        // at or before this slice's own top), shrink the slice so it
-        // ends right before the block instead — pushing the whole
-        // block onto the next page rather than cutting through it.
-        for(const range of avoidRanges){
-          if(range.top > position && range.top < boundary && range.bottom > boundary){
-            const adjusted = range.top - position;
-            if(adjusted > 0) sliceH = adjusted;
-            break;
-          }
-        }
-        boundary = position + sliceH;
-
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = sliceH;
-        sliceCanvas.getContext('2d').drawImage(canvas, 0, position, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-        const sliceData = sliceCanvas.toDataURL('image/png');
-        const sliceHmm = (sliceH * pageW) / canvas.width;
-        if(!isFirstPage) doc.addPage();
-        const yMm = isFirstPage ? 0 : topMarginMm;
-        doc.addImage(sliceData, 'PNG', 0, yMm, pageW, sliceHmm);
-        position += sliceH;
-        remaining -= sliceH;
-        isFirstPage = false;
-      }
-    }
+    const doc = await buildLetterPdfDoc();
     doc.save(`cancellation-letter-${cancellationId.replace(/\//g,'-')}.pdf`);
   }catch(err){
     console.error('Cancellation letter PDF failed:', err);
     alert(err.message || 'Could not generate the PDF. Please try again.');
   }finally{ btn.disabled = false; btn.textContent = prev; }
+}
+
+/* ---------- archive an immutable copy the first time an approved
+   letter is actually rendered (not dependent on someone remembering
+   to click Download) ----------
+   The backend enforces "write once" itself (see archivePdf in
+   cancellation.js) — this just needs to fire the attempt. Silent on
+   failure: this is a best-effort record-keeping step, never something
+   that should interrupt or block the participant's own view of their
+   letter. */
+async function autoArchiveApprovedLetter(req){
+  if(req.pdfArchived) return; // backend already has a copy — nothing to do
+  try{
+    const doc = await buildLetterPdfDoc();
+    const pdfBase64 = doc.output('datauristring');
+    await callCancellation({
+      action:'archivePdf',
+      cancellationId: req.cancellationId,
+      fullName: req.fullName,
+      pdfBase64,
+    });
+  }catch(err){
+    console.warn('Could not archive a copy of the approved letter (non-fatal):', err);
+  }
 }
 
 /* ---------- autofill: trip name/destination from active trip, booking ref from tickets ---------- */
