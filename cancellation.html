@@ -52,6 +52,37 @@
   .cx-submit-btn{ width:100%; border:none; border-radius:9999px; padding:15px 0; margin-top:6px; background:linear-gradient(120deg, var(--mango), var(--mango-2)); color:white; font-weight:700; font-size:13.5px; letter-spacing:.03em; cursor:pointer; }
   .cx-submit-btn:disabled{ opacity:.6; cursor:default; }
 
+  /* ---------- Signature modal (step 2 of submitting) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(11,38,34,.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  }
+  .modal-overlay.hidden{ display:none; }
+  .sig-modal-card{
+    width:100%; max-width:520px; background:var(--paper); border-radius:20px; padding:30px 28px 26px;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.5); border:1px solid var(--line);
+  }
+  .sig-modal-card h3{ margin:0 0 6px; font-size:1.4rem; }
+  .sig-modal-card .modal-sub{ font-size:13px; opacity:.65; margin:0 0 18px; line-height:1.5; }
+  .sig-modal-nav{ display:flex; gap:10px; margin-top:16px; }
+  .sig-modal-nav .btn-ghost{ flex:0 0 auto; }
+  .sig-modal-nav .cx-submit-btn{ flex:1; margin-top:0; }
+
+  /* ---------- Signature pad (drawn digital signature) ---------- */
+  .sigpad-wrap{ position:relative; border:1.5px dashed var(--line); border-radius:12px; background:#fff; overflow:hidden; }
+  .sigpad-canvas{ display:block; width:100%; height:160px; touch-action:none; cursor:crosshair; position:relative; z-index:1; }
+  .sigpad-placeholder{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--teal-700); opacity:.35; font-size:13px; font-style:italic; pointer-events:none; z-index:0;
+  }
+  .sigpad-placeholder.hide{ display:none; }
+  .sigpad-clear{
+    position:absolute; top:8px; right:8px; z-index:2; border:1px solid var(--line); background:white;
+    border-radius:8px; padding:5px 12px; font-size:11.5px; font-weight:600; color:var(--teal-800); cursor:pointer; transition:.15s;
+  }
+  .sigpad-clear:hover{ border-color:var(--mango-2); color:var(--mango-2); }
+  .sigpad-hint{ font-size:11.5px; opacity:.55; margin:6px 0 0; }
+
   .status-pill{ display:inline-block; padding:4px 12px; border-radius:9999px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
   .status-pill.review{ background:rgba(30,96,145,.12); color:var(--azulejo); }
   .status-pill.approved{ background:rgba(62,124,89,.14); color:var(--palm); }
@@ -106,6 +137,7 @@
   .ltr-ack-title{ background:var(--teal-900); color:#fff; margin:-16px -16px 10px; padding:8px 16px; border-radius:8px 8px 0 0; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
   .ltr-ack p{ font-size:11.3px; margin:0 0 12px; }
   .ltr-ack-row{ display:flex; justify-content:space-between; gap:14px; font-size:10.6px; flex-wrap:wrap; }
+  .ltr-sig-img{ height:44px; max-width:180px; display:block; object-fit:contain; }
   .ltr-note{ text-align:right; margin:0 40px 10px; font-family:'Fraunces', serif; font-style:italic; color:var(--mango-2); font-size:12px; }
   .ltr-footer{ margin-top:20px; background:linear-gradient(90deg, var(--teal-900), var(--azulejo)); color:#fff; padding:14px 40px; display:flex; justify-content:space-between; align-items:center; font-size:10px; flex-wrap:wrap; gap:8px; }
   .ltr-footer-nav{ font-family:'Space Mono', monospace; letter-spacing:.1em; text-transform:uppercase; opacity:.9; }
@@ -157,7 +189,7 @@
           <div class="field-row full"><label>Cancellation Reason *</label><textarea id="f-reason" rows="3" required maxlength="500"></textarea></div>
           <div class="field-row full"><label>Additional Remarks (optional)</label><textarea id="f-remarks" rows="2" maxlength="800"></textarea></div>
         </div>
-        <button type="submit" class="cx-submit-btn" id="submitBtn">Submit Cancellation Request</button>
+        <button type="submit" class="cx-submit-btn" id="submitBtn">Next: Add Signature →</button>
       </form>
     </div>
 
@@ -181,6 +213,25 @@
     <div id="statusResult"></div>
   </div>
 </main>
+
+<!-- ============ MODAL: Draw signature (step 2 of submitting) ============ -->
+<div class="modal-overlay hidden" id="signatureModalOverlay">
+  <div class="sig-modal-card">
+    <h3>Add your signature</h3>
+    <p class="modal-sub">Draw your signature below with your mouse or finger — it'll be placed on your cancellation letter's signature line once approved.</p>
+    <div class="gate-banner" id="sigModalBanner"></div>
+    <div class="sigpad-wrap">
+      <canvas id="f-signature-pad" class="sigpad-canvas" width="600" height="160"></canvas>
+      <div class="sigpad-placeholder" id="sigpadPlaceholder">Draw your signature here</div>
+      <button type="button" class="sigpad-clear" id="sigpadClear">Clear</button>
+    </div>
+    <p class="sigpad-hint">Not happy with it? Hit Clear and try again before submitting.</p>
+    <div class="sig-modal-nav">
+      <button type="button" class="btn-ghost" id="sigModalBack">← Back</button>
+      <button type="button" class="cx-submit-btn" id="sigModalSubmitBtn">Submit Cancellation Request</button>
+    </div>
+  </div>
+</div>
 
 <script src="shared.js"></script>
 <script>
@@ -208,11 +259,109 @@ async function callCancellation(body){
   return res.json();
 }
 
-/* ---------- submit ---------- */
-el('submitForm').addEventListener('submit', async (e)=>{
+/* ---------- signature pad ---------- */
+const sigCanvas = el('f-signature-pad');
+const sigCtx = sigCanvas.getContext('2d');
+const sigPlaceholder = el('sigpadPlaceholder');
+let sigHasDrawing = false;
+let sigDrawing = false;
+let sigLastPoint = null;
+
+function resizeSigCanvas(){
+  // Backs the canvas with real device pixels (not just CSS pixels) so
+  // strokes stay crisp on high-DPI screens, while keeping the drawing
+  // coordinate space in CSS pixels for simple pointer-event math.
+  const rect = sigCanvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  const priorDrawing = sigHasDrawing ? sigCanvas.toDataURL('image/png') : null;
+  sigCanvas.width = Math.max(1, Math.round(rect.width * ratio));
+  sigCanvas.height = Math.max(1, Math.round(rect.height * ratio));
+  sigCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  sigCtx.lineWidth = 2.2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  sigCtx.strokeStyle = '#182620';
+  if(priorDrawing){
+    const img = new Image();
+    img.onload = () => sigCtx.drawImage(img, 0, 0, rect.width, rect.height);
+    img.src = priorDrawing;
+  }
+}
+function sigPointFromEvent(e){
+  const rect = sigCanvas.getBoundingClientRect();
+  const point = e.touches ? e.touches[0] : e;
+  return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+}
+function sigStart(e){
+  e.preventDefault();
+  sigDrawing = true;
+  sigLastPoint = sigPointFromEvent(e);
+}
+function sigMove(e){
+  if(!sigDrawing) return;
+  e.preventDefault();
+  const p = sigPointFromEvent(e);
+  sigCtx.beginPath();
+  sigCtx.moveTo(sigLastPoint.x, sigLastPoint.y);
+  sigCtx.lineTo(p.x, p.y);
+  sigCtx.stroke();
+  sigLastPoint = p;
+  if(!sigHasDrawing){ sigHasDrawing = true; sigPlaceholder.classList.add('hide'); }
+}
+function sigEnd(){ sigDrawing = false; sigLastPoint = null; }
+function clearSignaturePad(){
+  const rect = sigCanvas.getBoundingClientRect();
+  sigCtx.clearRect(0, 0, rect.width, rect.height);
+  sigHasDrawing = false;
+  sigPlaceholder.classList.remove('hide');
+}
+sigCanvas.addEventListener('mousedown', sigStart);
+sigCanvas.addEventListener('mousemove', sigMove);
+window.addEventListener('mouseup', sigEnd);
+sigCanvas.addEventListener('touchstart', sigStart, { passive:false });
+sigCanvas.addEventListener('touchmove', sigMove, { passive:false });
+sigCanvas.addEventListener('touchend', sigEnd);
+el('sigpadClear').addEventListener('click', clearSignaturePad);
+window.addEventListener('resize', () => { if(!el('signatureModalOverlay').classList.contains('hidden')) resizeSigCanvas(); });
+function getSignatureDataUrl(){
+  return sigHasDrawing ? sigCanvas.toDataURL('image/png') : '';
+}
+
+/* ---------- signature modal open/close ---------- */
+function openSignatureModal(){
+  el('sigModalBanner').className = 'gate-banner';
+  el('signatureModalOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  // The pad's canvas has zero size while the modal is display:none, so
+  // it can only be measured/sized correctly once it's actually visible.
+  requestAnimationFrame(resizeSigCanvas);
+}
+function closeSignatureModal(){
+  el('signatureModalOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+el('sigModalBack').addEventListener('click', closeSignatureModal);
+el('signatureModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'signatureModalOverlay') closeSignatureModal();
+});
+
+/* ---------- step 1: validate the details form, then open the signature modal ---------- */
+el('submitForm').addEventListener('submit', (e)=>{
   e.preventDefault();
   hideBanner2('submitBanner');
-  const btn = el('submitBtn');
+  if(!el('submitForm').reportValidity()) return;
+  openSignatureModal();
+});
+
+/* ---------- step 2: draw + confirm signature, then actually submit ---------- */
+el('sigModalSubmitBtn').addEventListener('click', async ()=>{
+  const signatureImage = getSignatureDataUrl();
+  if(!signatureImage){
+    showBanner2('sigModalBanner', 'bad', 'Please draw your signature before submitting.');
+    return;
+  }
+  const btn = el('sigModalSubmitBtn');
+  const origLabel = btn.textContent;
   btn.disabled = true; btn.textContent = 'Submitting…';
   try{
     const payload = {
@@ -226,14 +375,16 @@ el('submitForm').addEventListener('submit', async (e)=>{
       endDate: el('f-end').value,
       reason: el('f-reason').value.trim(),
       remarks: el('f-remarks').value.trim(),
+      signatureImage,
     };
     const tripId = (window.TRIP && window.TRIP.id) || '';
     const res = await callCancellation({ action:'submit', tripId, payload });
     if(res.error) throw new Error(res.error);
+    closeSignatureModal();
     el('submitForm').style.display = 'none';
     renderAcknowledgement(res.request);
-  }catch(err){ showBanner2('submitBanner','bad', err.message); }
-  finally{ btn.disabled = false; btn.textContent = 'Submit Cancellation Request'; }
+  }catch(err){ showBanner2('sigModalBanner','bad', err.message); }
+  finally{ btn.disabled = false; btn.textContent = origLabel; }
 });
 
 function renderAcknowledgement(req){
@@ -388,7 +539,7 @@ function finalLetterHTML(req){
       <p>I hereby confirm that I have voluntarily chosen to cancel my participation in the trip and have read, understood, and accepted all terms and conditions mentioned above.</p>
       <div class="ltr-ack-row">
         <div><b>Participant Name:</b> ${escapeHtml(req.fullName)}</div>
-        <div><b>Signature:</b> _______________________</div>
+        <div style="display:flex; align-items:center; gap:8px;"><b>Signature:</b> ${req.signatureImage ? `<img class="ltr-sig-img" src="${req.signatureImage}" alt="Participant signature">` : '_______________________'}</div>
       </div>
       <div class="ltr-ack-row" style="margin-top:8px;">
         <div><b>Date:</b> ${dp.dd} / ${dp.mm} / ${dp.yyyy}</div>
