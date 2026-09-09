@@ -3,6 +3,7 @@ const { query } = require('./lib/db');
 const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText, validatePayload } = require('./lib/validate');
 const { verifySessionToken } = require('./lib/auth');
+const { sendEmail } = require('./lib/mailer');
 
 let ensured = false;
 async function ensureSchema() {
@@ -201,10 +202,29 @@ exports.handler = async (event) => {
          SET pdf_snapshot = $1, pdf_archived_at = now()
          WHERE cancellation_id = $2 AND lower(full_name) = lower($3)
            AND status = 'APPROVED' AND (pdf_snapshot IS NULL OR pdf_snapshot = '')
-         RETURNING id`,
+         RETURNING *`,
         [pdfBase64, cancellationId, fullName]
       );
-      return ok({ ok: true, archived: rows.length > 0 });
+      const archived = rows.length > 0;
+      // Only email on the actual first archive (not on a repeat call that
+      // the write-once WHERE clause turned into a no-op) — otherwise every
+      // subsequent status check would re-send the same letter.
+      if (archived) {
+        const req = rows[0];
+        if (req.email) {
+          try {
+            await sendEmail({
+              to: req.email,
+              subject: `Your cancellation letter — ${req.cancellation_id}`,
+              text: `Hi ${req.full_name},\n\nYour trip cancellation request (${req.cancellation_id}) has been approved. Your official cancellation letter is attached to this email as a PDF, and is also always available by checking your status at the trip site's Support / Cancellation page.\n\nThis is the same copy kept on file — please keep it for your records.\n\n— Tulip Travels Pvt. Ltd.`,
+              attachments: [{ filename: `cancellation-letter-${req.cancellation_id.replace(/\//g, '-')}.pdf`, content: pdfBase64.split(',')[1] }],
+            });
+          } catch (err) {
+            console.error('archivePdf: email send failed (archive still saved)', err);
+          }
+        }
+      }
+      return ok({ ok: true, archived });
     }
 
     // Everything below requires an authenticated admin session.
@@ -282,6 +302,30 @@ exports.handler = async (event) => {
         [decision, adminRemarks, JSON.stringify(boardSignatures), name, id]
       );
       if (!rows.length) return badRequest('Request not found.');
+      const req = rows[0];
+      // Notify the participant right away — this is deliberately separate
+      // from the PDF-attachment email in archivePdf above, since the letter
+      // PDF itself is only ever generated client-side and isn't available
+      // to the backend at decision time. Non-blocking: an email failure
+      // here should never make the approve/reject action itself fail.
+      if (req.email) {
+        const siteBase = process.env.SITE_BASE_URL;
+        const statusLink = siteBase ? `${siteBase}/cancellation.html` : null;
+        const bodyText = decision === 'APPROVED'
+          ? `Hi ${req.full_name},\n\nYour trip cancellation request (${req.cancellation_id}) has been approved by the Executive Board.\n\nYour official cancellation letter (with signatures) will be emailed to you as a PDF the next time you view your status${statusLink ? ` — head to ${statusLink} and check status with your Cancellation ID and name` : ''}.\n\n— Tulip Travels Pvt. Ltd.`
+          : `Hi ${req.full_name},\n\nYour trip cancellation request (${req.cancellation_id}) was not approved.\n\nBoard remarks: ${req.admin_remarks || 'No remarks provided.'}\n\n${statusLink ? `You can check the full status at ${statusLink}.` : ''}\n\n— Tulip Travels Pvt. Ltd.`;
+        try {
+          await sendEmail({
+            to: req.email,
+            subject: decision === 'APPROVED'
+              ? `Your cancellation has been approved — ${req.cancellation_id}`
+              : `Your cancellation request update — ${req.cancellation_id}`,
+            text: bodyText,
+          });
+        } catch (err) {
+          console.error('decide: notification email failed (decision still applied)', err);
+        }
+      }
       return ok({ ok: true, request: serializeRow(rows[0]) });
     }
 
