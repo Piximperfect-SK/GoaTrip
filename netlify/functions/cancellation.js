@@ -28,9 +28,15 @@ async function ensureSchema() {
       board_signatures JSONB DEFAULT '[]',
       processed_by TEXT,
       processed_at TIMESTAMPTZ,
-      submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      signature_image TEXT DEFAULT ''
     )
   `);
+  // Backfill the column for tables created before signatures existed —
+  // ADD COLUMN IF NOT EXISTS is a no-op on a fresh table (the column is
+  // already in the CREATE TABLE above) and a safe migration on an
+  // existing one.
+  await query(`ALTER TABLE cancellations ADD COLUMN IF NOT EXISTS signature_image TEXT DEFAULT ''`);
   await query(`
     CREATE TABLE IF NOT EXISTS board_members (
       id SERIAL PRIMARY KEY,
@@ -71,7 +77,21 @@ function serializeRow(r) {
     processedBy: r.processed_by,
     processedAt: r.processed_at,
     submittedAt: r.submitted_at,
+    signatureImage: r.signature_image || '',
   };
+}
+
+// The signature is a base64 PNG data URL, not a short text field, so it
+// can't go through sanitizeText's normal maxLen truncation — truncating
+// a base64 payload corrupts the image. Validate its shape and cap its
+// size directly instead (roughly ~200KB of base64, comfortably enough
+// for a drawn signature, while keeping the request/row size sane).
+const MAX_SIGNATURE_LEN = 260000;
+function sanitizeSignatureImage(value) {
+  if (typeof value !== 'string' || !value) return '';
+  if (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value)) return '';
+  if (value.length > MAX_SIGNATURE_LEN) return '';
+  return value;
 }
 
 const SUBMIT_SCHEMA = {
@@ -101,10 +121,14 @@ exports.handler = async (event) => {
       if (validationError) return badRequest(validationError);
       const tripId = sanitizeText(body.tripId || '', 80) || 'default';
       const cancellationId = await nextCancellationId();
+      const signatureImage = sanitizeSignatureImage(payload.signatureImage);
+      if (payload.signatureImage && !signatureImage) {
+        return badRequest('Signature image is missing, invalid, or too large — please redraw it and try again.');
+      }
       const { rows } = await query(
         `INSERT INTO cancellations
-          (cancellation_id, trip_id, full_name, email, mobile, trip_name, destination, start_date, end_date, booking_ref, reason, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          (cancellation_id, trip_id, full_name, email, mobile, trip_name, destination, start_date, end_date, booking_ref, reason, remarks, signature_image)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
          RETURNING *`,
         [
           cancellationId,
@@ -119,6 +143,7 @@ exports.handler = async (event) => {
           sanitizeText(payload.bookingRef, 80),
           sanitizeText(payload.reason, 500),
           sanitizeText(payload.remarks || '', 800),
+          signatureImage,
         ]
       );
       return ok({ ok: true, request: serializeRow(rows[0]) });
