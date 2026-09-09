@@ -184,6 +184,34 @@ async function changePin(token, newPin) {
   return { ok: true, message: 'PIN updated.' };
 }
 
+// Recovery path for an admin row that's marked Approved but has no
+// pin_hash — which normally can't happen (approveAdmin() sets status and
+// the PIN together in one UPDATE), but does happen if a row was edited
+// directly in the database (e.g. flipping status to Approved by hand in
+// a table editor) rather than through the approve link. Mirrors exactly
+// what approveAdmin() does — generate a temp PIN, hash it the same way,
+// force a PIN change on next login — just without requiring a Pending
+// row + emailed token first. Gated behind a server-only secret (never
+// sent to or known by the browser) so this can't be used to reset an
+// arbitrary admin's PIN by anyone who merely knows their name.
+async function bootstrapAdminPin(secret, targetName) {
+  const configured = process.env.ADMIN_BOOTSTRAP_SECRET;
+  if (!configured) throw new Error('ADMIN_BOOTSTRAP_SECRET is not configured on the server — this recovery path is disabled.');
+  if (!secret || secret !== configured) throw new Error('Invalid bootstrap secret.');
+  const admin = await findAdminByName(targetName);
+  if (!admin) throw new Error('No admin found with that name.');
+  if (admin.status !== 'Approved') throw new Error(`This admin's status is "${admin.status}", not Approved — approve them first via the normal request-access flow.`);
+
+  const tempPin = generateTempPin();
+  const salt = generateSalt();
+  const hash = hashPin(tempPin, salt);
+  await query(
+    `UPDATE admins SET pin_hash=$2, pin_salt=$3, must_change_pin=true, failed_attempts=0, locked_until=NULL WHERE id=$1`,
+    [admin.id, hash, salt]
+  );
+  return { ok: true, message: `Temporary PIN for ${admin.name}: ${tempPin} — log in with this, you'll be asked to set a permanent PIN immediately after.`, tempPin };
+}
+
 exports.handler = async (event) => {
   try {
     if (event.httpMethod === 'GET') {
@@ -210,6 +238,7 @@ exports.handler = async (event) => {
       }
       if (body.action === 'login') return ok(await loginAdmin(body.name, body.code));
       if (body.action === 'changePin') return ok(await changePin(body.token, body.newPin));
+      if (body.action === 'bootstrapAdminPin') return ok(await bootstrapAdminPin(body.secret, body.name));
       if (body.action === 'whoAmI') {
         const n = verifySessionToken(body.token);
         if (!n) return ok({ ok: false, name: null });
