@@ -832,35 +832,41 @@ textarea:focus{border-color:var(--mango);}
 </div>
 <script>
 (function(){
+  // #navLogo lives further down in <nav>, which hasn't been parsed yet
+  // at the point this inline script runs — so it must be looked up
+  // inside DOMContentLoaded, not immediately here, or the guard below
+  // always sees it as null and the overlay removes itself unseen.
   const overlay = document.getElementById('logoIntro');
   const introImg = document.getElementById('logoIntroImg');
-  const navLogo = document.getElementById('navLogo');
-  if(!overlay || !introImg || !navLogo){ if(overlay) overlay.remove(); return; }
+  if(!overlay || !introImg){ if(overlay) overlay.remove(); return; }
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.documentElement.classList.add('logo-intro-lock');
 
-  function reveal(){
-    navLogo.classList.add('show');
+  function reveal(navLogo){
+    if(navLogo) navLogo.classList.add('show');
     overlay.classList.add('hide');
     document.documentElement.classList.remove('logo-intro-lock');
     setTimeout(()=> overlay.remove(), 700);
   }
 
-  if(reduce){ reveal(); return; }
-
   document.addEventListener('DOMContentLoaded', function(){
+    const navLogo = document.getElementById('navLogo');
+    if(!navLogo){ overlay.remove(); document.documentElement.classList.remove('logo-intro-lock'); return; }
+
+    if(reduce){ reveal(navLogo); return; }
+
     requestAnimationFrame(()=> introImg.classList.add('in'));
 
     setTimeout(function zoomOut(){
       const targetRect = navLogo.getBoundingClientRect();
       const startRect = introImg.getBoundingClientRect();
-      if(!targetRect.width || !startRect.width){ reveal(); return; }
+      if(!targetRect.width || !startRect.width){ reveal(navLogo); return; }
       const scale = targetRect.width / startRect.width;
       const dx = (targetRect.left + targetRect.width / 2) - (startRect.left + startRect.width / 2);
       const dy = (targetRect.top + targetRect.height / 2) - (startRect.top + startRect.height / 2);
       introImg.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
-      setTimeout(reveal, 1050);
+      setTimeout(()=> reveal(navLogo), 1050);
     }, 700);
   });
 })();
