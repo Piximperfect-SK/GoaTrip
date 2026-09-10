@@ -335,9 +335,9 @@
   .gate-submit .btn-label{ transition:opacity .15s; }
   .gate-submit .btn-arrow{ transition:opacity .15s; }
   .gate-submit .btn-spinner{
-    display:none; width:17px; height:17px; border-radius:50%; flex-shrink:0;
-    border:2.5px solid rgba(251,246,236,.28); border-top-color:var(--mango);
-    border-right-color:var(--mango); animation:gt-spin .65s linear infinite;
+    display:none; width:18px; height:18px; flex-shrink:0;
+    background:url('pictures/seal.png') center/contain no-repeat;
+    animation: gt-spin 1.4s linear infinite, seal-spin-pulse 1.4s ease-in-out infinite;
   }
   .gate-submit.is-loading .btn-label{ opacity:.65; }
   .gate-submit.is-loading .btn-arrow{ display:none; }

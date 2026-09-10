@@ -98,13 +98,13 @@
     border:1px dashed var(--bp-line); border-radius:18px; padding:46px 24px;
     background:var(--bp-cardbg);
   }
-  .fetch-track{
-    position:relative; height:2px; background:repeating-linear-gradient(90deg, var(--teal-700) 0 8px, transparent 8px 14px);
-    margin:0 6px 18px;
+  .fetch-seal-wrap{ display:flex; justify-content:center; margin:0 0 18px; }
+  .fetch-seal{ width:64px; height:64px; animation: seal-stamp 1.3s ease-in-out infinite; filter:drop-shadow(0 6px 14px rgba(11,35,64,.25)); }
+  @keyframes seal-stamp{
+    0%,100%{ transform:scale(.85) rotate(-6deg); opacity:.75; }
+    50%{ transform:scale(1.05) rotate(4deg); opacity:1; }
   }
-  .fetch-train{ position:absolute; top:50%; left:0; transform:translate(-50%,-50%); animation:fetchMove 1.6s ease-in-out infinite; color:var(--teal-900); }
-  .fetch-train svg{ width:22px; height:22px; display:block; }
-  @keyframes fetchMove{ 0%{left:0%;} 50%{left:100%;} 50.01%{left:0%;} 100%{left:100%;} }
+  @media (prefers-reduced-motion:reduce){ .fetch-seal{ animation:none; opacity:1; transform:none; } }
   .fetch-status{ font-family:'Space Mono', monospace; font-size:12.5px; letter-spacing:.06em; color:var(--teal-800); min-height:18px; }
   .fetch-dots span{ animation:fetchBlink 1.2s infinite; opacity:0; }
   .fetch-dots span:nth-child(2){ animation-delay:.2s; }
@@ -440,7 +440,7 @@
         <div class="preview-placeholder" id="previewPlaceholder"></div>
 
         <div class="fetch-wrap" id="fetchWrap">
-          <div class="fetch-track"><span class="fetch-train" id="fetchTrainIcon"></span></div>
+          <div class="fetch-seal-wrap"><img class="fetch-seal" src="pictures/seal.png" alt=""></div>
           <p class="fetch-status" id="fetchStatus">Locating your PNR<span class="fetch-dots"><span>.</span><span>.</span><span>.</span></span></p>
         </div>
 
@@ -538,7 +538,6 @@ document.getElementById('previewPlaceholder').innerHTML = `
   <p class="title">Your boarding pass will appear here</p>
   <p>Enter the name you registered with on the left and hit “Find my ticket” — we'll build a printable pass from your trip‑sheet row.</p>
 `;
-document.getElementById('fetchTrainIcon').innerHTML = ICONS.train;
 
 const fetchMessages = [
   'Locating your PNR',

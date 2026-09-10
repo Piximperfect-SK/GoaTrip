@@ -35,6 +35,31 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .mono{font-family:'Space Mono', monospace;}
 ::selection{background:var(--mango); color:white;}
 
+/* ---------- Logo intro: zoom-out to nav slot ---------- */
+html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
+.nav-logo-img{
+  height:32px; width:auto; display:block; object-fit:contain;
+  opacity:0; transition:opacity .35s ease;
+}
+.nav-logo-img.show{ opacity:1; }
+#logoIntro{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--paper);
+  transition:opacity .6s ease, visibility 0s linear .6s;
+}
+#logoIntro.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+#logoIntroImg{
+  width:min(58vw, 360px);
+  opacity:0; transform:scale(.92);
+  transition:opacity .5s ease, transform 1.05s cubic-bezier(.65,0,.35,1);
+  will-change:transform, opacity;
+}
+#logoIntroImg.in{ opacity:1; transform:scale(1); }
+@media (prefers-reduced-motion:reduce){
+  #logoIntro, #logoIntroImg{ transition:none !important; }
+}
+
 /* ---------- Nav ---------- */
 #topnav{position:fixed; top:0; left:0; right:0; z-index:100; background:linear-gradient(180deg, rgba(3,15,20,.45), rgba(3,15,20,0)); transition:transform .4s ease, background .3s ease, backdrop-filter .3s ease; padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar);}
 #topnav.scrolled{background:rgba(11,61,58,0.90); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,0.08);}
@@ -801,6 +826,46 @@ textarea:focus{border-color:var(--mango);}
 </head>
 <body>
 
+<!-- ============ LOGO INTRO — zooms out from center to the nav logo ============ -->
+<div id="logoIntro" aria-hidden="true">
+  <img id="logoIntroImg" src="pictures/logo.png" alt="">
+</div>
+<script>
+(function(){
+  const overlay = document.getElementById('logoIntro');
+  const introImg = document.getElementById('logoIntroImg');
+  const navLogo = document.getElementById('navLogo');
+  if(!overlay || !introImg || !navLogo){ if(overlay) overlay.remove(); return; }
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.documentElement.classList.add('logo-intro-lock');
+
+  function reveal(){
+    navLogo.classList.add('show');
+    overlay.classList.add('hide');
+    document.documentElement.classList.remove('logo-intro-lock');
+    setTimeout(()=> overlay.remove(), 700);
+  }
+
+  if(reduce){ reveal(); return; }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    requestAnimationFrame(()=> introImg.classList.add('in'));
+
+    setTimeout(function zoomOut(){
+      const targetRect = navLogo.getBoundingClientRect();
+      const startRect = introImg.getBoundingClientRect();
+      if(!targetRect.width || !startRect.width){ reveal(); return; }
+      const scale = targetRect.width / startRect.width;
+      const dx = (targetRect.left + targetRect.width / 2) - (startRect.left + startRect.width / 2);
+      const dy = (targetRect.top + targetRect.height / 2) - (startRect.top + startRect.height / 2);
+      introImg.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      setTimeout(reveal, 1050);
+    }, 700);
+  });
+})();
+</script>
+
 <!-- ============ OCEAN DIVE BACKGROUND (fixed, behind everything) ============ -->
 <div id="oceanBg" aria-hidden="true">
   <div id="oceanGradient"></div>
@@ -821,7 +886,9 @@ textarea:focus{border-color:var(--mango);}
 
 <!-- ============ NAV ============ -->
 <nav id="topnav" class="px-5 md:px-10 py-4 flex items-center justify-between">
-  <div class="mono text-white text-sm tracking-widest"></div>
+  <div class="flex items-center" id="navLogoSlot">
+    <img id="navLogo" src="pictures/logo.png" alt="Tulip Travels Pvt. Ltd." class="nav-logo-img">
+  </div>
 
   <!-- Live cluster: countdown, stuck to the navbar itself (not floating
        separately on the page) so it travels with the fixed nav on scroll. -->

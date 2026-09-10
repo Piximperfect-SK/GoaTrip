@@ -362,7 +362,8 @@ el('sigModalSubmitBtn').addEventListener('click', async ()=>{
   }
   const btn = el('sigModalSubmitBtn');
   const origLabel = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Submitting…';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="seal-spin small" style="vertical-align:-4px;margin-right:8px;"></span>Submitting…';
   try{
     const payload = {
       fullName: el('f-name').value.trim(),
@@ -638,7 +639,8 @@ async function buildLetterPdfDoc(){
 async function downloadLetterPdf(cancellationId){
   const btn = el('downloadLetterBtn');
   const prev = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Preparing PDF…';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="seal-spin small" style="vertical-align:-4px;margin-right:8px;"></span>Preparing PDF…';
   try{
     const doc = await buildLetterPdfDoc();
     doc.save(`cancellation-letter-${cancellationId.replace(/\//g,'-')}.pdf`);

@@ -137,6 +137,20 @@ input:focus, textarea:focus, select:focus{
 .sync-dot.bad{ background:var(--mango-2); box-shadow:0 0 0 3px rgba(232,93,42,.18); }
 .sync-dot.pending{ background:var(--bp-brass, #C9A227); box-shadow:0 0 0 3px rgba(201,162,39,.18); }
 
+/* ---------- Seal loading indicator (pictures/seal.png) ---------- */
+.seal-spin{
+  display:inline-block; width:52px; height:52px; flex-shrink:0;
+  background:url('pictures/seal.png') center/contain no-repeat;
+  animation: seal-spin-rotate 2.2s linear infinite, seal-spin-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 4px 10px rgba(11,61,58,.28));
+}
+.seal-spin.small{ width:18px; height:18px; filter:drop-shadow(0 2px 5px rgba(11,61,58,.3)); }
+@keyframes seal-spin-rotate{ to{ transform:rotate(360deg); } }
+@keyframes seal-spin-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.6; } }
+@media (prefers-reduced-motion:reduce){
+  .seal-spin{ animation:seal-spin-pulse 1.8s ease-in-out infinite; }
+}
+
 /* ---------- Top bar (sticky/fixed header used on itinerary & boarding-pass) ---------- */
 #topbar{
   position:sticky; top:0; z-index:30; background:rgba(11,61,58,.94);
