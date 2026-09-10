@@ -46,7 +46,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
   background:var(--paper);
-  transition:opacity .6s ease, visibility 0s linear .6s;
+  transition:opacity 1.05s ease, visibility 0s linear 1.05s;
 }
 #logoIntro.hide{ opacity:0; visibility:hidden; pointer-events:none; }
 #logoIntroImg{
@@ -845,27 +845,30 @@ textarea:focus{border-color:var(--mango);}
 
   function reveal(navLogo){
     if(navLogo) navLogo.classList.add('show');
-    overlay.classList.add('hide');
     document.documentElement.classList.remove('logo-intro-lock');
-    setTimeout(()=> overlay.remove(), 700);
+    setTimeout(()=> overlay.remove(), 150);
   }
 
   document.addEventListener('DOMContentLoaded', function(){
     const navLogo = document.getElementById('navLogo');
     if(!navLogo){ overlay.remove(); document.documentElement.classList.remove('logo-intro-lock'); return; }
 
-    if(reduce){ reveal(navLogo); return; }
+    if(reduce){ overlay.classList.add('hide'); reveal(navLogo); return; }
 
     requestAnimationFrame(()=> introImg.classList.add('in'));
 
     setTimeout(function zoomOut(){
       const targetRect = navLogo.getBoundingClientRect();
       const startRect = introImg.getBoundingClientRect();
-      if(!targetRect.width || !startRect.width){ reveal(navLogo); return; }
+      if(!targetRect.width || !startRect.width){ overlay.classList.add('hide'); reveal(navLogo); return; }
       const scale = targetRect.width / startRect.width;
       const dx = (targetRect.left + targetRect.width / 2) - (startRect.left + startRect.width / 2);
       const dy = (targetRect.top + targetRect.height / 2) - (startRect.top + startRect.height / 2);
       introImg.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+      // Background fade starts the instant the zoom-out transform does,
+      // and both run over the same 1.05s duration, so the paper backdrop
+      // is gone exactly when the logo lands rather than lingering behind it.
+      overlay.classList.add('hide');
       setTimeout(()=> reveal(navLogo), 1050);
     }, 700);
   });
