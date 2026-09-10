@@ -145,12 +145,38 @@
 
   .letter-actions{ display:flex; gap:10px; justify-content:center; margin:18px 0; flex-wrap:wrap; }
 
+  /* ---------- Ambient background illustrations (fills the empty side
+     margins on wide screens; hidden once the layout goes single-column
+     enough that there's no real margin left to sit in). Multiply blend
+     + reduced opacity + desaturation lets them sit quietly behind the
+     content on the paper background instead of competing with it. ---------- */
+  .cx-bg-deco{
+    position:fixed; bottom:-4vh; z-index:0; pointer-events:none;
+    width:min(30vw, 380px); opacity:.16; mix-blend-mode:multiply;
+    filter:saturate(.55) sepia(.12);
+  }
+  .cx-bg-deco img{ width:100%; display:block; }
+  .cx-bg-deco-left{ left:-3vw; }
+  .cx-bg-deco-right{ right:-3vw; transform:scaleX(-1); }
+  @media (max-width:1360px){ .cx-bg-deco{ display:none; } }
+  @media (prefers-reduced-motion:reduce){ .cx-bg-deco{ display:none; } }
+
+  #topbar, main{ position:relative; z-index:1; }
+
+  .cx-hero-icon{
+    width:30px; height:30px; display:inline-block; vertical-align:-8px;
+    margin-right:6px; opacity:.9;
+  }
+
   @media (max-width:820px){
     .letter-scroll{ transform-origin:top left; }
   }
 </style>
 </head>
 <body>
+
+<div class="cx-bg-deco cx-bg-deco-left" aria-hidden="true"><img src="pictures/Traveling.gif" alt=""></div>
+<div class="cx-bg-deco cx-bg-deco-right" aria-hidden="true"><img src="pictures/Cancel.gif" alt=""></div>
 
 <div id="topbar">
   <div class="tb-brand">GoaTrip · Support</div>
@@ -160,7 +186,7 @@
 <main>
   <div class="cx-hero">
     <div class="cx-eyebrow">Support · Cancellation</div>
-    <h1>Trip Cancellation</h1>
+    <h1><img class="cx-hero-icon" src="pictures/Cancel.gif" alt="">Trip Cancellation</h1>
     <p>Submit a voluntary trip cancellation request, or check the status of one you already submitted.</p>
   </div>
 
