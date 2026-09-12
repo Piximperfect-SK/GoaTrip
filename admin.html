@@ -507,6 +507,10 @@
         Cancellations
         <span class="sb-badge-count" id="sbCancelBadge" style="display:none;">0</span>
       </button>
+      <button type="button" class="dash-tab sb-link" data-tab="crew">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><circle cx="18" cy="7" r="3"/><path d="M22 21v-1a4 4 0 0 0-3-3.87"/></svg></span>
+        Team / Crew
+      </button>
     </nav>
 
     <div class="sb-foot">
@@ -627,6 +631,24 @@
         </div>
       </div>
     </div>
+      <!-- ---- Team / Crew ---- -->
+      <div class="dash-panel hidden" id="panel-crew">
+        <div class="sec-card">
+          <h3>Team / Crew</h3>
+          <p class="cardsub">Shown on the public site's "Crew" section, in this exact order. Nothing here is hardcoded — add, edit, reorder or remove anyone and index.html picks it up automatically on next load.</p>
+          <div id="crewList"></div>
+          <div class="subhead">
+            <h4>Add a crew member</h4>
+            <form id="addCrewForm" class="row">
+              <div class="field-row"><label>Name</label><input id="cm-name" placeholder="e.g. Shubham Kumar" required maxlength="120"/></div>
+              <div class="field-row"><label>Position / Role</label><input id="cm-role" placeholder="e.g. Website Developer and Advisor" required maxlength="120"/></div>
+              <div class="field-row" style="flex:2 1 220px;"><label>Note (optional)</label><input id="cm-note" placeholder="Short line shown under the role" maxlength="300"/></div>
+              <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+
   </div>
 </div>
 
@@ -719,6 +741,7 @@ function showLoggedIn(name){
   loadRegistrations();
   loadCancellations();
   loadBoardMembers();
+  loadCrew();
 }
 
 /* ---------- mobile sidebar toggle ---------- */
@@ -738,6 +761,7 @@ const TAB_TITLES = {
   admins: ['Console', 'Admins & security'],
   registrations: ['Console', 'Registrations'],
   cancellations: ['Console', 'Cancellations'],
+  crew: ['Console', 'Team / Crew'],
 };
 document.querySelectorAll('.dash-tab').forEach(tab=>{
   tab.addEventListener('click', ()=>{
@@ -775,7 +799,7 @@ async function populateTripPicker(){
   sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
   currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
   if(currentTripId) sel.value = currentTripId;
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); });
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -1045,6 +1069,38 @@ async function callCancellationPost(body){
   return res.json();
 }
 let currentCancellations = [];
+/* ---------- team / crew ---------- */
+async function callCrewGet(tripId){
+  const res = await fetch(FUNCTIONS_BASE + '/crew?tripId=' + encodeURIComponent(tripId));
+  return res.json();
+}
+async function callCrewPost(body){
+  const res = await fetch(FUNCTIONS_BASE + '/crew', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
+let currentCrew = [];
+async function loadCrew(){
+  if(!currentTripId) return;
+  try{
+    const res = await callCrewGet(currentTripId);
+    if(res.error) throw new Error(res.error);
+    currentCrew = res.crew || [];
+    renderCrew();
+  }catch(err){ console.warn('loadCrew failed', err); }
+}
+function renderCrew(){
+  const box = el('crewList'); if(!box) return;
+  if(!currentCrew.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No crew members added yet — the Crew section on the site will show empty until you add some.</p>'; return; }
+  box.innerHTML = currentCrew.map((m,i)=>`<div class="flag-row" data-id="${Number(m.id)}"><div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}</div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`).join('');
+  box.querySelectorAll('[data-act]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const row=btn.closest('[data-id]'), id=Number(row.dataset.id), act=btn.dataset.act, idx=currentCrew.findIndex(m=>Number(m.id)===id); if(idx<0)return;
+    if(act==='remove'){ if(!confirm('Remove this crew member from the site?'))return; btn.disabled=true; const res=await callCrewPost({action:'remove',token:getToken(),tripId:currentTripId,id}); if(res.error){showDashBanner('bad',res.error);btn.disabled=false;return;} currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member removed.');return; }
+    if(act==='edit'){ const m=currentCrew[idx]; const name=prompt('Name',m.name||'');if(name===null)return;const role=prompt('Position / Role',m.role||'');if(role===null)return;const note=prompt('Note (optional)',m.note||'');if(note===null)return;if(!name.trim()||!role.trim()){showDashBanner('bad','Name and role are required.');return;}const res=await callCrewPost({action:'update',token:getToken(),tripId:currentTripId,id,payload:{name:name.trim(),role:role.trim(),note:note.trim()}});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member updated.');return; }
+    const swap=act==='up'?idx-1:idx+1;if(swap<0||swap>=currentCrew.length)return;const order=currentCrew.map(m=>Number(m.id));[order[idx],order[swap]]=[order[swap],order[idx]];const res=await callCrewPost({action:'reorder',token:getToken(),tripId:currentTripId,order});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew order updated.');
+  }));
+}
+el('addCrewForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentTripId){showDashBanner('bad','Select a trip first.');return;}try{const res=await callCrewPost({action:'add',token:getToken(),tripId:currentTripId,payload:{name:el('cm-name').value.trim(),role:el('cm-role').value.trim(),note:el('cm-note').value.trim()}});if(res.error)throw new Error(res.error);currentCrew=res.crew||[];renderCrew();el('addCrewForm').reset();showDashBanner('ok','Crew member added.');}catch(err){showDashBanner('bad',err.message);}});
+
 async function loadCancellations(){
   try{
     const res = await callCancellationPost({ action:'list', token:getToken(), tripId: currentTripId });
