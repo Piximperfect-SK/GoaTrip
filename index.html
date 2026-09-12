@@ -2010,6 +2010,7 @@ async function loadRegistrationStatus(){
   renderHeroFromTrip(TRIP);
   await loadItinerary();
   await loadRegistrationStatus();
+  await loadTeam();
 })();
 
 /* ============================================================
@@ -2179,25 +2180,43 @@ registerForm?.addEventListener('submit', async (e)=>{
 });
 
 /* ============================================================
-   TEAM DIRECTORY
+   TEAM DIRECTORY — pulled live from the admin-managed crew list.
+   No names are hardcoded here; add/edit/reorder/remove crew from
+   the admin dashboard's "Team / Crew" tab and this section picks
+   it up automatically on next load. Falls back to an empty state
+   (not a hardcoded roster) if the backend is unreachable or no
+   crew has been added yet.
 =============================================================*/
-const team = [
-  {name:"Tanmay Singh", role:"Head of Management & Complaints", note:"Escalate here when the cab is late."},
-  {name:"Shubham Kumar", role:"Website Developer and Advisor", note:"Website Developement , Planning and Administration"},
-  {name:"Divya Tanu Raj and Apoorv Pratik", role:"Head Coordinator", note:"Planning , Booking , Logistics"},
-  {name:"Nikhil Agrawal", role:"Head of Finance", note:"Finance Management , Financial Planning , Financial Approval "},
-  {name:"Divya Kumari", role:"People Coordinator", note:"Headcounts, groups, who's-where, Non-Tulip members administration"},
-];
-document.getElementById('teamGrid').innerHTML = team.map(t=>`
-  <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.82); -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,0.6); box-shadow:0 12px 34px -14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7);">
-    <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
-      ${t.name.trim()[0]}
-    </div>
-    <h3 class="display text-lg font-semibold mb-1" style="color:#0F2622">${t.name}</h3>
-    <p class="mono text-[11px] tracking-wide mb-3" style="color:#D9622B">${t.role.toUpperCase()}</p>
-    <p class="text-sm" style="color:#123F3C; opacity:.75">${t.note}</p>
-  </div>`).join('');
+function renderTeam(members){
+  const grid = document.getElementById('teamGrid');
+  if(!grid) return;
+  if(!members || !members.length){
+    grid.innerHTML = `<p class="text-sm opacity-50 col-span-full text-center py-6">Crew details coming soon.</p>`;
+    return;
+  }
+  grid.innerHTML = members.map(t=>`
+    <div class="person-card p-6 rounded-2xl" style="background:rgba(255,255,255,0.82); -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%); border:1px solid rgba(255,255,255,0.6); box-shadow:0 12px 34px -14px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.7);">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
+        ${escapeHtml((t.name||'?').trim()[0] || '?')}
+      </div>
+      <h3 class="display text-lg font-semibold mb-1" style="color:#0F2622">${escapeHtml(t.name)}</h3>
+      <p class="mono text-[11px] tracking-wide mb-3" style="color:#D9622B">${escapeHtml((t.role||'').toUpperCase())}</p>
+      ${t.note ? `<p class="text-sm" style="color:#123F3C; opacity:.75">${escapeHtml(t.note)}</p>` : ''}
+    </div>`).join('');
+}
 
+async function loadTeam(){
+  if(!window.TRIP){ renderTeam([]); return; }
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/crew?tripId=' + encodeURIComponent(TRIP.id));
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    renderTeam(data.crew || []);
+  }catch(err){
+    console.warn('loadTeam failed — showing empty crew state', err);
+    renderTeam([]);
+  }
+}
 </script>
 
 <!-- FIXED VERTICAL ROUTE MAP - Right Side Scrollbar -->
