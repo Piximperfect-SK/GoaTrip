@@ -22,11 +22,14 @@
    kept for a couple of intentionally "under the shade" dark sections so
    the page still has contrast/rhythm, not one flat tint throughout. */
 :root{
-  --paper:#FBF2E3; --ink:#182620; --line:#E9DAC0;
-  --mango:#FF6B4A; --mango-2:#FFA83E;
-  --sand:#FFF7EC; --sand-2:#FFE0B0;
-  --teal-900:#0C3E3A; --teal-800:#12564F; --teal-700:#1C7A6E;
-  --azulejo:#2C86A8; --ir-navy:#16324D; --palm:#4F9A6B;
+  /* Premium editorial palette — warm off-white paper, one confident
+     terracotta accent, a muted Goan-azulejo blue as counterpoint.
+     Deep teal is reserved for the rare dark section only. */
+  --paper:#FBF9F4; --ink:#211C16; --line:#E4DDCB;
+  --mango:#C1602E; --mango-2:#A34D22;
+  --sand:#F6F1E6; --sand-2:#EDE4D0;
+  --teal-900:#16302C; --teal-800:#1B3B36; --teal-700:#254C45;
+  --azulejo:#2B6E7E; --ir-navy:#20303F; --palm:#5C7A55;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{scroll-behavior:smooth; overscroll-behavior-y:none;}
@@ -174,12 +177,13 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 /* Sky: warm gradient from cream/gold at the horizon up to a soft blue,
    replacing the old video/kenburns photo background entirely. */
 .hero-sky{position:absolute; inset:0; z-index:0;
-  background:linear-gradient(180deg, #5FB6D6 0%, #8FD1D8 22%, #CDEAD6 42%, #FDE8C2 62%, #FFD9A0 78%, #FFC98A 100%);}
+  background:linear-gradient(180deg, #E9E2D2 0%, #EFE8D8 30%, #F3ECDD 55%, #F6EEDC 75%, #F2E5CC 100%);}
 
-.hero-sun{position:absolute; top:12%; right:14%; width:min(24vw,220px); height:min(24vw,220px); border-radius:50%; z-index:1;
-  background:radial-gradient(circle at 40% 35%, #FFF6D8, #FFD05C 55%, #FFA83E 100%);
-  box-shadow:0 0 90px 40px rgba(255,168,62,.45), 0 0 200px 100px rgba(255,168,62,.18);
-  animation:sunPulse 6s ease-in-out infinite;}
+.hero-sun{position:absolute; top:12%; right:14%; width:min(18vw,160px); height:min(18vw,160px); border-radius:50%; z-index:1;
+  background:radial-gradient(circle at 40% 35%, #FCF3DE, #EFC77E 60%, #C1602E 100%);
+  box-shadow:0 0 60px 22px rgba(193,96,46,.16);
+  opacity:.85;
+  animation:sunPulse 8s ease-in-out infinite;}
 @keyframes sunPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}}
 
 .hero-cloud{position:absolute; z-index:1; opacity:.9; filter:drop-shadow(0 6px 10px rgba(180,120,60,.08)); will-change:transform;}
@@ -307,7 +311,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
   mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);}
 .placesSwiper .swiper-slide{height:auto;}
-.gallery-item{width:100%; height:520px; border-radius:18px; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); perspective:1400px; position:relative; transition:opacity .5s ease, box-shadow .5s ease; opacity:.55;}
+.gallery-item{width:100%; height:520px; border-radius:8px; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); perspective:1400px; position:relative; transition:opacity .5s ease, box-shadow .5s ease; opacity:.55;}
 .swiper-slide-active .gallery-item{opacity:1; box-shadow:0 30px 60px -22px rgba(0,0,0,.55);}
 @media (min-width:768px){ .gallery-item{height:480px;} }
 .carousel-controls{display:flex; align-items:center; justify-content:center; gap:20px; margin-top:18px;}
@@ -319,7 +323,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .carousel-arrow:active{transform:translateY(0) scale(.94);}
 .flip-card-inner{position:relative; width:100%; height:100%; transition:transform .75s cubic-bezier(.22,1,.36,1); transform-style:preserve-3d;}
 .gallery-item.flipped .flip-card-inner{transform:rotateY(180deg);}
-.flip-face{position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden; border-radius:18px; overflow:hidden;}
+.flip-face{position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden; border-radius:8px; overflow:hidden;}
 /* parallax-photo is an oversized wrapper (15% overscan each side) so the
    Swiper parallax translate/scale it receives has room to move without
    ever revealing an edge — the parent .flip-face clips anything beyond
@@ -329,11 +333,11 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .flip-front img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
 .gallery-item:not(.flipped):hover .flip-front img{transform:scale(1.06);}
 .flip-front .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(6,26,24,.88)); color:var(--sand); will-change:transform;}
-.gallery-badge{position:absolute; top:14px; right:14px; z-index:2; background:rgba(6,26,24,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-  border:1px solid rgba(255,171,133,.4); color:#FFD9C4; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
-  padding:5px 10px; border-radius:9999px; will-change:transform;}
+.gallery-badge{position:absolute; top:14px; right:14px; z-index:2; background:rgba(22,48,44,.85);
+  border:1px solid rgba(255,255,255,.15); color:#F2E9DC; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+  padding:5px 10px; border-radius:3px; will-change:transform;}
 .flip-back{transform:rotateY(180deg); background:linear-gradient(160deg, #0c3a2f, #072448); color:var(--sand); padding:22px 20px; display:flex; flex-direction:column; overflow-y:auto;}
-.route-map{width:100%; height:210px; border-radius:12px; overflow:hidden; margin:12px 0 10px; border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.2); flex-shrink:0; position:relative;}
+.route-map{width:100%; height:210px; border-radius:8px; overflow:hidden; margin:12px 0 10px; border:1px solid rgba(255,255,255,.15); background:rgba(0,0,0,.2); flex-shrink:0; position:relative;}
 .route-map::before{content:'🗺️ Loading map...'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:13px; color:rgba(255,255,255,.6); pointer-events:none; z-index:1; transition:opacity .3s ease;}
 .route-map iframe{position:absolute; top:-92px; left:0; width:calc(100% + 112px); height:calc(100% + 92px); border:0; display:block;}
 .route-map.loaded::before{opacity:0; pointer-events:none;}
@@ -351,9 +355,9 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .route-note{font-size:10px; opacity:.4; margin-top:8px; font-style:italic;}
 
 /* ---------- Ambient background motion ---------- */
-.hero-blob{position:absolute; border-radius:9999px; filter:blur(80px); pointer-events:none; z-index:1; mix-blend-mode:screen;}
-.hero-blob-a{width:460px; height:460px; background:var(--mango); opacity:.16; top:-160px; left:-140px; animation:blobDriftA 22s ease-in-out infinite;}
-.hero-blob-b{width:540px; height:540px; background:var(--azulejo); opacity:.14; bottom:-200px; right:-180px; animation:blobDriftB 26s ease-in-out infinite;}
+.hero-blob{position:absolute; border-radius:9999px; filter:blur(100px); pointer-events:none; z-index:1;}
+.hero-blob-a{width:460px; height:460px; background:var(--mango); opacity:.06; top:-160px; left:-140px; animation:blobDriftA 28s ease-in-out infinite;}
+.hero-blob-b{width:540px; height:540px; background:var(--azulejo); opacity:.05; bottom:-200px; right:-180px; animation:blobDriftB 32s ease-in-out infinite;}
 @keyframes blobDriftA{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(60px,40px) scale(1.15);}}
 @keyframes blobDriftB{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-50px,-30px) scale(1.1);}}
 
@@ -365,7 +369,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 /* ---------- Journey / parallax route ---------- */
 .journey{position:relative;}
 #route-svg{width:100%; height:auto; display:block;}
-.route-map-frame{background:rgba(3,20,30,.35); border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:18px 10px 6px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
+.route-map-frame{background:var(--sand); border:1px solid var(--line); border-radius:10px; padding:18px 10px 6px;}
 .route-path{fill:none; stroke:rgba(255,255,255,.28); stroke-width:3; stroke-dasharray:10 10;}
 .route-progress{fill:none; stroke:var(--mango); stroke-width:3.5; filter:drop-shadow(0 0 6px rgba(255,122,69,.6));}
 .route-label{fill:var(--sand); paint-order:stroke; stroke:rgba(3,20,30,.85); stroke-width:4px; stroke-linejoin:round;}
@@ -433,8 +437,8 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 /* ============ ROUTE DETAILS PANEL ============ */
 .route-details{
-  background:rgba(0,0,0,.35); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
-  border:1px solid rgba(255,122,69,.3); border-radius:14px;
+  background:rgba(22,48,44,.92);
+  border:1px solid rgba(255,255,255,.1); border-radius:8px;
   padding:14px 16px; width:220px; max-height:100vh;
   overflow-y:auto; pointer-events:auto;
   display:flex; flex-direction:column; gap:12px;
@@ -545,7 +549,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   }
 }
 
-.leg-card{background:var(--paper); border:1px solid var(--line); border-radius:14px; box-shadow:0 10px 30px -18px rgba(15,38,34,0.35); opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; position:relative; overflow:hidden;}
+.leg-card{background:var(--paper); border:1px solid var(--line); border-radius:8px; box-shadow:0 10px 30px -18px rgba(15,38,34,0.35); opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; position:relative; overflow:hidden;}
 .leg-card.in{opacity:1; transform:translateY(0);}
 .leg-card .leg-photo{height:150px; overflow:hidden;}
 .leg-card .leg-photo img{width:100%; height:100%; object-fit:cover; transition:transform .6s ease;}
@@ -553,27 +557,27 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .mover{transition:offset-distance .05s linear;}
 
 /* ---------- Itinerary ---------- */
-.day-card{border:1px solid var(--line); border-radius:16px; background:var(--paper); position:relative; overflow:hidden;}
+.day-card{border:1px solid var(--line); border-radius:8px; background:var(--paper); position:relative; overflow:hidden;}
 .day-card .tag{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em;}
 .rail-dot{width:11px; height:11px; border-radius:9999px; background:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,.18);}
 
 /* ---------- Boarding pass CTA ---------- */
-.pass{background:var(--teal-900); color:var(--sand); border-radius:18px; position:relative; overflow:hidden; box-shadow:0 25px 60px -25px rgba(0,0,0,.5);}
+.pass{background:var(--teal-900); color:var(--sand); border-radius:8px; position:relative; overflow:hidden; box-shadow:0 25px 60px -25px rgba(0,0,0,.5);}
 :root{--ir-navy:#16305C;}
 
 section{scroll-margin-top:70px;}
-.section-eyebrow{font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--mango-2);}
-.btn-primary{background:var(--mango); color:white; font-weight:600; border-radius:9999px; padding:12px 26px; transition:.2s; border:none; cursor:pointer;}
-.btn-primary:hover{background:var(--mango-2); transform:translateY(-1px);}
-.btn-primary:active{transform:scale(.97);}
-.btn-primary:disabled{background:#B8B0A2; color:#6b6459; cursor:not-allowed; transform:none;}
-.btn-ghost{border:1.5px solid var(--ink); border-radius:9999px; padding:11px 24px; font-weight:600; background:transparent; cursor:pointer; transition:.2s;}
+.section-eyebrow{font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--mango-2);}
+.btn-primary{background:var(--mango); color:var(--paper); font-weight:600; border-radius:4px; padding:13px 26px; transition:.25s cubic-bezier(.4,0,.2,1); border:none; cursor:pointer;}
+.btn-primary:hover{background:var(--mango-2); transform:translateY(-1px); box-shadow:0 10px 24px -12px rgba(163,77,34,.5);}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{background:#CFC7B6; color:#8a8171; cursor:not-allowed; transform:none; box-shadow:none;}
+.btn-ghost{border:1px solid var(--ink); border-radius:4px; padding:12px 24px; font-weight:600; background:transparent; cursor:pointer; transition:.25s cubic-bezier(.4,0,.2,1);}
 .btn-ghost:hover{background:var(--ink); color:var(--paper);}
-.btn-ghost:active{transform:scale(.97);}
-input, select{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; background:var(--paper); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; transition:.15s;}
+.btn-ghost:active{transform:scale(.98);}
+input, select{width:100%; border:1px solid var(--line); border-radius:6px; padding:11px 14px; background:var(--paper); font-family:'Space Grotesk',sans-serif; font-size:14px; outline:none; transition:.15s;}
 input:focus, select:focus{border-color:var(--mango);}
 label{font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--teal-800);}
-.card{background:var(--paper); border:1px solid var(--line); border-radius:16px;}
+.card{background:var(--paper); border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 2px rgba(33,28,22,.05);}
 .person-card{transition:.25s;}
 .person-card:hover{transform:translateY(-4px); box-shadow:0 20px 40px -22px rgba(15,38,34,.35);}
 ::-webkit-scrollbar{width:10px;}
@@ -603,7 +607,7 @@ textarea{width:100%; border:1.5px solid var(--line); border-radius:10px; padding
 textarea:focus{border-color:var(--mango);}
 
 /* ---------- Register: rail-progress wizard ---------- */
-#registerWizard{max-width:640px; margin:0 auto; background:var(--paper); border:1px solid var(--line); border-radius:20px; overflow:hidden; box-shadow:0 30px 70px -35px rgba(15,38,34,.4);}
+#registerWizard{max-width:640px; margin:0 auto; background:var(--paper); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 30px 70px -35px rgba(15,38,34,.4);}
 .wiz-rail-wrap{background:var(--teal-900); padding:22px 26px 26px;}
 .wiz-rail-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
 .wiz-rail-label{font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:rgba(239,230,214,.55);}
@@ -631,7 +635,7 @@ textarea:focus{border-color:var(--mango);}
 .wiz-error.show{display:flex;}
 
 .choice-grid{display:grid; gap:10px;}
-.choice-card{border:1.5px solid var(--line); border-radius:13px; padding:15px 16px; cursor:pointer; transition:.18s ease; display:flex; align-items:center; gap:12px; background:white;}
+.choice-card{border:1px solid var(--line); border-radius:8px; padding:15px 16px; cursor:pointer; transition:.18s ease; display:flex; align-items:center; gap:12px; background:white;}
 .choice-card:hover{border-color:var(--mango); transform:translateY(-1px);}
 .choice-card .em{font-size:19px; flex-shrink:0; width:24px; text-align:center;}
 .choice-card .tx{flex:1;}
@@ -642,10 +646,10 @@ textarea:focus{border-color:var(--mango);}
 .choice-card.selected .ck{background:var(--mango); border-color:var(--mango);}
 .choice-card.selected .ck::after{content:''; width:7px; height:7px; border-radius:9999px; background:white;}
 
-.wiz-textarea{width:100%; min-height:110px; border:1.5px solid var(--line); border-radius:12px; padding:14px 16px; background:white; font-family:'Space Grotesk',sans-serif; font-size:14.5px; outline:none; resize:vertical; transition:.15s;}
+.wiz-textarea{width:100%; min-height:110px; border:1px solid var(--line); border-radius:8px; padding:14px 16px; background:white; font-family:'Space Grotesk',sans-serif; font-size:14.5px; outline:none; resize:vertical; transition:.15s;}
 .wiz-textarea:focus{border-color:var(--mango);}
 
-.wiz-review{border:1.5px dashed var(--line); border-radius:14px; padding:18px 20px; margin-top:4px; background:linear-gradient(135deg, rgba(255,122,69,.04), rgba(30,96,145,.04));}
+.wiz-review{border:1px dashed var(--line); border-radius:8px; padding:18px 20px; margin-top:4px; background:var(--sand);}
 .wiz-review-row{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
 .wiz-review-row:last-child{border-bottom:none;}
 .wiz-review-row .k{font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; opacity:.5; padding-top:2px;}
@@ -658,7 +662,7 @@ textarea:focus{border-color:var(--mango);}
 .wiz-btn-back{background:none; border:none; font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13.5px; color:var(--ink); opacity:.55; cursor:pointer; padding:10px 6px; transition:.15s;}
 .wiz-btn-back:hover{opacity:1;}
 .wiz-btn-back:disabled{visibility:hidden;}
-.wiz-btn-next{background:var(--mango); color:white; font-weight:600; border-radius:9999px; padding:13px 28px; border:none; cursor:pointer; transition:.2s; font-size:14px; display:inline-flex; align-items:center; gap:8px;}
+.wiz-btn-next{background:var(--mango); color:var(--paper); font-weight:600; border-radius:4px; padding:13px 28px; border:none; cursor:pointer; transition:.2s; font-size:14px; display:inline-flex; align-items:center; gap:8px;}
 .wiz-btn-next:hover{background:var(--mango-2); transform:translateY(-1px);}
 .wiz-btn-next:disabled{background:#B8B0A2; cursor:not-allowed; transform:none;}
 .wiz-success{padding:50px 26px 46px; text-align:center;}
@@ -678,73 +682,53 @@ textarea:focus{border-color:var(--mango);}
 =============================================================*/
 :root{--depth:0;}
 
-#oceanBg{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:#cdeffb;}
-#oceanGradient{position:absolute; left:0; right:0; top:0; width:100%; height:760vh;
+/* Ocean-dive system, dialled way back — a barely-there tonal wash
+   rather than a literal teal-to-black descent. Kept as a nod to the
+   sea, not the dominant visual device. */
+#oceanBg{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none; background:var(--paper);}
+#oceanGradient{position:absolute; left:0; right:0; top:0; width:100%; height:300vh;
   background:linear-gradient(180deg,
-    #d8f3fb 0%, #b7e9ee 5%, #7fdde2 11%, #45cfd6 17%, #1fb8ca 24%,
-    #17a0c4 31%, #1687b8 39%, #1670a8 47%, #145a93 55%, #0f4a80 62%,
-    #0c3a6b 69%, #093057 76%, #072448 82%, #051a38 87%, #041329 92%,
-    #020c1c 96%, #010610 100%);
-  transform:translateY(calc(var(--depth) * -680vh));
+    #FBF9F4 0%, #F6F1E6 20%, #EFE7D4 45%, #E7DEC8 70%, #DCD0B8 100%);
+  transform:translateY(calc(var(--depth) * -120vh));
   will-change:transform;
 }
-#oceanBg .rays{position:absolute; top:0; left:0; right:0; height:110vh;
-  background:repeating-linear-gradient(102deg, rgba(255,255,255,.14) 0 34px, transparent 34px 130px);
-  mix-blend-mode:screen; opacity:calc(1 - (var(--depth) * 1.7)); animation:rayShift 10s ease-in-out infinite alternate; transition:opacity .2s linear;}
-@keyframes rayShift{from{transform:translateX(-4%) skewX(-8deg);} to{transform:translateX(4%) skewX(-3deg);}}
+#oceanBg .rays{ display:none; }
 
-#oceanBg .glow-deep{position:absolute; left:0; right:0; bottom:0; height:60vh;
-  background:radial-gradient(60% 60% at 50% 100%, rgba(255,164,90,.10), transparent 70%);
+#oceanBg .glow-deep{position:absolute; left:0; right:0; bottom:0; height:40vh;
+  background:radial-gradient(60% 60% at 50% 100%, rgba(193,96,46,.05), transparent 70%);
   opacity:var(--depth); transition:opacity .2s linear;}
 
-.bubble-layer{position:absolute; inset:0; overflow:hidden;}
+.bubble-layer{position:absolute; inset:0; overflow:hidden; opacity:.4;}
 .bubble{position:absolute; bottom:-10vh; border-radius:50%;
-  background:radial-gradient(circle at 30% 28%, rgba(255,255,255,.9), rgba(255,255,255,.06) 68%);
-  box-shadow:inset 0 0 6px rgba(255,255,255,.4);
+  background:radial-gradient(circle at 30% 28%, rgba(255,255,255,.7), rgba(255,255,255,.04) 68%);
   animation:bubbleRise linear infinite;}
 @keyframes bubbleRise{
   0%{transform:translateY(0) translateX(0) scale(.7); opacity:0;}
-  6%{opacity:.85;}
-  92%{opacity:.6;}
+  6%{opacity:.5;}
+  92%{opacity:.3;}
   100%{transform:translateY(-135vh) translateX(var(--drift,24px)) scale(1.25); opacity:0;}
 }
 
-.sea-fish{position:absolute; animation:fishSwim linear infinite; opacity:.92;
-  filter:drop-shadow(0 8px 14px rgba(0,10,20,.35));}
-@keyframes fishSwim{
-  0%{transform:translate3d(-14vw,0,0) scaleX(1);}
-  47%{transform:translate3d(58vw,-24px,0) scaleX(1);}
-  50%{transform:translate3d(60vw,-24px,0) scaleX(-1);}
-  97%{transform:translate3d(-14vw,14px,0) scaleX(-1);}
-  100%{transform:translate3d(-14vw,0,0) scaleX(1);}
-}
-.sea-fish.rev{animation-direction:reverse;}
+/* Swimming fish / jellyfish / plankton motifs are retired in favour of
+   the quiet gw-watermark line-icon texture — kept in the DOM (harmless,
+   JS never queries them) but not rendered, so nothing else here needs
+   to change. */
+.sea-fish, .jelly, .plankton, .seaweed-row{ display:none; }
 
-.jelly{position:absolute; animation:jellyFloat 7.5s ease-in-out infinite; opacity:.85;}
-@keyframes jellyFloat{0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-30px) scale(1.06);}}
+.coral-row{position:absolute; left:0; right:0; bottom:-4px; opacity:.55; pointer-events:none; display:none;}
 
-.seaweed-row{position:absolute; left:0; right:0; bottom:-2px; display:flex; align-items:flex-end; justify-content:space-around; pointer-events:none;}
-.seaweed{transform-origin:bottom center; animation:sway ease-in-out infinite;}
-@keyframes sway{0%,100%{transform:rotate(-7deg);} 50%{transform:rotate(7deg);}}
-
-.plankton{position:absolute; border-radius:50%;
-  background:radial-gradient(circle, rgba(150,255,230,.95), rgba(150,255,230,0) 70%);
-  animation:planktonBlink ease-in-out infinite;}
-@keyframes planktonBlink{0%,100%{opacity:.1;} 50%{opacity:.9;}}
-
-.coral-row{position:absolute; left:0; right:0; bottom:-4px; opacity:.55; pointer-events:none;}
-
-/* Section text re-anchoring so light "cabin" cards stay readable
-   once their parent section switches to a dark/deep-sea tint */
-#journey{color:var(--sand); transition:background .3s;}
+/* All sections now sit on the same warm paper base — no more
+   light-text-on-dark-teal "cabin" sections. Kept as no-op overrides
+   so nothing downstream that relies on these selectors breaks. */
+#journey{color:var(--ink); transition:background .3s;}
 .leg-card{color:var(--ink);}
-#itinerary{color:var(--sand); transition:background .3s;}
+#itinerary{color:var(--ink); transition:background .3s;}
 .day-card{color:var(--ink);}
-#itinerary .btn-ghost{border-color:var(--sand); color:var(--sand);}
+#itinerary .btn-ghost{border-color:var(--ink); color:var(--ink);}
 .hero .btn-ghost{border-color:var(--sand); color:var(--sand);}
 .hero .btn-ghost:hover{background:var(--sand); color:var(--teal-900);}
-#itinerary .btn-ghost:hover{background:var(--sand); color:var(--teal-900);}
-#register{color:var(--sand); transition:background .3s;}
+#itinerary .btn-ghost:hover{background:var(--ink); color:var(--paper);}
+#register{color:var(--ink); transition:background .3s;}
 #registerWizard{color:var(--ink);}
 .reg-status-wrap{color:var(--ink);}
 .card{color:var(--ink);}
@@ -770,42 +754,34 @@ textarea:focus{border-color:var(--mango);}
 .bubble-3{left:80%; width:10px; height:10px; animation-duration:13s; animation-delay:.6s;}
 .bubble-4{left:91%; width:6px; height:6px; animation-duration:9s; animation-delay:2.2s;}
 
-.gallery-bg{background:linear-gradient(180deg, rgba(6,26,24,1) 0px, rgba(6,26,24,1) 30px, rgba(8,42,38,.95) 120px, rgba(11,61,58,.85) 240px, rgba(16,100,100,.65) 380px, rgba(24,150,165,.45) 520px, rgba(31,184,202,.35) 640px, rgba(11,61,58,.72) 100%); color:var(--sand);}
-.gallery-fish-a{top:18%; width:46px; animation-duration:26s;}
-.gallery-fish-b{top:62%; width:34px; animation-duration:19s;}
+/* Every section below now shares the same warm paper base, with a
+   hairline top border to separate sections instead of a colour
+   change — editorial, not aquarium. */
+.gallery-bg{background:var(--paper); border-top:1px solid var(--line); color:var(--ink);}
+.gallery-fish-a, .gallery-fish-b{ display:none; }
 
-.journey-bg{background:linear-gradient(180deg, rgba(11,61,58,.7), rgba(12,58,86,.82)); position:relative; overflow:hidden;}
-.journey-jelly-a{top:10%; right:8%; width:52px; opacity:.7;}
-.journey-jelly-b{top:55%; left:4%; width:34px; opacity:.55; animation-duration:9s;}
-.progress-pill-chip{background:rgba(255,255,255,.12); color:var(--sand); border:1px solid rgba(255,255,255,.2);}
+.journey-bg{background:var(--sand); border-top:1px solid var(--line); position:relative; overflow:hidden;}
+.journey-jelly-a, .journey-jelly-b{ display:none; }
+.progress-pill-chip{background:var(--paper); color:var(--ink); border:1px solid var(--line);}
 
-.itinerary-bg{background:linear-gradient(180deg, rgba(12,58,86,.85), rgba(9,48,87,.9)); position:relative; overflow:hidden;}
-.itinerary-plankton-1{top:14%; left:10%; width:6px; height:6px; animation-duration:3s;}
-.itinerary-plankton-2{top:30%; left:80%; width:4px; height:4px; animation-duration:4.2s;}
-.itinerary-plankton-3{top:70%; left:22%; width:5px; height:5px; animation-duration:2.6s;}
-.itinerary-plankton-4{top:85%; left:65%; width:4px; height:4px; animation-duration:3.8s;}
-.timeline-rail{border-left:2px dashed var(--line);}
+.itinerary-bg{background:var(--paper); border-top:1px solid var(--line); position:relative; overflow:hidden;}
+.itinerary-plankton-1, .itinerary-plankton-2, .itinerary-plankton-3, .itinerary-plankton-4{ display:none; }
+.timeline-rail{border-left:1px solid var(--line);}
 
-.register-bg{background:linear-gradient(180deg, rgba(9,48,87,.92), rgba(5,26,56,.95)); position:relative; overflow:hidden;}
-.register-plankton-1{top:8%; left:6%; width:5px; height:5px; animation-duration:3.4s;}
-.register-plankton-2{top:22%; left:88%; width:4px; height:4px; animation-duration:2.8s;}
-.register-plankton-3{top:60%; left:92%; width:6px; height:6px; animation-duration:4s;}
-.register-plankton-4{top:92%; left:14%; width:4px; height:4px; animation-duration:3.1s;}
-.register-fish{top:20%; width:30px; animation-duration:32s; opacity:.6;}
+.register-bg{background:var(--sand); border-top:1px solid var(--line); position:relative; overflow:hidden;}
+.register-plankton-1, .register-plankton-2, .register-plankton-3, .register-plankton-4, .register-fish{ display:none; }
 .label-plain{text-transform:none; font-size:12.5px; opacity:.6;}
 .fs-16{font-size:16px;}
 .is-hidden{display:none;}
 
 .ir-navy-bg{background:var(--ir-navy); border-color:var(--ir-navy);}
 
-.team-bg{background:linear-gradient(180deg, rgba(5,26,56,.9), rgba(2,12,28,.94)); color:var(--sand); position:relative; overflow:hidden;}
-.team-plankton-1{top:12%; left:92%; width:5px; height:5px; animation-duration:3.6s;}
-.team-plankton-2{top:70%; left:4%; width:6px; height:6px; animation-duration:2.9s;}
-.team-video-overlay{--tvw-overlay:linear-gradient(180deg, rgba(11,61,58,.12), rgba(11,61,58,.18) 15%, rgba(11,61,58,.2) 100%);}
-.team-video{opacity:.75; filter:saturate(.9) brightness(.85);}
+.team-bg{background:var(--teal-900); color:var(--sand); position:relative; overflow:hidden;}
+.team-plankton-1, .team-plankton-2{ display:none; }
+.team-video-wrap{ display:none; }
 .z-index-1{position:relative; z-index:1;}
 
-.footer-bg{background:linear-gradient(180deg, rgba(2,12,28,.94), #010610); color:var(--sand);}
+.footer-bg{background:var(--teal-900); color:var(--sand);}
 
 .detail-dot-a{background:#0f6b56;}
 .detail-dot-b{background:#3aa0e6;}
@@ -815,7 +791,7 @@ textarea:focus{border-color:var(--mango);}
 
 /* ---------- Places collage (Goa polaroid wall) ---------- */
 .collage-wrap{position:relative; display:flex; flex-wrap:wrap; gap:26px 18px; justify-content:center; padding:20px 0 10px;}
-.polaroid{background:#fdfaf3; padding:10px 10px 40px; border-radius:3px; box-shadow:0 18px 34px -14px rgba(0,0,0,.55); width:230px; flex:0 0 auto; position:relative; transition:transform .35s ease, box-shadow .35s ease; cursor:default;}
+.polaroid{background:#fdfaf3; padding:10px 10px 40px; border-radius:2px; box-shadow:0 18px 34px -14px rgba(0,0,0,.55); width:230px; flex:0 0 auto; position:relative; transition:transform .35s ease, box-shadow .35s ease; cursor:default;}
 .polaroid:hover{transform:translateY(-8px) rotate(0deg) scale(1.04) !important; box-shadow:0 26px 46px -14px rgba(0,0,0,.6); z-index:5;}
 .polaroid .ph{overflow:hidden; border-radius:1px; background:#000;}
 .polaroid .ph img{width:100%; height:190px; object-fit:cover; display:block; filter:saturate(1.05);}
@@ -1075,7 +1051,7 @@ textarea:focus{border-color:var(--mango);}
 </header>
 
 <!-- ============ GALLERY ============ -->
-<section id="gallery" class="py-20 md:py-24 gallery-bg">
+<section id="gallery" class="py-20 md:py-24 gallery-bg gw-watermark">
   <svg class="sea-fish gallery-fish-a" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#FFAB85"/><path d="M0 17l10-8v16z" fill="#FFAB85"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
   <svg class="sea-fish rev gallery-fish-b" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#8FE3E8"/><path d="M0 17l10-8v16z" fill="#8FE3E8"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
   <div class="max-w-6xl mx-auto px-5 md:px-10 relative">
@@ -1096,7 +1072,7 @@ textarea:focus{border-color:var(--mango);}
 
 <!-- ============ PLACES (Goa collage) ============ -->
 <!-- ============ JOURNEY / PARALLAX SCROLL ROUTE ============ -->
-<section id="journey" class="journey py-24 px-5 md:px-10 journey-bg">
+<section id="journey" class="journey py-24 px-5 md:px-10 journey-bg gw-watermark">
   <svg class="jelly journey-jelly-a" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(255,171,133,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(255,171,133,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
   <svg class="jelly journey-jelly-b" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(143,227,232,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(143,227,232,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
   <div class="max-w-5xl mx-auto relative">
@@ -1154,7 +1130,7 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ ITINERARY ============ -->
-<section id="itinerary" class="py-24 px-5 md:px-10 itinerary-bg">
+<section id="itinerary" class="py-24 px-5 md:px-10 itinerary-bg gw-watermark">
   <div class="plankton itinerary-plankton-1"></div>
   <div class="plankton itinerary-plankton-2"></div>
   <div class="plankton itinerary-plankton-3"></div>
@@ -1174,7 +1150,7 @@ textarea:focus{border-color:var(--mango);}
 </section>
 
 <!-- ============ REGISTER ============ -->
-<section id="register" class="py-24 px-5 md:px-10 register-bg">
+<section id="register" class="py-24 px-5 md:px-10 register-bg gw-watermark">
   <div class="plankton register-plankton-1"></div>
   <div class="plankton register-plankton-2"></div>
   <div class="plankton register-plankton-3"></div>
