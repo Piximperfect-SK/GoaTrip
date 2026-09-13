@@ -25,9 +25,9 @@
   /* Premium editorial palette — warm off-white paper, one confident
      terracotta accent, a muted Goan-azulejo blue as counterpoint.
      Deep teal is reserved for the rare dark section only. */
-  --paper:#FBF9F4; --ink:#211C16; --line:#E4DDCB;
+  --paper:#FFFFFF; --ink:#211C16; --line:#E4DDCB;
   --mango:#C1602E; --mango-2:#A34D22;
-  --sand:#F6F1E6; --sand-2:#EDE4D0;
+  --sand:#FFFFFF; --sand-2:#EDE4D0;
   --teal-900:#16302C; --teal-800:#1B3B36; --teal-700:#254C45;
   --azulejo:#2B6E7E; --ir-navy:#20303F; --palm:#5C7A55;
 }
@@ -179,71 +179,54 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .hero-sky{position:absolute; inset:0; z-index:0;
   background:linear-gradient(180deg, #E9E2D2 0%, #EFE8D8 30%, #F3ECDD 55%, #F6EEDC 75%, #F2E5CC 100%);}
 
-.hero-sun{position:absolute; top:12%; right:14%; width:min(18vw,160px); height:min(18vw,160px); border-radius:50%; z-index:1;
-  background:radial-gradient(circle at 40% 35%, #FCF3DE, #EFC77E 60%, #C1602E 100%);
-  box-shadow:0 0 60px 22px rgba(193,96,46,.16);
-  opacity:.85;
-  animation:sunPulse 8s ease-in-out infinite;}
-@keyframes sunPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}}
+/* ---------- Hero decorative icons ----------
+   Minimal, colour-neutral line-art marks (not beach/theme specific)
+   that drift and float subtly. All share a single ink stroke so
+   nothing here carries its own colour identity. */
+.hero-icon{position:absolute; fill:none; stroke:var(--ink); stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; opacity:.32; will-change:transform;}
 
-.hero-cloud{position:absolute; z-index:1; opacity:.9; filter:drop-shadow(0 6px 10px rgba(180,120,60,.08)); will-change:transform;}
-.hero-cloud path{fill:#FFFDF7;}
-.hero-cloud.c1{top:14%; left:-10%; width:220px; animation:cloudDrift 46s linear infinite;}
-.hero-cloud.c2{top:26%; left:-10%; width:150px; opacity:.75; animation:cloudDrift 62s linear infinite 6s;}
-.hero-cloud.c3{top:8%; left:-10%; width:120px; opacity:.6; animation:cloudDrift 38s linear infinite 3s;}
-@keyframes cloudDrift{from{transform:translateX(-10vw);} to{transform:translateX(115vw);}}
+.hero-icon.i-compass{top:14%; right:12%; width:min(9vw,86px); height:min(9vw,86px); z-index:1; animation:iconSpin 34s linear infinite;}
+@keyframes iconSpin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
 
-.hero-bird{position:absolute; z-index:2; width:34px; animation:birdFly 24s linear infinite;}
-.hero-bird path{stroke:#16324D; stroke-width:2.4; fill:none; stroke-linecap:round;}
-.hero-bird.b1{top:20%; animation-duration:21s;}
-.hero-bird.b2{top:30%; width:24px; animation-duration:27s; animation-delay:4s;}
-.hero-bird.b3{top:16%; width:20px; animation-duration:19s; animation-delay:9s;}
-@keyframes birdFly{
-  0%{transform:translateX(-10vw) translateY(0);}
-  50%{transform:translateX(55vw) translateY(-18px);}
-  100%{transform:translateX(115vw) translateY(0);}
+.hero-icon.i-drift{z-index:1; animation:iconDrift linear infinite;}
+.hero-icon.i-drift.d1{top:16%; left:-6%; width:46px; animation-duration:42s;}
+.hero-icon.i-drift.d2{top:28%; left:-6%; width:34px; opacity:.24; animation-duration:56s; animation-delay:6s;}
+.hero-icon.i-drift.d3{top:9%; left:-6%; width:30px; opacity:.2; animation-duration:34s; animation-delay:3s;}
+@keyframes iconDrift{from{transform:translateX(0);} to{transform:translateX(120vw);}}
+
+.hero-icon.i-plane{z-index:2; width:26px; animation:planeFly linear infinite;}
+.hero-icon.i-plane.p1{top:20%; animation-duration:23s;}
+.hero-icon.i-plane.p2{top:32%; width:20px; animation-duration:29s; animation-delay:4s;}
+.hero-icon.i-plane.p3{top:15%; width:17px; animation-duration:20s; animation-delay:9s;}
+@keyframes planeFly{
+  0%{transform:translateX(-8vw) translateY(0) rotate(6deg);}
+  50%{transform:translateX(55vw) translateY(-16px) rotate(6deg);}
+  100%{transform:translateX(115vw) translateY(0) rotate(6deg);}
 }
-.hero-bird .wing{transform-origin:12px 8px; animation:wingFlap .7s ease-in-out infinite alternate;}
-@keyframes wingFlap{from{transform:scaleY(1);} to{transform:scaleY(.35);}}
 
-/* Swaying palms framing the hero, anchored to the left/right edges. */
-.hero-palm{position:absolute; bottom:18vh; z-index:4; height:clamp(180px,32vh,340px); transform-origin:bottom center; pointer-events:none;}
-.hero-palm.left{left:-18px; animation:palmSway 5.5s ease-in-out infinite;}
-.hero-palm.right{right:-18px; transform:scaleX(-1); animation:palmSway 6.5s ease-in-out infinite .4s;}
-@keyframes palmSway{0%,100%{transform:rotate(-2.5deg);} 50%{transform:rotate(2.5deg);}}
-.hero-palm.right{transform-origin:bottom center;}
-@media (max-width:640px){ .hero-palm{height:clamp(130px,26vh,220px); opacity:.85;} }
+/* Two vertical marker icons framing the hero, in place of the old
+   themed palm trees — a simple pin/ticket motif, gently floating. */
+.hero-icon.i-marker{bottom:18vh; z-index:4; height:clamp(90px,16vh,150px); pointer-events:none; animation:markerFloat 5.5s ease-in-out infinite;}
+.hero-icon.i-marker.left{left:4%;}
+.hero-icon.i-marker.right{right:4%; animation-delay:.6s;}
+@keyframes markerFloat{0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);}}
 
-/* A little boat bobbing along the horizon where sky meets sea. */
-.hero-boat{position:absolute; left:12%; bottom:20.5vh; z-index:3; width:64px; animation:boatBob 3.6s ease-in-out infinite;}
-@keyframes boatBob{0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-6px) rotate(1.5deg);}}
-@media (max-width:640px){ .hero-boat{left:8%; width:46px;} }
+/* A minimal outlined route mark, in place of the old boat. */
+.hero-icon.i-route{left:12%; bottom:21vh; z-index:3; width:56px; animation:iconBob 3.8s ease-in-out infinite;}
+@keyframes iconBob{0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-6px) rotate(1.5deg);}}
+@media (max-width:640px){ .hero-icon.i-route{left:8%; width:40px;} }
 
 .hero-dive{position:absolute; left:0; right:0; bottom:0; height:22vh; min-height:150px; z-index:3; pointer-events:none; overflow:hidden;}
 .hero-dive-wave{position:absolute; left:-10%; width:120%; bottom:0; height:100%;}
-.hero-dive-wave path{fill:var(--teal-700);}
-.hero-dive-wave.w1{opacity:.6; animation:diveDrift 16s linear infinite; z-index:1;}
-.hero-dive-wave.w2{opacity:.8; animation:diveDrift 11s linear infinite reverse; z-index:2;}
-.hero-dive-wave.w2 path{fill:var(--teal-800);}
-.hero-dive-wave.w3{opacity:1; animation:diveDrift 8s linear infinite; z-index:3;}
-.hero-dive-wave.w3 path{fill:var(--teal-900);}
+.hero-dive-wave path{fill:#2A2A2A;}
+.hero-dive-wave.w1{opacity:.35; animation:diveDrift 16s linear infinite; z-index:1;}
+.hero-dive-wave.w2{opacity:.55; animation:diveDrift 11s linear infinite reverse; z-index:2;}
+.hero-dive-wave.w2 path{fill:#1A1A1A;}
+.hero-dive-wave.w3{opacity:.85; animation:diveDrift 8s linear infinite; z-index:3;}
+.hero-dive-wave.w3 path{fill:#0E0E0E;}
 @keyframes diveDrift{0%{transform:translateX(0);} 100%{transform:translateX(-8%);}}
 @media (prefers-reduced-motion:reduce){
-  .hero-sun,.hero-cloud,.hero-bird,.hero-bird .wing,.hero-palm,.hero-boat,.hero-dive-wave,.hero-crab{animation:none !important;}
-}
-
-/* Two small crab GIFs, scuttling along the shoreline just above the
-   wave line — a playful, hand-placed detail that fits the illustrated
-   beach scene rather than sitting on top of it as a sticker. */
-.hero-crab{position:absolute; z-index:3; pointer-events:none; filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
-.hero-crab img{display:block; width:100%; height:100%; object-fit:contain;}
-.hero-crab.c1{left:20%; bottom:19vh; width:46px; height:46px; animation:crabScuttle1 5.5s ease-in-out infinite;}
-.hero-crab.c2{right:24%; bottom:17.5vh; width:52px; height:52px; animation:crabScuttle2 6.5s ease-in-out infinite 1s;}
-@keyframes crabScuttle1{0%,100%{transform:translateX(0) rotate(-3deg);} 50%{transform:translateX(14px) rotate(3deg);}}
-@keyframes crabScuttle2{0%,100%{transform:translateX(0) rotate(3deg) scaleX(-1);} 50%{transform:translateX(-14px) rotate(-3deg) scaleX(-1);}}
-@media (max-width:640px){
-  .hero-crab.c1{bottom:17vh; width:34px; height:34px;}
-  .hero-crab.c2{bottom:16vh; width:38px; height:38px;}
+  .hero-icon,.hero-dive-wave{animation:none !important;}
 }
 
 /* ---------- Hero collage teaser ---------- */
@@ -253,8 +236,8 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .team-video-wrap::after{content:"";position:absolute; inset:0; background:var(--tvw-overlay, linear-gradient(180deg, rgba(11,61,58,.28), rgba(11,61,58,.4) 15%, rgba(11,61,58,.42) 100%));}
 @keyframes kenburns{from{transform:scale(1.06) translate(0,0);} to{transform:scale(1.16) translate(-1.5%,-1%);}}
 .hero-scrim{position:absolute; inset:0; z-index:1; background:
-  linear-gradient(180deg, rgba(12,62,58,.32) 0%, rgba(12,62,58,.1) 26%, rgba(12,62,58,.28) 52%, rgba(12,62,58,.66) 74%, rgba(12,62,58,.94) 88%, rgba(12,62,58,1) 100%);}
-.hero-scrim::after{content:""; position:absolute; inset:0; background:radial-gradient(900px 460px at 82% 8%, rgba(255,168,62,.16), transparent 60%);}
+  linear-gradient(180deg, rgba(20,18,15,.32) 0%, rgba(20,18,15,.1) 26%, rgba(20,18,15,.28) 52%, rgba(20,18,15,.66) 74%, rgba(20,18,15,.94) 88%, rgba(20,18,15,1) 100%);}
+.hero-scrim::after{content:"";position:absolute; inset:0; background:radial-gradient(900px 460px at 82% 8%, rgba(193,96,46,.12), transparent 60%);}
 .grain{position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay; z-index:2;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 .hero-intro{animation:heroIntro 1s cubic-bezier(.22,1,.36,1) both;}
@@ -307,6 +290,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .section-num .rule{height:1px; width:40px; background:var(--mango-2); opacity:.5;}
 
 /* ---------- Horizontal photo gallery ---------- */
+.places-carousel-shell{background:#0A0A0A; border-radius:10px; overflow:hidden;}
 .placesSwiper{padding:6px 5vw 46px; width:100%; overflow:hidden;
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
   mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);}
@@ -776,12 +760,12 @@ textarea:focus{border-color:var(--mango);}
 
 .ir-navy-bg{background:var(--ir-navy); border-color:var(--ir-navy);}
 
-.team-bg{background:var(--teal-900); color:var(--sand); position:relative; overflow:hidden;}
+.team-bg{background:#161412; color:var(--sand); position:relative; overflow:hidden;}
 .team-plankton-1, .team-plankton-2{ display:none; }
 .team-video-wrap{ display:none; }
 .z-index-1{position:relative; z-index:1;}
 
-.footer-bg{background:var(--teal-900); color:var(--sand);}
+.footer-bg{background:#161412; color:var(--sand);}
 
 .detail-dot-a{background:#0f6b56;}
 .detail-dot-b{background:#3aa0e6;}
@@ -944,44 +928,36 @@ textarea:focus{border-color:var(--mango);}
 <!-- ============ HERO — illustrated, animated beach scene (no video) ============ -->
 <header class="hero">
   <div class="hero-sky" aria-hidden="true"></div>
-  <div class="hero-sun" aria-hidden="true"></div>
-
-  <svg class="hero-cloud c1" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-  <svg class="hero-cloud c2" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-  <svg class="hero-cloud c3" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-
-  <svg class="hero-bird b1" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-  <svg class="hero-bird b2" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-  <svg class="hero-bird b3" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-
-  <svg class="hero-palm left" viewBox="0 0 120 340" aria-hidden="true">
-    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
-    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
-    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
-    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
-    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
-    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
-  </svg>
-  <svg class="hero-palm right" viewBox="0 0 120 340" aria-hidden="true">
-    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
-    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
-    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
-    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
-    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
-    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
+  <svg class="hero-icon i-compass" viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="22"/>
+    <path d="M32 14v6M32 44v6M14 32h6M44 32h6"/>
+    <path d="M32 20l6 10-6 4-6-4z"/>
   </svg>
 
-  <svg class="hero-boat" viewBox="0 0 64 50" aria-hidden="true">
-    <path d="M4 34h56l-8 12H12z" fill="#16324D"/>
-    <rect x="30" y="6" width="2.5" height="28" fill="#7A4B2A"/>
-    <path d="M32.5 8 L52 30 L32.5 30 Z" fill="#FFF7EC"/>
-    <path d="M32.5 12 L18 30 L32.5 30 Z" fill="#FFD9A0"/>
+  <svg class="hero-icon i-drift d1" viewBox="0 0 64 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="26" cy="8" r="2"/><path d="M4 18h56"/></svg>
+  <svg class="hero-icon i-drift d2" viewBox="0 0 64 24" aria-hidden="true"><circle cx="12" cy="12" r="2.4"/><path d="M4 18h48"/></svg>
+  <svg class="hero-icon i-drift d3" viewBox="0 0 64 24" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M4 18h40"/></svg>
+
+  <svg class="hero-icon i-plane p1" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 17l26-9-9 26-4-11-11-4z"/></svg>
+  <svg class="hero-icon i-plane p2" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 17l26-9-9 26-4-11-11-4z"/></svg>
+  <svg class="hero-icon i-plane p3" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 17l26-9-9 26-4-11-11-4z"/></svg>
+
+  <svg class="hero-icon i-marker left" viewBox="0 0 60 150" aria-hidden="true">
+    <path d="M30 150V70"/>
+    <path d="M30 70c-16 0-28-12-28-27S14 16 30 16s28 12 28 27-12 27-28 27z"/>
+    <circle cx="30" cy="43" r="8"/>
+  </svg>
+  <svg class="hero-icon i-marker right" viewBox="0 0 60 150" aria-hidden="true">
+    <path d="M30 150V70"/>
+    <path d="M30 70c-16 0-28-12-28-27S14 16 30 16s28 12 28 27-12 27-28 27z"/>
+    <circle cx="30" cy="43" r="8"/>
   </svg>
 
-  <div class="hero-crab c1" aria-hidden="true"><img src="videos/crab_1.gif" alt=""></div>
-  <div class="hero-crab c2" aria-hidden="true"><img src="videos/crab_2.gif" alt=""></div>
+  <svg class="hero-icon i-route" viewBox="0 0 64 40" aria-hidden="true">
+    <path d="M4 30c8-4 12-16 22-16s14 12 22 16"/>
+    <circle cx="4" cy="30" r="3"/>
+    <circle cx="60" cy="30" r="3"/>
+  </svg>
 
   <div class="hero-scrim"></div>
   <div class="grain"></div>
@@ -1060,8 +1036,10 @@ textarea:focus{border-color:var(--mango);}
     <p class="opacity-70 max-w-lg mb-8" id="placesIntro">Six spots worth building a day around — swipe through, or let it auto-play while you scroll.</p>
   </div>
 
-  <div class="swiper placesSwiper max-w-6xl mx-auto px-5 md:px-10">
-    <div class="swiper-wrapper" id="placesWrapper"></div>
+  <div class="places-carousel-shell max-w-6xl mx-auto">
+    <div class="swiper placesSwiper px-5 md:px-10">
+      <div class="swiper-wrapper" id="placesWrapper"></div>
+    </div>
   </div>
   <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
     <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
