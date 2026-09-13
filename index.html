@@ -275,8 +275,8 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
   mask-image:linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);}
 .placesSwiper .swiper-slide{height:auto;}
-.gallery-item{width:100%; height:520px; border-radius:18px; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); perspective:1400px; position:relative; transition:opacity .5s ease, box-shadow .5s ease; opacity:.55;}
-.swiper-slide-active .gallery-item{opacity:1; box-shadow:0 30px 60px -22px rgba(0,0,0,.55);}
+.gallery-item{width:100%; height:520px; border-radius:18px; box-shadow:0 25px 50px -25px rgba(15,38,34,.45); perspective:1400px; position:relative; transition:box-shadow .5s ease;}
+.swiper-slide-active .gallery-item{box-shadow:0 30px 60px -22px rgba(0,0,0,.55);}
 @media (min-width:768px){ .gallery-item{height:480px;} }
 .carousel-controls{display:flex; align-items:center; justify-content:center; gap:20px; margin-top:18px;}
 .carousel-controls .places-pagination{position:static !important; width:auto !important; display:flex; align-items:center; gap:8px;}
@@ -296,7 +296,18 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .parallax-photo{position:absolute; inset:-15%; width:130%; height:130%; will-change:transform;}
 .flip-front img{width:100%; height:100%; object-fit:cover; display:block; transition:transform .6s ease;}
 .gallery-item:not(.flipped):hover .flip-front img{transform:scale(1.06);}
-.flip-front .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(20,20,22,.88)); color:#F5F5F5; will-change:transform;}
+/* Depth vignette: a real black gradient over the photo instead of fading
+   the whole card's opacity (which just washed the image pale against the
+   white page). Deepest on slides out of focus, easing off on the active
+   one, so the carousel reads as photos receding into shadow rather than
+   cards going see-through. */
+.flip-front::after{
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg, rgba(0,0,0,.32) 0%, rgba(0,0,0,.02) 32%, rgba(0,0,0,.05) 58%, rgba(0,0,0,.55) 100%);
+  opacity:.92; transition:opacity .5s ease;
+}
+.swiper-slide-active .flip-front::after{opacity:.4;}
+.flip-front .cap{position:absolute; left:0; right:0; bottom:0; padding:20px 22px; background:linear-gradient(180deg, transparent, rgba(20,20,22,.88)); color:#F5F5F5; will-change:transform; z-index:2;}
 .gallery-badge{position:absolute; top:14px; right:14px; z-index:2; background:rgba(6,26,24,.55); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   border:1px solid rgba(255,171,133,.4); color:#FFD9C4; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
   padding:5px 10px; border-radius:9999px; will-change:transform;}
