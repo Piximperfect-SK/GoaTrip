@@ -182,79 +182,31 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 #mobilemenu.open{transform:translateY(0);}
 #mobilemenu .navlink{padding:14px 4px; font-size:14px; border-bottom:1px solid rgba(255,255,255,.08);}
 
-/* ---------- Hero (illustrated animated beach scene) ---------- */
-.hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; color:var(--sand);}
+/* ---------- Hero (Apple-style: near-white canvas, one sunset gradient
+   plane as the single color moment, huge quiet type, scroll-shift
+   parallax on the gradient only — no scattered decoration). ---------- */
+.hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; color:var(--ink);}
 
-/* Sky: warm gradient from cream/gold at the horizon up to a soft blue,
-   replacing the old video/kenburns photo background entirely. */
-.hero-sky{position:absolute; inset:0; z-index:0;
-  background:linear-gradient(180deg, #FBFBFD 0%, #F7F7F8 35%, #F3F3F1 65%, #EFEEEA 100%);}
+.hero-sky{position:absolute; inset:0; z-index:0; background:var(--paper);}
 
-.hero-sun{position:absolute; top:12%; right:14%; width:min(24vw,220px); height:min(24vw,220px); border-radius:50%; z-index:1;
-  background:radial-gradient(circle at 40% 35%, #FFF6D8, #FFD05C 55%, #FFA83E 100%);
-  box-shadow:0 0 90px 40px rgba(255,168,62,.45), 0 0 200px 100px rgba(255,168,62,.18);
-  animation:sunPulse 6s ease-in-out infinite;}
-@keyframes sunPulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}}
-
-.hero-cloud{position:absolute; z-index:1; opacity:.9; filter:drop-shadow(0 6px 10px rgba(180,120,60,.08)); will-change:transform;}
-.hero-cloud path{fill:#FFFDF7;}
-.hero-cloud.c1{top:14%; left:-10%; width:220px; animation:cloudDrift 46s linear infinite;}
-.hero-cloud.c2{top:26%; left:-10%; width:150px; opacity:.75; animation:cloudDrift 62s linear infinite 6s;}
-.hero-cloud.c3{top:8%; left:-10%; width:120px; opacity:.6; animation:cloudDrift 38s linear infinite 3s;}
-@keyframes cloudDrift{from{transform:translateX(-10vw);} to{transform:translateX(115vw);}}
-
-.hero-bird{position:absolute; z-index:2; width:34px; animation:birdFly 24s linear infinite;}
-.hero-bird path{stroke:#16324D; stroke-width:2.4; fill:none; stroke-linecap:round;}
-.hero-bird.b1{top:20%; animation-duration:21s;}
-.hero-bird.b2{top:30%; width:24px; animation-duration:27s; animation-delay:4s;}
-.hero-bird.b3{top:16%; width:20px; animation-duration:19s; animation-delay:9s;}
-@keyframes birdFly{
-  0%{transform:translateX(-10vw) translateY(0);}
-  50%{transform:translateX(55vw) translateY(-18px);}
-  100%{transform:translateX(115vw) translateY(0);}
+/* The one color moment on the page: a large soft sunset plane held in
+   the upper-right, echoing a Goa dusk without becoming a background
+   theme. It shifts slightly with scroll (see script) — the page's
+   single orchestrated motion beat, not a per-element animation zoo. */
+.hero-gradient{
+  position:absolute; z-index:0; top:-20%; right:-18%;
+  width:min(70vw,900px); height:min(70vw,900px); border-radius:50%;
+  background:conic-gradient(from 210deg at 50% 50%, #FF6B4A, #FFA83E 30%, #F26FA0 62%, #2E6FF2 88%, #FF6B4A);
+  filter:blur(110px) saturate(115%); opacity:.5;
+  will-change:transform;
+  transform:translate(calc(var(--depth,0) * 60px), calc(var(--depth,0) * -40px)) rotate(calc(var(--depth,0) * 25deg));
 }
-.hero-bird .wing{transform-origin:12px 8px; animation:wingFlap .7s ease-in-out infinite alternate;}
-@keyframes wingFlap{from{transform:scaleY(1);} to{transform:scaleY(.35);}}
-
-/* Swaying palms framing the hero, anchored to the left/right edges. */
-.hero-palm{position:absolute; bottom:18vh; z-index:4; height:clamp(180px,32vh,340px); transform-origin:bottom center; pointer-events:none;}
-.hero-palm.left{left:-18px; animation:palmSway 5.5s ease-in-out infinite;}
-.hero-palm.right{right:-18px; transform:scaleX(-1); animation:palmSway 6.5s ease-in-out infinite .4s;}
-@keyframes palmSway{0%,100%{transform:rotate(-2.5deg);} 50%{transform:rotate(2.5deg);}}
-.hero-palm.right{transform-origin:bottom center;}
-@media (max-width:640px){ .hero-palm{height:clamp(130px,26vh,220px); opacity:.85;} }
-
-/* A little boat bobbing along the horizon where sky meets sea. */
-.hero-boat{position:absolute; left:12%; bottom:20.5vh; z-index:3; width:64px; animation:boatBob 3.6s ease-in-out infinite;}
-@keyframes boatBob{0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-6px) rotate(1.5deg);}}
-@media (max-width:640px){ .hero-boat{left:8%; width:46px;} }
-
-.hero-dive{position:absolute; left:0; right:0; bottom:0; height:22vh; min-height:150px; z-index:3; pointer-events:none; overflow:hidden;}
-.hero-dive-wave{position:absolute; left:-10%; width:120%; bottom:0; height:100%;}
-.hero-dive-wave path{fill:var(--teal-700);}
-.hero-dive-wave.w1{opacity:.6; animation:diveDrift 16s linear infinite; z-index:1;}
-.hero-dive-wave.w2{opacity:.8; animation:diveDrift 11s linear infinite reverse; z-index:2;}
-.hero-dive-wave.w2 path{fill:var(--teal-800);}
-.hero-dive-wave.w3{opacity:1; animation:diveDrift 8s linear infinite; z-index:3;}
-.hero-dive-wave.w3 path{fill:var(--teal-900);}
-@keyframes diveDrift{0%{transform:translateX(0);} 100%{transform:translateX(-8%);}}
-@media (prefers-reduced-motion:reduce){
-  .hero-sun,.hero-cloud,.hero-bird,.hero-bird .wing,.hero-palm,.hero-boat,.hero-dive-wave,.hero-crab{animation:none !important;}
-}
-
-/* Two small crab GIFs, scuttling along the shoreline just above the
-   wave line — a playful, hand-placed detail that fits the illustrated
-   beach scene rather than sitting on top of it as a sticker. */
-.hero-crab{position:absolute; z-index:3; pointer-events:none; filter:drop-shadow(0 4px 6px rgba(0,0,0,.18));}
-.hero-crab img{display:block; width:100%; height:100%; object-fit:contain;}
-.hero-crab.c1{left:20%; bottom:19vh; width:46px; height:46px; animation:crabScuttle1 5.5s ease-in-out infinite;}
-.hero-crab.c2{right:24%; bottom:17.5vh; width:52px; height:52px; animation:crabScuttle2 6.5s ease-in-out infinite 1s;}
-@keyframes crabScuttle1{0%,100%{transform:translateX(0) rotate(-3deg);} 50%{transform:translateX(14px) rotate(3deg);}}
-@keyframes crabScuttle2{0%,100%{transform:translateX(0) rotate(3deg) scaleX(-1);} 50%{transform:translateX(-14px) rotate(-3deg) scaleX(-1);}}
 @media (max-width:640px){
-  .hero-crab.c1{bottom:17vh; width:34px; height:34px;}
-  .hero-crab.c2{bottom:16vh; width:38px; height:38px;}
+  .hero-gradient{ width:130vw; height:130vw; top:-30%; right:-40%; opacity:.4; }
 }
+@media (prefers-reduced-motion:reduce){ .hero-gradient{ transition:none; } }
+
+.hero-eyebrow-rule{width:34px; height:2px; background:var(--mango); display:inline-block; vertical-align:middle; margin-right:10px;}
 
 /* ---------- Hero collage teaser ---------- */
 @keyframes heroBob{0%,100%{transform:translateY(0) rotate(var(--r,0deg));} 50%{transform:translateY(-14px) rotate(var(--r,0deg));}}
@@ -275,36 +227,36 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 /* ---------- Departure board (hero surprise element) ---------- */
 .dep-board{
-  background:#0A0F0C; border:1px solid rgba(255,171,133,.25); border-radius:14px;
-  padding:14px 18px 16px; max-width:420px;
-  box-shadow:0 20px 50px -20px rgba(0,0,0,.7), inset 0 0 0 1px rgba(255,255,255,.02);
+  background:rgba(255,255,255,.7); border:1px solid var(--line); border-radius:16px;
+  padding:16px 20px 18px; max-width:420px;
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+  box-shadow:0 20px 50px -30px rgba(29,29,31,.25);
 }
 .dep-board-head{
-  display:flex; align-items:center; gap:6px; margin-bottom:10px;
-  padding-bottom:9px; border-bottom:1px dashed rgba(255,255,255,.12);
+  display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:12px;
+  padding-bottom:11px; border-bottom:1px solid var(--line);
 }
-.dep-dot{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.15); }
+.dep-dot{ display:none; }
 .dep-board-title{
-  margin-left:6px; font-family:'Space Mono', monospace; font-size:9.5px;
-  letter-spacing:.16em; color:rgba(255,171,133,.7); font-weight:700;
+  font-family:'Space Mono', monospace; font-size:10px;
+  letter-spacing:.1em; color:var(--mango-2); font-weight:700;
 }
 .dep-row{
   display:flex; align-items:baseline; justify-content:space-between; gap:10px;
-  padding:4px 0;
+  padding:5px 0;
 }
 .dep-label{
-  font-family:'Space Mono', monospace; font-size:9.5px; letter-spacing:.1em;
-  color:rgba(255,255,255,.35); flex-shrink:0;
+  font-family:'Space Mono', monospace; font-size:10px; letter-spacing:.08em;
+  color:var(--ink); opacity:.4; flex-shrink:0;
 }
 .dep-value{
-  font-family:'Space Mono', monospace; font-size:12.5px; font-weight:700;
-  color:#FFD9C4; letter-spacing:.04em; text-align:right;
-  text-shadow:0 0 10px rgba(255,122,69,.35);
+  font-family:'Space Mono', monospace; font-size:13px; font-weight:700;
+  color:var(--ink); letter-spacing:.02em; text-align:right;
 }
-.dep-status{ color:#7CE0A8; text-shadow:0 0 10px rgba(124,224,168,.4); }
+.dep-status{ color:var(--palm); }
 
 @media (max-width:480px){
-  .dep-board{ padding:12px 14px 14px; }
+  .dep-board{ padding:14px 16px 16px; }
   .dep-value, .dep-label{ font-size:10.5px; }
 }
 
@@ -977,77 +929,38 @@ textarea:focus{border-color:var(--mango);}
   <span>Trip Wallet</span>
 </a>
 
-<!-- ============ HERO — illustrated, animated beach scene (no video) ============ -->
+<!-- ============ HERO — minimal, Apple-style: quiet type, one gradient moment ============ -->
 <header class="hero">
   <div class="hero-sky" aria-hidden="true"></div>
-  <div class="hero-sun" aria-hidden="true"></div>
-
-  <svg class="hero-cloud c1" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-  <svg class="hero-cloud c2" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-  <svg class="hero-cloud c3" viewBox="0 0 200 80" aria-hidden="true"><path d="M20 55c-16 0-16-26 4-26 3-16 34-16 40-2 18-4 30 10 22 22 8 10-2 22-16 20-8 8-26 8-32 0-14 2-22-8-18-14z"/></svg>
-
-  <svg class="hero-bird b1" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-  <svg class="hero-bird b2" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-  <svg class="hero-bird b3" viewBox="0 0 24 16" aria-hidden="true"><path class="wing" d="M2 8c4-6 8-6 10 0"/><path d="M12 8c2-6 6-6 10 0"/></svg>
-
-  <svg class="hero-palm left" viewBox="0 0 120 340" aria-hidden="true">
-    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
-    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
-    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
-    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
-    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
-    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
-  </svg>
-  <svg class="hero-palm right" viewBox="0 0 120 340" aria-hidden="true">
-    <path d="M60 340V150" stroke="#3E7C59" stroke-width="10" fill="none" stroke-linecap="round"/>
-    <path d="M60 150C20 130 -10 100 4 60c26 6 44 34 56 90z" fill="#4F9A6B"/>
-    <path d="M60 150C10 145 -18 122 -14 92c30-2 54 24 74 58z" fill="#5FA777"/>
-    <path d="M60 150C96 122 132 118 138 84c-30-8-58 14-78 66z" fill="#4F9A6B"/>
-    <path d="M60 150C104 152 134 132 136 100c-30 0-56 22-76 50z" fill="#5FA777"/>
-    <path d="M60 150C58 108 40 78 8 66c-4 24 14 54 52 84z" fill="#3E7C59"/>
-    <circle cx="46" cy="158" r="9" fill="#7A4B2A"/><circle cx="70" cy="162" r="8" fill="#8A5730"/>
-  </svg>
-
-  <svg class="hero-boat" viewBox="0 0 64 50" aria-hidden="true">
-    <path d="M4 34h56l-8 12H12z" fill="#16324D"/>
-    <rect x="30" y="6" width="2.5" height="28" fill="#7A4B2A"/>
-    <path d="M32.5 8 L52 30 L32.5 30 Z" fill="#FFF7EC"/>
-    <path d="M32.5 12 L18 30 L32.5 30 Z" fill="#FFD9A0"/>
-  </svg>
-
-  <div class="hero-crab c1" aria-hidden="true"><img src="videos/crab_1.gif" alt=""></div>
-  <div class="hero-crab c2" aria-hidden="true"><img src="videos/crab_2.gif" alt=""></div>
-
-  <div class="hero-scrim"></div>
-  <div class="grain"></div>
+  <div class="hero-gradient" id="heroGradient" aria-hidden="true"></div>
 
   <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-32 pb-20">
     <div class="hero-intro">
-      <div class="flex items-center gap-3 mb-8 max-w-xl">
-        <span class="stamp mono text-[11px] w-16 h-16 shrink-0" id="heroStampDepart">DEPART<br>PUNE</span>
-        <div class="flex-1 border-t border-dashed border-white/30"></div>
-        <span class="mono text-[11px] opacity-70" id="heroDuration">4D / 3N</span>
-        <div class="flex-1 border-t border-dashed border-white/30"></div>
-        <span class="stamp mono text-[11px] w-16 h-16 shrink-0" id="heroStampArrive">ARRIVE<br>GOA</span>
-      </div>
-
-      <p class="section-eyebrow mb-3 text-coral">Now boarding · Flight GA‑2026 · Gate: Villa</p>
-      <h1 class="display font-semibold text-[13vw] md:text-[5.6rem] leading-[0.92]">
-        Twelve tickets.<br>
-        <span class="text-mango-solid">One Goa.</span>
-      </h1>
-      <p class="max-w-md mt-6 text-[15px] leading-relaxed opacity-85">
-        An overnight train out of Pune, a cab ride through the fog of the Western Ghats,
-        and four days where the only itinerary is the tide. Everything below — the where,
-        the when, the who's-paying-for-what — lives on this page.
+      <p class="mono text-[11px] tracking-[.14em] uppercase mb-5" style="color:var(--ink); opacity:.5;">
+        <span class="hero-eyebrow-rule"></span>2–5 October · Pune to Goa
       </p>
 
-      <!-- SURPRISE: split-flap departure board, ties into the boarding-pass motif -->
-      <div class="dep-board mt-8" id="depBoard" aria-label="Trip departure board">
+      <h1 class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.94]">
+        Twelve tickets.<br>One Goa.
+      </h1>
+
+      <p class="max-w-md mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
+        An overnight train out of Pune, a drive through the fog of the Western Ghats,
+        and four days where the only itinerary is the tide.
+      </p>
+
+      <div class="flex flex-wrap gap-3 mt-10">
+        <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
+        <button class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+      </div>
+
+      <!-- Departure board: same live data as before, restyled as a quiet
+           inline ticket strip rather than a glowing split-flap panel. -->
+      <div class="dep-board mt-14" id="depBoard" aria-label="Trip departure board">
         <div class="dep-board-head">
-          <span class="dep-dot"></span><span class="dep-dot"></span><span class="dep-dot"></span>
-          <span class="dep-board-title">DEPARTURES</span>
+          <span class="dep-board-title" id="heroStampDepart">DEPART · PUNE</span>
+          <span class="dep-board-title" style="opacity:.35;" id="heroDuration">4D / 3N</span>
+          <span class="dep-board-title" id="heroStampArrive">ARRIVE · GOA</span>
         </div>
         <div class="dep-row">
           <span class="dep-label">FROM</span>
@@ -1070,20 +983,10 @@ textarea:focus{border-color:var(--mango);}
           <span class="dep-value" id="depSeats" data-final="12 / 12 CONFIRMED">12 / 12 CONFIRMED</span>
         </div>
       </div>
-
-      <div class="flex flex-wrap gap-3 mt-9">
-        <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip ↓</button>
-        <button class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
-      </div>
     </div>
   </div>
 
-  <div class="bubble bubble-1"></div>
-  <div class="bubble bubble-2"></div>
-  <div class="bubble bubble-3"></div>
-  <div class="bubble bubble-4"></div>
-
-  <div class="scroll-cue"><span class="mono text-[10px] tracking-widest">SCROLL TO DIVE IN</span><span class="line"></span></div>
+  <div class="scroll-cue"><span class="mono text-[10px] tracking-widest" style="color:var(--ink); opacity:.4;">SCROLL</span><span class="line" style="background:linear-gradient(var(--ink),transparent); opacity:.3;"></span></div>
 </header>
 
 <!-- ============ GALLERY ============ -->
@@ -1393,72 +1296,34 @@ loadSwiper(SWIPER_SOURCES);
 </script>
 <script>
 /* ============================================================
-   PLACES CAROUSEL (Swiper.js) — cards are generated from
-   PLACES_CATALOG below, then automatically filtered/ordered to
-   match whatever's actually in the itinerary. syncPlacesFromItinerary()
-   is called every time renderItinerary() runs (both the default
-   plan on load, and again whenever the backend itinerary syncs),
-   so this list adds or drops cards on its own as days change —
-   no manual upkeep needed here.
+   PLACES CAROUSEL — fully dynamic, resolved from the itinerary.
+   No hardcoded place catalog. Every card comes from a place the
+   admin typed into the itinerary planner (itinerary.html), which
+   resolves it (see resolvePlace() in shared.js) to a canonical
+   name + coordinates before it's ever shown here. The photo, the
+   map pin and the directions link below all read the SAME lat/lng,
+   so they can never point at three different places.
+   Re-runs automatically every time renderItinerary() runs (initial
+   default load, and again whenever the backend itinerary syncs) —
+   add a place in the planner and it appears here on its own; remove
+   or rename one and it drops out / re-resolves the same way.
 =============================================================*/
-const PLACES_CATALOG = [
-  { label:'BUTTERFLY BEACH', tagline:"Coves you can't reach by road.",
-    img:'https://images.unsplash.com/photo-1727276884218-ec3be46cda91?w=700&h=900&fit=crop',
-    imgAlt:'Aerial view of Butterfly Beach, a secluded cove in South Goa',
-    keywords:['butterfly beach','butterfly'],
-    route:{ title:'Villa, Parra → Butterfly Beach', place:'Butterfly Beach',
-      distIcon:'🚗', distVal:'~78 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~2h 15m', timeLbl:'Drive time',
-      desc:"Head south on NH366 past Margao to Agonda or Palolem — there's no direct road in. From either beach, hop a 15–20 min boat/kayak, or hike ~40 min over the headland.",
-      daddr:'Butterfly+Beach,+Goa,+India', zoom:10, note:'Approx, based on typical road + boat times — confirm on maps before you go.' } },
-  { label:'PALOLEM', tagline:'Shade for the slow afternoons.',
-    img:'https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?w=700&h=900&fit=crop',
-    imgAlt:'Beach huts and palm trees at Palolem Beach, Goa',
-    keywords:['palolem'],
-    route:{ title:'Villa, Parra → Palolem', place:'Palolem Beach',
-      distIcon:'🚗', distVal:'~68 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~1h 50m', timeLbl:'Drive time',
-      desc:'Straight down NH66 through Margao and Chaudi — mostly highway, easy drive. Parking fills up by late morning in season, so leave early or plan for a short walk in.',
-      daddr:'Palolem+Beach,+Goa,+India', zoom:10, note:'Approx — traffic through Margao adds 15–20 min at peak hours.' } },
-  { label:'FORT AGUADA', tagline:'Ramparts, lighthouse, sea view.',
-    img:'https://images.unsplash.com/photo-1584111728495-7d9599602355?w=700&h=900&fit=crop',
-    imgAlt:'View of the Arabian Sea from Fort Aguada, Candolim, Goa',
-    keywords:['fort aguada','aguada'],
-    route:{ title:'Villa, Parra → Fort Aguada', place:'Fort Aguada',
-      distIcon:'🛵', distVal:'~8 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~20 min', timeLbl:'Ride time',
-      desc:'The closest one on this list. Down through Saligao and Candolim, sea on your left the last stretch. Easy on a scooter — no highway needed.',
-      daddr:'Fort+Aguada,+Goa,+India', zoom:12, note:'Approx — good for a quick sunset run before dinner.' } },
-  { label:'QUERIM, SUNSET', tagline:'Sunset walk, every evening.',
-    img:'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=700&h=900&fit=crop',
-    imgAlt:'Golden hour sunset over Querim Beach, Goa',
-    keywords:['querim','keri beach'],
-    route:{ title:'Villa, Parra → Querim', place:'Querim (Keri) Beach',
-      distIcon:'🚗', distVal:'~34 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~55 min', timeLbl:'Drive + ferry',
-      desc:'North on NH66 through Mapusa and Arambol, then the Tiracol river ferry crossing (free, ~10 min, runs till late evening). Time it so you\'re not stuck waiting on either bank.',
-      daddr:'Querim+Beach,+Goa,+India', zoom:10, note:'Approx — ferry frequency varies, build in slack.' } },
-  { label:'HIDDEN COVE', tagline:'North Goa, off the map.',
-    img:'https://images.unsplash.com/photo-1695411560021-9374401d38b4?w=700&h=900&fit=crop',
-    imgAlt:'A hidden, secluded beach in North Goa',
-    keywords:['hidden cove','vagator','anjuna'],
-    route:{ title:'Villa, Parra → Hidden Cove', place:'Hidden Cove, N. Goa',
-      distIcon:'🛵', distVal:'~12 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~30 min', timeLbl:'Ride time',
-      desc:'Via Anjuna and Vagator, then a short unpaved stretch on foot or scooter down to the cove. No signage — ask locally or drop a pin once you\'ve scouted it once.',
-      daddr:'Vagator+Beach,+Goa,+India', zoom:12, note:"Approx — last bit isn't reliably mapped, treat as a rough guide." } },
-  { label:'DUDHSAGAR FALLS', tagline:'A full day trip into the Ghats.',
-    img:'https://images.unsplash.com/photo-1667760334198-d3958029a08b?w=700&h=900&fit=crop',
-    imgAlt:'Dudhsagar Falls, a four-tiered waterfall on the Mandovi River, Goa',
-    keywords:['dudhsagar'],
-    route:{ title:'Villa, Parra → Dudhsagar', place:'Dudhsagar Falls',
-      distIcon:'🚗', distVal:'~72 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~2h 10m', timeLbl:'Drive + jeep',
-      desc:'Drive to Mollem via Ponda, then switch to a shared jeep safari (~45 min) through the sanctuary — private cars aren\'t allowed the whole way. Block out a full day.',
-      daddr:'Dudhsagar+Falls,+Goa,+India', zoom:10, note:'Approx — jeeps queue up in peak season, go early.' } },
-  { label:'OLD GOA', tagline:'Baroque churches, 400 years deep.',
-    img:'https://images.unsplash.com/photo-1587922546931-b3d3a06adfd1?w=700&h=900&fit=crop',
-    imgAlt:'Basilica of Bom Jesus in Old Goa',
-    keywords:['old goa'],
-    route:{ title:'Villa, Parra → Old Goa', place:'Old Goa',
-      distIcon:'🚗', distVal:'~28 km', distLbl:'Distance', timeIcon:'⏱️', timeVal:'~50 min', timeLbl:'Drive time',
-      desc:'East via Mapusa and Panjim, crossing the Mandovi — the Basilica of Bom Jesus and Sé Cathedral are a few minutes apart, both walkable once you\'re there.',
-      daddr:'Old+Goa,+Goa,+India', zoom:11, note:'Approx — the churches close mid-afternoon on some days, check before driving out.' } },
-];
+
+let originCoordsPromise = null;
+/**
+ * Resolve the trip's own starting point (the villa / stay location)
+ * once per page load, the same way every itinerary place is resolved
+ * — no separate hardcoded "Villa, Parra" text baked into the map
+ * logic. Falls back to a generic Goa center only if nothing on the
+ * trip config resolves, so distance/maps still render sensibly.
+ */
+function getOriginCoords(){
+  if(originCoordsPromise) return originCoordsPromise;
+  const trip = window.TRIP || {};
+  const candidate = trip.villaAddress || trip.villa || trip.waypoint || 'Parra, Goa, India';
+  originCoordsPromise = resolvePlace(candidate).then(r => r || { name: candidate, lat: 15.5606, lng: 73.7983, displayName: 'Goa, India' });
+  return originCoordsPromise;
+}
 
 function toggleFlip(id){
   const el = document.getElementById(id);
@@ -1469,38 +1334,48 @@ function toggleFlip(id){
     const iframe = routeMap && routeMap.querySelector('iframe');
     if(iframe && !iframe.getAttribute('src') && iframe.dataset.src){
       iframe.addEventListener('load', () => routeMap.classList.add('loaded'), { once:true });
-      // Fallback for slow networks — mark loaded after 3s regardless.
       setTimeout(() => routeMap.classList.add('loaded'), 3000);
       iframe.src = iframe.dataset.src;
     }
   }
 }
 
-function buildPlaceCardHTML(place, index, badge){
+function placeTypeLabel(type){
+  const map = { beach:'🏖️ Beach', fort:'🏰 Fort', attraction:'📍 Attraction', waterfall:'💦 Waterfall',
+    place_of_worship:'🛕 Temple/Church', viewpoint:'👁️ Viewpoint', natural:'🌿 Nature', island:'🏝️ Island' };
+  return map[type] || (type ? '📍 ' + type.replace(/_/g,' ') : '📍 Place');
+}
+
+function buildPlaceCardHTML(entry, index, origin){
   const n = index + 1;
   const num = String(n).padStart(2,'0');
   const id = 'flip-' + n;
-  const badgeHTML = badge ? `<span class="gallery-badge mono" data-swiper-parallax="-50" data-swiper-parallax-opacity="0.4" data-swiper-parallax-duration="500">${escapeHtml(badge)}</span>` : '';
+  const p = entry.place;
+  const badgeHTML = entry.badge ? `<span class="gallery-badge mono" data-swiper-parallax="-50" data-swiper-parallax-opacity="0.4" data-swiper-parallax-duration="500">${escapeHtml(entry.badge)}</span>` : '';
+  const photoSrc = p.photo || 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=700&h=900&fit=crop'; // generic Goa coastline fallback — never a wrong-place photo, just an unbranded placeholder
+  const distKm = (origin && p.lat!=null) ? haversineKm(origin, {lat:p.lat, lng:p.lng}) : null;
+  const daddr = `${p.lat},${p.lng}`;
+  const saddr = origin ? `${origin.lat},${origin.lng}` : '';
   return `
     <div class="swiper-slide">
-      <div class="gallery-item" id="${id}" onclick="toggleFlip('${id}')" onkeypress="if(event.key==='Enter') toggleFlip('${id}')" tabindex="0" role="button" aria-label="${escapeHtml(place.label)} — Press Enter to see directions">
+      <div class="gallery-item" id="${id}" onclick="toggleFlip('${id}')" onkeypress="if(event.key==='Enter') toggleFlip('${id}')" tabindex="0" role="button" aria-label="${escapeHtml(p.resolvedName||p.name)} — Press Enter to see directions">
         <div class="flip-card-inner">
           <div class="flip-face flip-front">
             <div class="parallax-photo" data-swiper-parallax="-8%" data-swiper-parallax-scale="0.88" data-swiper-parallax-duration="650">
-              <img src="${place.img}" alt="${escapeHtml(place.imgAlt)}">
+              <img src="${photoSrc}" alt="${escapeHtml(p.resolvedName||p.name)}">
             </div>
             ${badgeHTML}
-            <div class="cap" data-swiper-parallax="-70" data-swiper-parallax-opacity="0.55" data-swiper-parallax-duration="550"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${num} — ${place.label}</p><p class="display text-lg font-semibold">${place.tagline}</p><p class="text-[10px] opacity-55 mt-1">Tap card for directions →</p></div>
+            <div class="cap" data-swiper-parallax="-70" data-swiper-parallax-opacity="0.55" data-swiper-parallax-duration="550"><p class="mono text-[11px] tracking-widest" style="color:#FFAB85">${num} — ${escapeHtml((p.resolvedName||p.name).toUpperCase())}</p><p class="display text-lg font-semibold">${escapeHtml(p.displayName ? p.displayName.split(',').slice(1,3).join(',').trim() : 'Goa')}</p><p class="text-[10px] opacity-55 mt-1">Tap card for directions →</p></div>
           </div>
           <div class="flip-face flip-back">
-            <p class="route-title">${place.route.title}</p>
-            <p class="route-place">${place.route.place}</p>
-            <div class="route-stat"><span class="rs-icon">${place.route.distIcon}</span><span class="rs-val">${place.route.distVal}</span><span class="rs-lbl">${place.route.distLbl}</span></div>
-            <div class="route-stat"><span class="rs-icon">${place.route.timeIcon}</span><span class="rs-val">${place.route.timeVal}</span><span class="rs-lbl">${place.route.timeLbl}</span></div>
-            <p class="route-desc">${place.route.desc}</p>
-            <div class="route-map"><iframe data-src="https://maps.google.com/maps?saddr=Villa,+Parra,+Goa,+India&daddr=${place.route.daddr}&output=embed&z=${place.route.zoom}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Route from Villa, Parra"></iframe></div>
-            <a class="route-open-link" href="https://www.google.com/maps/dir/?api=1&origin=Villa,+Parra,+Goa,+India&destination=${place.route.daddr}&travelmode=driving" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open directions in Google Maps ↗</a>
-            <p class="route-note">${place.route.note}</p>
+            <p class="route-title">${escapeHtml(origin ? (origin.name||'Villa') : 'Villa')} → ${escapeHtml(p.resolvedName||p.name)}</p>
+            <p class="route-place">${escapeHtml(p.displayName || p.resolvedName || p.name)}</p>
+            <div class="route-stat"><span class="rs-icon">📏</span><span class="rs-val">${distKm!=null ? '~'+Math.round(distKm)+' km' : '—'}</span><span class="rs-lbl">Straight-line</span></div>
+            <div class="route-stat"><span class="rs-icon">🗂️</span><span class="rs-val">${placeTypeLabel(p.placeType)}</span><span class="rs-lbl">Type</span></div>
+            <p class="route-desc">Resolved from the itinerary entry "${escapeHtml(p.name)}".</p>
+            <div class="route-map"><iframe data-src="https://maps.google.com/maps?saddr=${encodeURIComponent(saddr)}&daddr=${encodeURIComponent(daddr)}&output=embed&z=12" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Route to ${escapeHtml(p.resolvedName||p.name)}"></iframe></div>
+            <a class="route-open-link" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(saddr)}&destination=${encodeURIComponent(daddr)}&travelmode=driving" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open directions in Google Maps ↗</a>
+            <p class="route-note">Distance is straight-line, not driving distance.</p>
           </div>
         </div>
       </div>
@@ -1510,33 +1385,16 @@ function buildPlaceCardHTML(place, index, badge){
 let placesSwiperInstance = null;
 function initPlacesSwiper(){
   if(!window.Swiper){
-    // Swiper hasn't finished loading yet (slow network, or still
-    // trying a fallback CDN) — re-run this exact init once it's
-    // ready instead of giving up, so the carousel still activates
-    // even if it loses the race against the CDN script.
     onSwiperReady(initPlacesSwiper);
     return;
   }
   if(placesSwiperInstance){ placesSwiperInstance.destroy(true, true); placesSwiperInstance = null; }
   const slideCount = document.querySelectorAll('.placesSwiper .swiper-slide').length;
-  // Swiper's loop mode duplicates slides to fake infinite scroll — with
-  // too few real slides (e.g. only 1-2 places matched from the
-  // itinerary) it can't build that duplicate set correctly and slides
-  // end up stacked on top of each other with no transform applied,
-  // instead of scrolling into place. Only loop when there are enough
-  // slides to actually support it; otherwise fall back to a plain,
-  // non-looping (but still swipeable) carousel.
+  if(slideCount === 0) return;
   const canLoop = slideCount >= 6;
   placesSwiperInstance = new Swiper('.placesSwiper', {
     direction: 'horizontal',
     effect: 'slide',
-    // Parallax replaces the old coverflow 3D tilt: photo, badge and
-    // caption inside each slide now shift/scale/fade based on that
-    // slide's own progress (see data-swiper-parallax* attributes in
-    // buildPlaceCardHTML). Progress is computed the same way whether
-    // slides are moved by touch/drag, the arrow buttons, or autoplay,
-    // so the effect is identical on mobile and desktop — nothing here
-    // is gated behind a breakpoint or hover state.
     parallax: true,
     slidesPerView: 1.15,
     spaceBetween: 20,
@@ -1556,9 +1414,6 @@ function initPlacesSwiper(){
     pagination: { el: '.places-pagination', clickable: true },
     navigation: { nextEl: '.carousel-next', prevEl: '.carousel-prev' },
     on: {
-      // If a card is flipped to its "route" back face and the user then
-      // swipes/arrows/autoplays to a different slide, flip it back to
-      // the front so nobody navigates away with the answer still showing.
       slideChange(){
         document.querySelectorAll('.placesSwiper .gallery-item.flipped').forEach(el => toggleFlip(el.id));
       },
@@ -1566,46 +1421,54 @@ function initPlacesSwiper(){
   });
 }
 
-function renderGalleryCards(entries, fromItinerary){
+async function renderGalleryCards(entries, fromItinerary){
   const wrap = document.getElementById('placesWrapper');
   const intro = document.getElementById('placesIntro');
   if(!wrap) return;
-  wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e.place, i, e.badge)).join('');
+
+  if(!entries.length){
+    wrap.innerHTML = '';
+    if(intro) intro.textContent = 'No places resolved yet — add some in the itinerary planner and they\u2019ll show up here automatically.';
+    if(placesSwiperInstance){ placesSwiperInstance.destroy(true, true); placesSwiperInstance = null; }
+    return;
+  }
+
+  const origin = await getOriginCoords();
+  wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e, i, origin)).join('');
   if(intro){
-    intro.textContent = fromItinerary
-      ? `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — swipe through, or let it auto-play while you scroll.`
-      : "Six spots worth building a day around — swipe through, or let it auto-play while you scroll.";
+    intro.textContent = `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — swipe through, or let it auto-play while you scroll.`;
   }
   initPlacesSwiper();
 }
 
 /**
- * Scans each itinerary day's title + items for a catalog place's
- * keywords. A match ties that card to the day it was found in
- * (shown as a small badge) and pulls it to the front of the
- * carousel in day order. If nothing in the itinerary matches yet
- * (e.g. days are still marked TBD), falls back to the full catalog
- * so the carousel is never empty.
+ * Pulls every place that itinerary.html already resolved (status
+ * 'ok' with lat/lng — see fetchPlacePhoto in itinerary.html) out of
+ * the day-by-day itinerary, dedupes by resolved coordinates, and
+ * hands them to the carousel in day order. Nothing here matches
+ * against a fixed list — it just reads whatever the planner already
+ * resolved, so a brand-new place typed into the itinerary appears
+ * here the moment it's resolved and saved, with zero code changes.
  */
 function syncPlacesFromItinerary(days){
-  const haystacks = (days||[]).map((d,idx)=>({
-    day:d, idx,
-    text:((d.title||'') + ' ' + (d.items||[]).join(' ')).toLowerCase()
-  }));
-  const matches = [];
-  PLACES_CATALOG.forEach(place=>{
-    const hit = haystacks.find(h => place.keywords.some(k => h.text.includes(k)));
-    if(hit) matches.push({ place, idx:hit.idx, badge: [hit.day.day, hit.day.date].filter(Boolean).join(' · ') });
+  const seen = new Set();
+  const entries = [];
+  (days||[]).forEach(d=>{
+    (d.places||[]).forEach(p=>{
+      if(!p || p.status !== 'ok' || p.lat == null || p.lng == null) return;
+      const dedupeKey = p.placeId || (p.lat.toFixed(4)+','+p.lng.toFixed(4));
+      if(seen.has(dedupeKey)) return;
+      seen.add(dedupeKey);
+      entries.push({ place: p, badge: [d.day, d.date].filter(Boolean).join(' · ') });
+    });
   });
-  matches.sort((a,b)=>a.idx-b.idx);
-  const entries = matches.length >= 3 ? matches : PLACES_CATALOG.map(place=>({ place, badge:null }));
-  renderGalleryCards(entries, matches.length >= 3);
+  renderGalleryCards(entries, entries.length > 0);
 }
 
-// Paint the full catalog immediately so the section isn't empty
-// while the itinerary script (further down the page) loads and
-// runs the real sync.
-renderGalleryCards(PLACES_CATALOG.map(place=>({ place, badge:null })), false);
+// Nothing to paint yet on first script load — renderItinerary() (called
+// right after this script block, and again whenever the backend syncs)
+// invokes syncPlacesFromItinerary() with real data, which is the only
+// thing that ever populates this carousel.
 
 /* ============================================================
    OCEAN DIVE: scroll-linked depth + ambient bubbles
