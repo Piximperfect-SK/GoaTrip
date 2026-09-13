@@ -287,9 +287,9 @@ function removeItem(di, ii){ days[di].items.splice(ii,1); render(); }
 const UNSPLASH_ACCESS_KEY = ""; // optional — paste a free Unsplash Access Key here to enable the fallback
 
 function placeStatusLabel(p){
-  if(p.status === 'pending') return 'Looking…';
-  if(p.status === 'ok') return p.source === 'wikipedia' ? '✓ Wikipedia' : p.source === 'commons' ? '✓ Commons' : p.source === 'unsplash' ? '✓ Unsplash' : '✓';
-  if(p.status === 'bad') return 'No photo found';
+  if(p.status === 'pending') return 'Resolving…';
+  if(p.status === 'ok') return (p.lat!=null ? '📍 ' : '') + (p.source === 'wikipedia' ? 'Wikipedia' : p.source === 'commons' ? 'Commons' : p.source === 'unsplash' ? 'Unsplash' : 'Resolved');
+  if(p.status === 'bad') return 'Unresolved — check spelling';
   return '';
 }
 function addPlace(di){
@@ -303,44 +303,60 @@ function removePlace(di, pi){ days[di].places.splice(pi,1); render(); }
 async function fetchPlacePhoto(di, pi){
   const p = days[di] && days[di].places && days[di].places[pi];
   if(!p) return;
-  const name = (p.name||'').trim();
-  if(!name){ p.status=''; p.photo=null; render(); return; }
-  // Don't re-fetch if we already found a photo for this exact name
-  if(p.status === 'ok' && p._fetchedFor === name) return;
+  const rawName = (p.name||'').trim();
+  if(!rawName){ p.status=''; p.photo=null; p.lat=null; p.lng=null; p.resolvedName=null; render(); return; }
+  // Don't re-resolve if we already fully resolved this exact typed text.
+  if(p.status === 'ok' && p._fetchedFor === rawName) return;
   p.status = 'pending';
   render();
   try{
-    // 1. Wikipedia — best when it hits, since it's a curated lead photo
-    //    for an actual article on the place.
-    let found = await fetchWikipediaPhoto(name);
+    // 1. Resolve the free-typed text to a canonical real-world place —
+    //    this is the single source of truth. Everything else (photo,
+    //    map pin, directions) is derived from THIS result, so they can
+    //    never disagree with each other. No match => unresolved, never
+    //    a guess.
+    const resolved = await resolvePlace(rawName);
+    if(!resolved){
+      console.warn('Place resolution: no confident match for', JSON.stringify(rawName));
+      p.photo = null; p.lat = null; p.lng = null; p.resolvedName = null; p.status = 'bad';
+      render();
+      return;
+    }
+    p.lat = resolved.lat; p.lng = resolved.lng;
+    p.resolvedName = resolved.name;
+    p.displayName = resolved.displayName;
+    p.placeType = resolved.type;
+
+    // 2. Photo lookup uses the CANONICAL resolved name (not the raw
+    //    typed text), so a lookup like "Aguada" resolves to "Fort
+    //    Aguada" first and the photo search is for that real title —
+    //    same reasoning chain the map pin already went through.
+    const lookupName = resolved.name || rawName;
+    let found = await fetchWikipediaPhoto(lookupName);
     let source = 'wikipedia';
 
-    // 2. Wikimedia Commons — a much bigger net than Wikipedia articles.
-    //    Plenty of real places (a specific temple, viewpoint, small
-    //    waterfall) never get a full Wikipedia article but still have
-    //    photos uploaded to Commons under that name. No key, no quota,
-    //    works for basically any named place worldwide.
     if(!found){
-      found = await fetchCommonsPhoto(name);
+      found = await fetchCommonsPhoto(lookupName);
       source = 'commons';
     }
 
-    // 3. Unsplash — only if a key has been pasted in above. Stock-style
-    //    photography, so it's the last resort rather than the first.
     if(!found && UNSPLASH_ACCESS_KEY){
-      found = await fetchUnsplashPhoto(name);
+      found = await fetchUnsplashPhoto(lookupName);
       source = 'unsplash';
     }
 
     if(found){
-      p.photo = found.photo; p.caption = found.title || name; p.source = source;
-      p.status = 'ok'; p._fetchedFor = name;
+      p.photo = found.photo; p.caption = found.title || lookupName; p.source = source;
     }else{
-      p.photo = null; p.status = 'bad';
+      // Coordinates resolved but no photo anywhere — still usable for
+      // map/directions; the carousel card falls back gracefully (see
+      // index.html renderGalleryCards) instead of breaking.
+      p.photo = null; p.source = '';
     }
+    p.status = 'ok'; p._fetchedFor = rawName;
   }catch(err){
-    console.warn('Place photo lookup failed:', err);
-    p.photo = null; p.status = 'bad';
+    console.warn('Place resolution failed for', JSON.stringify(rawName), err);
+    p.photo = null; p.lat = null; p.lng = null; p.resolvedName = null; p.status = 'bad';
   }
   render();
 }

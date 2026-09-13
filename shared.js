@@ -218,6 +218,128 @@ function qrApiUrl(text){
 }
 
 /* ============================================================
+   PLACE RESOLUTION — turns free-typed itinerary text ("Morning -
+   Visit Aguada Fort after breakfast", "Baga", "Fort Aguada") into a
+   canonical place: { query, name, lat, lng, displayName, confidence }.
+
+   Used by itinerary.html (resolve + cache when a place is edited)
+   and index.html (render the homepage carousel/map/directions from
+   whatever the itinerary already resolved — nothing here is a fixed
+   name->place lookup table; every result comes from a live geocoding
+   call, so it works for any place typed in the future).
+
+   Geocoder: OpenStreetMap Nominatim — free, no key, CORS-enabled,
+   and (per project conventions) reused as the one geocoding source
+   everywhere rather than introducing a second dependency. Results
+   are biased toward Goa/India via a viewbox + countrycodes hint,
+   but that's a *ranking* nudge, not a hardcoded destination — a
+   well-known place elsewhere in the world (e.g. "Taj Mahal") still
+   resolves correctly because bounded=0 lets Nominatim fall back
+   outside the box when nothing local matches.
+   ============================================================ */
+const PLACE_RESOLVE_CACHE_PREFIX = 'goatrip:place:';
+const GOA_VIEWBOX = '73.4,15.85,74.35,14.85'; // lon1,lat1,lon2,lat2 — loose box around Goa
+
+/**
+ * Strip itinerary scaffolding words around a place name, e.g.
+ * "Morning - Visit Aguada Fort after breakfast" -> "Aguada Fort".
+ * Deliberately conservative: only trims recognizable time-of-day /
+ * verb / trailing-clause noise, never guesses or rewrites the core
+ * name itself.
+ */
+function extractPlacePhrase(text){
+  let s = String(text || '').trim();
+  if(!s) return '';
+  // Drop a leading "Morning - ", "Afternoon:", "Evening —" style prefix.
+  s = s.replace(/^\s*(early\s+)?(morning|afternoon|evening|night|noon)\s*[-:–—]\s*/i, '');
+  // Drop a leading action verb ("Visit", "Go to", "Explore", "Check out", "See").
+  s = s.replace(/^\s*(visit|go\s+to|head\s+to|explore|check\s+out|stop\s+(at|by)|see|drive\s+to|walk\s+to)\s+/i, '');
+  // Drop a trailing clause starting with a connector word.
+  s = s.replace(/\s+(after|before|then|followed\s+by|and\s+then)\b.*$/i, '');
+  // Collapse stray punctuation/whitespace left behind.
+  s = s.replace(/^[\s\-:–—,.]+|[\s\-:–—,.]+$/g, '').replace(/\s{2,}/g, ' ');
+  return s.trim();
+}
+
+function normalizePlaceKey(s){
+  return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function readPlaceCache(key){
+  try{
+    const raw = sessionStorage.getItem(PLACE_RESOLVE_CACHE_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function writePlaceCache(key, value){
+  try{ sessionStorage.setItem(PLACE_RESOLVE_CACHE_PREFIX + key, JSON.stringify(value)); }catch(e){ /* storage full/unavailable — non-fatal */ }
+}
+
+/**
+ * Resolve free-typed itinerary text to a canonical place via Nominatim.
+ * Returns null (never a guess) when nothing sufficiently confident is
+ * found, so callers can show an "unresolved" state instead of a wrong
+ * photo/pin. Caches per normalized input for the session to avoid
+ * refetching the same place repeatedly.
+ */
+async function resolvePlace(rawText){
+  const cleaned = extractPlacePhrase(rawText);
+  if(!cleaned) return null;
+  const key = normalizePlaceKey(cleaned);
+  const cached = readPlaceCache(key);
+  if(cached !== null) return cached; // includes cached "null" (a prior confirmed non-match)
+
+  const result = await geocodeViaNominatim(cleaned) || await geocodeViaNominatim(cleaned, false);
+  writePlaceCache(key, result);
+  return result;
+}
+
+async function geocodeViaNominatim(query, biasToGoa){
+  if(biasToGoa === undefined) biasToGoa = true;
+  const params = new URLSearchParams({
+    q: query, format: 'jsonv2', addressdetails: '1', limit: '3',
+  });
+  if(biasToGoa){
+    params.set('viewbox', GOA_VIEWBOX);
+    params.set('bounded', '0'); // bias, don't hard-restrict — real places outside Goa still resolve
+    params.set('countrycodes', 'in');
+  }
+  let res;
+  try{
+    res = await fetch('https://nominatim.openstreetmap.org/search?' + params.toString(), {
+      headers: { 'Accept': 'application/json' }
+    });
+  }catch(e){ console.warn('Place geocoding request failed:', e); return null; }
+  if(!res.ok) return null;
+  let hits;
+  try{ hits = await res.json(); }catch(e){ return null; }
+  if(!hits || !hits.length) return null;
+
+  // Confidence gate: importance is Nominatim's own relevance score
+  // (roughly 0-1). Below this, treat as "not confident enough" rather
+  // than silently showing a loosely-related result.
+  const best = hits[0];
+  const importance = typeof best.importance === 'number' ? best.importance : 0;
+  if(importance < 0.18 && hits.length > 1){
+    // Low-confidence single-word hits are often too generic; a very
+    // low top score with alternatives suggests real ambiguity.
+    return null;
+  }
+  const lat = parseFloat(best.lat), lng = parseFloat(best.lon);
+  if(!isFinite(lat) || !isFinite(lng)) return null;
+
+  return {
+    query: query,
+    name: (best.namedetails && best.namedetails.name) || best.display_name.split(',')[0],
+    displayName: best.display_name,
+    lat, lng,
+    placeId: best.place_id,
+    type: best.type || best.class || '',
+    confidence: importance,
+  };
+}
+
+/* ============================================================
    FEATURE FLAGS (admin console)
    Any page can call applyFeatureFlags(tripId) once on load. It fetches
    the public flag list for that trip (no auth needed to read) and,
