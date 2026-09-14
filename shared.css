@@ -67,7 +67,10 @@ body{
   color:var(--ink);
   font-family:'Space Grotesk', sans-serif;
   -webkit-font-smoothing:antialiased;
-  overscroll-behavior-y:none;
+  /* Deliberately NOT overscroll-behavior-y:none — that's the exact CSS
+     property that also disables Chrome/Android's native pull-to-refresh
+     gesture, and this site has no custom pull-to-refresh of its own to
+     replace it with. Leave it at the default (auto) so the gesture works. */
 }
 
 ::-webkit-scrollbar{ width:8px; height:8px; }
