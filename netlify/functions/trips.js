@@ -14,6 +14,17 @@ async function ensureSchema() {
   if (schemaEnsured) return;
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS villa_lat DOUBLE PRECISION');
   await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS villa_lng DOUBLE PRECISION');
+
+  // One-time backfill: goa-2026's villa reference point, supplied directly
+  // instead of requiring a manual SQL console visit. Only fills it in if
+  // it's not already set, so this is safe to leave in permanently — it
+  // will never overwrite a value set later through the admin UI/API.
+  await query(
+    `UPDATE trips SET villa_lat = $2, villa_lng = $3
+     WHERE id = $1 AND villa_lat IS NULL AND villa_lng IS NULL`,
+    ['goa-2026', 15.586784797901393, 73.78030810131766]
+  );
+
   schemaEnsured = true;
 }
 
