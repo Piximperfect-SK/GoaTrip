@@ -1306,14 +1306,26 @@ textarea:focus{border-color:var(--mango);}
 let originCoordsPromise = null;
 /**
  * Resolve the trip's own starting point (the villa / stay location)
- * once per page load, the same way every itinerary place is resolved
- * — no separate hardcoded "Villa, Parra" text baked into the map
- * logic. Falls back to a generic Goa center only if nothing on the
- * trip config resolves, so distance/maps still render sensibly.
+ * once per page load. Prefers an explicit villaLat/villaLng set on the
+ * trip config — a fixed coordinate, not a text lookup, so distances
+ * can't silently land on a same-named place somewhere else in the
+ * world (e.g. geocoding "Parra" and matching a different country's
+ * Parra instead of Parra, Goa). Text geocoding via resolvePlace() is
+ * kept only as a fallback for trips that haven't set explicit
+ * coordinates yet. Falls back to a generic Goa center only if nothing
+ * on the trip config resolves, so distance/maps still render sensibly.
  */
 function getOriginCoords(){
   if(originCoordsPromise) return originCoordsPromise;
   const trip = window.TRIP || {};
+  if(typeof trip.villaLat === 'number' && typeof trip.villaLng === 'number'){
+    originCoordsPromise = Promise.resolve({
+      name: trip.villaName || trip.villaAddress || trip.villa || 'Villa',
+      lat: trip.villaLat, lng: trip.villaLng,
+      displayName: trip.villaAddress || trip.villa || 'Goa, India',
+    });
+    return originCoordsPromise;
+  }
   const candidate = trip.villaAddress || trip.villa || trip.waypoint || 'Parra, Goa, India';
   originCoordsPromise = resolvePlace(candidate).then(r => r || { name: candidate, lat: 15.5606, lng: 73.7983, displayName: 'Goa, India' });
   return originCoordsPromise;
@@ -1678,7 +1690,7 @@ navlinks.forEach(l=>l.addEventListener('click', e=>{
   window.__railGlideToActive = () => { if(!rail.matches(':hover')) glideTo(currentActive()); };
 })();
 
-const sections = ['#gallery','#places','#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id));
+const sections = ['#gallery','#places','#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id)).filter(Boolean);
 let lastY = window.scrollY;
 window.addEventListener('scroll', ()=>{
   const y = window.scrollY;

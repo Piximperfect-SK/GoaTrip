@@ -4,6 +4,19 @@ const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/
 const { verifySessionToken } = require('./lib/auth');
 const { sanitizeText } = require('./lib/validate');
 
+// villa_lat/villa_lng: a fixed reference point (not a text address) that
+// every gallery card's distance is measured from — see getOriginCoords()
+// in index.html. ADD COLUMN IF NOT EXISTS so this rolls out safely onto
+// an existing trips table without a separate migration step, mirroring
+// the same one-time-ensure pattern places.js uses for its own table.
+let schemaEnsured = false;
+async function ensureSchema() {
+  if (schemaEnsured) return;
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS villa_lat DOUBLE PRECISION');
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS villa_lng DOUBLE PRECISION');
+  schemaEnsured = true;
+}
+
 const TRIP_ROW_TO_JSON = (r) => ({
   id: r.id,
   name: r.name,
@@ -14,6 +27,8 @@ const TRIP_ROW_TO_JSON = (r) => ({
   destination: r.destination,
   waypoint: r.waypoint,
   villa: r.villa,
+  villaLat: r.villa_lat != null ? Number(r.villa_lat) : null,
+  villaLng: r.villa_lng != null ? Number(r.villa_lng) : null,
   participantCount: r.participant_count,
   routeLegs: r.route_legs,
   galleryPlaces: r.gallery_places,
@@ -26,6 +41,8 @@ const TRIP_ROW_TO_JSON = (r) => ({
 
 exports.handler = async (event) => {
   try {
+    await ensureSchema();
+
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
       if (params.id) {
@@ -52,6 +69,11 @@ exports.handler = async (event) => {
       const id = sanitizeText(p.id, 60);
       if (!id || !/^[a-z0-9-]+$/.test(id)) return badRequest('Trip id must be lowercase letters, numbers and hyphens only.');
 
+      const villaLat = Number(p.villaLat);
+      const villaLng = Number(p.villaLng);
+      const villaLatValid = Number.isFinite(villaLat) && villaLat >= -90 && villaLat <= 90;
+      const villaLngValid = Number.isFinite(villaLng) && villaLng >= -180 && villaLng <= 180;
+
       const fields = {
         name: sanitizeText(p.name, 120),
         short_dates: sanitizeText(p.shortDates || '', 60),
@@ -61,6 +83,8 @@ exports.handler = async (event) => {
         destination: sanitizeText(p.destination || '', 80),
         waypoint: sanitizeText(p.waypoint || '', 80),
         villa: sanitizeText(p.villa || '', 80),
+        villa_lat: villaLatValid ? villaLat : null,
+        villa_lng: villaLngValid ? villaLng : null,
         participant_count: Number.isFinite(Number(p.participantCount)) ? Number(p.participantCount) : 0,
         route_legs: JSON.stringify(p.routeLegs || []),
         gallery_places: JSON.stringify(p.galleryPlaces || []),
@@ -74,11 +98,11 @@ exports.handler = async (event) => {
         if (existing.length) return badRequest('A trip with this id already exists.');
         await query(
           `INSERT INTO trips (id, name, short_dates, start_date, end_date, origin, destination, waypoint, villa,
-             participant_count, route_legs, gallery_places, default_itinerary, categories, wallet_participants)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+             villa_lat, villa_lng, participant_count, route_legs, gallery_places, default_itinerary, categories, wallet_participants)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
           [id, fields.name, fields.short_dates, fields.start_date, fields.end_date, fields.origin, fields.destination,
-            fields.waypoint, fields.villa, fields.participant_count, fields.route_legs, fields.gallery_places,
-            fields.default_itinerary, fields.categories, fields.wallet_participants]
+            fields.waypoint, fields.villa, fields.villa_lat, fields.villa_lng, fields.participant_count, fields.route_legs,
+            fields.gallery_places, fields.default_itinerary, fields.categories, fields.wallet_participants]
         );
         const { rows } = await query('SELECT * FROM trips WHERE id = $1', [id]);
         return ok({ ok: true, trip: TRIP_ROW_TO_JSON(rows[0]) });
@@ -89,11 +113,11 @@ exports.handler = async (event) => {
         if (!existing.length) return badRequest('Trip not found.');
         await query(
           `UPDATE trips SET name=$2, short_dates=$3, start_date=$4, end_date=$5, origin=$6, destination=$7,
-             waypoint=$8, villa=$9, participant_count=$10, route_legs=$11, gallery_places=$12,
-             default_itinerary=$13, categories=$14, wallet_participants=$15 WHERE id=$1`,
+             waypoint=$8, villa=$9, villa_lat=$10, villa_lng=$11, participant_count=$12, route_legs=$13, gallery_places=$14,
+             default_itinerary=$15, categories=$16, wallet_participants=$17 WHERE id=$1`,
           [id, fields.name, fields.short_dates, fields.start_date, fields.end_date, fields.origin, fields.destination,
-            fields.waypoint, fields.villa, fields.participant_count, fields.route_legs, fields.gallery_places,
-            fields.default_itinerary, fields.categories, fields.wallet_participants]
+            fields.waypoint, fields.villa, fields.villa_lat, fields.villa_lng, fields.participant_count, fields.route_legs,
+            fields.gallery_places, fields.default_itinerary, fields.categories, fields.wallet_participants]
         );
         const { rows } = await query('SELECT * FROM trips WHERE id = $1', [id]);
         return ok({ ok: true, trip: TRIP_ROW_TO_JSON(rows[0]) });
