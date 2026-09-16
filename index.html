@@ -403,6 +403,63 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .carousel-arrow{width:42px; height:42px; border-radius:9999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); color:var(--sand); font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.2s; flex-shrink:0;}
 .carousel-arrow:hover{background:rgba(255,255,255,.18); transform:translateY(-1px);}
 .carousel-arrow:active{transform:translateY(0) scale(.94);}
+
+/* ============================================================
+   NEW CAROUSEL — "3D Card" (Aceternity-style tilt) + liquid-glass
+   framing, replacing the old Swiper-based .placesSwiper carousel
+   below (kept in the CSS/HTML/JS, just no longer initialized —
+   see the "OLD CAROUSEL (commented out)" markers).
+   Reference components supplied by the user:
+     - Liquid glass carousel: https://framer.com/m/liquid-glass-carousel-SkrkTr.js@kpCFFax8ciLkuLf0kMrs
+     - 3D Card (Aceternity UI): CardContainer/CardBody/CardItem — reimplemented
+       here in vanilla JS/CSS since this page isn't a React app.
+   ============================================================ */
+.card3d-shell{
+  background:#0A0A0A; border-radius:18px; overflow:hidden; padding:8px 0 4px;
+  /* liquid-glass framing: soft frosted edge around the dark row */
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 30px 70px -35px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.card3d-row{
+  display:flex; gap:26px; overflow-x:auto; overflow-y:visible; scroll-snap-type:x mandatory;
+  padding:34px 6vw 40px; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.card3d-row::-webkit-scrollbar{ display:none; }
+.card3d-container{
+  flex:0 0 auto; scroll-snap-align:center; perspective:1200px; width:min(78vw, 340px);
+}
+.card3d-body{
+  position:relative; width:100%; border-radius:16px; padding:18px;
+  background:rgba(255,255,255,.04);
+  -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 20px 45px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08);
+  transform-style:preserve-3d; transition:transform .18s ease-out, box-shadow .18s ease-out;
+  will-change:transform;
+}
+.card3d-container:hover .card3d-body, .card3d-container:focus-within .card3d-body{
+  box-shadow:0 30px 60px -18px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.1);
+}
+.card3d-item{ transform-style:preserve-3d; will-change:transform; }
+.card3d-photo{
+  width:100%; height:280px; border-radius:12px; overflow:hidden; margin-bottom:14px;
+  box-shadow:0 18px 34px -16px rgba(0,0,0,.55);
+}
+.card3d-photo img{ width:100%; height:100%; object-fit:cover; display:block; transition:transform .5s ease; }
+.card3d-container:hover .card3d-photo img{ transform:scale(1.05); }
+.card3d-eyebrow{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; color:#FFAB85; text-transform:uppercase; }
+.card3d-title{ font-family:'Fraunces',serif; font-weight:600; font-size:19px; color:#fff; margin:6px 0 4px; }
+.card3d-sub{ font-size:12.5px; color:rgba(255,255,255,.6); line-height:1.4; margin-bottom:14px; }
+.card3d-footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.card3d-link{ font-family:'Space Grotesk',sans-serif; font-size:11.5px; font-weight:600; color:#FFD9C4; text-decoration:none; }
+.card3d-pill{
+  padding:8px 14px; border-radius:9999px; background:#fff; color:#111; font-size:11px; font-weight:700;
+  border:none; cursor:pointer;
+}
+@media (prefers-reduced-motion:reduce){
+  .card3d-body{ transition:none; }
+}
 @media (max-width:640px){
   .lineup-gallery{ gap:10px; }
   .lineup-title{ font-size:17px; }
@@ -1239,7 +1296,24 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <p class="opacity-70 max-w-lg mb-8" id="placesIntro">Six spots worth building a day around — swipe through, or let it auto-play while you scroll.</p>
   </div>
 
+  <!-- ============ OLD CAROUSEL (commented out — "lineup" flex-grow gallery) ============
   <div class="lineup-gallery max-w-6xl mx-auto px-5 md:px-10" id="placesWrapper"></div>
+  <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
+    <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
+    <div class="lineup-dots places-pagination" id="placesDots"></div>
+    <button class="carousel-arrow carousel-next" aria-label="Next place">›</button>
+  </div>
+  ============ END OLD CAROUSEL ============ -->
+
+  <!-- ============ NEW CAROUSEL — 3D Card (Aceternity-style) + liquid-glass ============
+       Reference components supplied by the user:
+       - Liquid glass carousel: https://framer.com/m/liquid-glass-carousel-SkrkTr.js@kpCFFax8ciLkuLf0kMrs
+       - 3D Card: CardContainer/CardBody/CardItem, reimplemented in vanilla JS/CSS
+         (this page isn't a React app) — see .card3d-* below and render3DCardCarousel() in the script. -->
+  <div class="card3d-shell max-w-6xl mx-auto" id="card3dShell" style="display:none;">
+    <div class="card3d-row" id="card3dRow"></div>
+  </div>
+  <p class="text-sm opacity-50 max-w-6xl mx-auto px-5 md:px-10" id="card3dEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here as a browsable set of cards.</p>
   <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
     <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
     <div class="lineup-dots places-pagination" id="placesDots"></div>
@@ -1722,26 +1796,127 @@ function initPlacesGallery(){
   }
 }
 
+/* ============================================================
+   NEW 3D-CARD CAROUSEL — vanilla reimplementation of the Aceternity
+   "CardContainer / CardBody / CardItem" pattern (mousemove-driven
+   perspective tilt, with inner elements pushed forward via
+   translateZ), inside a liquid-glass-style frosted row. Reuses the
+   same `entries` data (resolved itinerary places) that the old
+   lineup gallery consumed — buildPlaceCardHTML/lineup* above are
+   left in place but no longer called; see render3DCardCarousel().
+=============================================================*/
+function build3DCardHTML(entry, index, origin){
+  const n = index + 1;
+  const num = String(n).padStart(2,'0');
+  const p = entry.place;
+  const photoSrc = p.photo || 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=700&h=900&fit=crop';
+  const distKm = (origin && p.lat!=null) ? haversineKm(origin, {lat:p.lat, lng:p.lng}) : null;
+  const daddr = `${p.lat},${p.lng}`;
+  const saddr = origin ? `${origin.lat},${origin.lng}` : '';
+  const name = p.resolvedName || p.name;
+  const badge = entry.badge ? escapeHtml(entry.badge) : (num + ' · Goa');
+  return `
+    <div class="card3d-container" data-index="${index}" tabindex="0">
+      <div class="card3d-body">
+        <div class="card3d-item card3d-eyebrow" data-tz="30">${badge}</div>
+        <div class="card3d-item card3d-photo" data-tz="60">
+          <img src="${photoSrc}" alt="${escapeHtml(name)}">
+        </div>
+        <div class="card3d-item card3d-title" data-tz="50">${escapeHtml(name)}</div>
+        <div class="card3d-item card3d-sub" data-tz="40">${distKm!=null ? '~'+Math.round(distKm)+' km from the villa · ' : ''}${placeTypeLabel(p.placeType)}</div>
+        <div class="card3d-footer card3d-item" data-tz="30">
+          <a class="card3d-link" data-tz="20" href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(saddr)}&destination=${encodeURIComponent(daddr)}&travelmode=driving" target="_blank" rel="noopener noreferrer">Directions →</a>
+          <span class="card3d-pill" data-tz="20">${num}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* Perspective tilt on mousemove, translateZ "float" on inner items —
+   the two signature behaviours of the CardContainer/CardItem pair. */
+function init3DCardTilt(){
+  document.querySelectorAll('#card3dRow .card3d-container').forEach(container => {
+    if(container.dataset.tiltWired) return;
+    container.dataset.tiltWired = '1';
+    const body = container.querySelector('.card3d-body');
+    if(!body) return;
+    const items = Array.from(container.querySelectorAll('.card3d-item'));
+    function onMove(e){
+      const rect = container.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      body.style.transform = `rotateY(${px*14}deg) rotateX(${py*-14}deg) scale3d(1.02,1.02,1.02)`;
+      items.forEach(it => { it.style.transform = `translateZ(${it.dataset.tz || 20}px)`; });
+    }
+    function onLeave(){
+      body.style.transform = 'rotateY(0deg) rotateX(0deg) scale3d(1,1,1)';
+      items.forEach(it => { it.style.transform = 'translateZ(0px)'; });
+    }
+    container.addEventListener('mousemove', onMove);
+    container.addEventListener('mouseleave', onLeave);
+    container.addEventListener('touchstart', onLeave, { passive:true });
+  });
+}
+
+let card3dArrowsWired = false;
+function render3DCardCarousel(entries, origin){
+  const row = document.getElementById('card3dRow');
+  if(!row) return;
+  row.innerHTML = entries.map((e,i)=>build3DCardHTML(e, i, origin)).join('');
+  init3DCardTilt();
+
+  if(!card3dArrowsWired){
+    card3dArrowsWired = true;
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const step = (dir) => {
+      const w = row.querySelector('.card3d-container');
+      const amt = w ? w.getBoundingClientRect().width + 26 : 300;
+      row.scrollBy({ left: dir * amt, behavior:'smooth' });
+    };
+    if(prevBtn) prevBtn.addEventListener('click', () => step(-1));
+    if(nextBtn) nextBtn.addEventListener('click', () => step(1));
+  }
+}
+
 async function renderGalleryCards(entries, fromItinerary){
-  const wrap = document.getElementById('placesWrapper');
+  const wrap = document.getElementById('placesWrapper'); // old lineup gallery — no longer rendered into, kept for reference
   const intro = document.getElementById('placesIntro');
-  if(!wrap) return;
-  lineupStopAutoplay();
+  // OLD CAROUSEL (commented out): lineupStopAutoplay();
+
+  const shell = document.getElementById('card3dShell');
+  const emptyNote = document.getElementById('card3dEmptyNote');
+  const controls = document.querySelector('.carousel-controls');
 
   if(!entries.length){
-    wrap.innerHTML = '';
-    const dots = document.getElementById('placesDots');
-    if(dots) dots.innerHTML = '';
+    // OLD CAROUSEL (commented out):
+    // if(wrap) wrap.innerHTML = '';
+    // const dots = document.getElementById('placesDots');
+    // if(dots) dots.innerHTML = '';
+    const row = document.getElementById('card3dRow');
+    if(row) row.innerHTML = '';
+    if(shell) shell.style.display = 'none';       // hide the dark shell instead of showing an empty black bar
+    if(controls) controls.style.display = 'none';
+    if(emptyNote) emptyNote.style.display = 'block';
     if(intro) intro.textContent = 'No places resolved yet — add some in the itinerary planner and they\u2019ll show up here automatically.';
     return;
   }
 
+  if(shell) shell.style.display = '';
+  if(controls) controls.style.display = '';
+  if(emptyNote) emptyNote.style.display = 'none';
+
   const origin = await getOriginCoords();
-  wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e, i, origin)).join('');
+
+  // OLD CAROUSEL (commented out):
+  // if(wrap) wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e, i, origin)).join('');
+  // initPlacesGallery();
+
+  render3DCardCarousel(entries, origin);
+
   if(intro){
-    intro.textContent = `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — click a card to see it up close, or let it auto-play while you scroll.`;
+    intro.textContent = `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — hover a card to tilt it, or use the arrows to browse.`;
   }
-  initPlacesGallery();
 }
 
 /**
