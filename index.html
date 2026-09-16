@@ -215,6 +215,55 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 .hero-eyebrow-rule{width:34px; height:2px; background:var(--mango); display:inline-block; vertical-align:middle; margin-right:10px;}
 
+/* ---------- Hero countdown: big rainbow-gradient timer + confetti + balloons ---------- */
+.hero-countdown-wrap{ position:relative; display:inline-block; }
+.hero-countdown{
+  position:relative; z-index:2;
+  display:inline-flex; align-items:flex-start; gap:clamp(8px,1.8vw,18px);
+  padding:18px clamp(18px,3vw,32px);
+  border-radius:24px;
+  background:rgba(255,255,255,.66);
+  border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 30px 60px -32px rgba(29,29,31,.4);
+}
+.hero-countdown .cd-unit{ display:flex; flex-direction:column; align-items:center; min-width:2.1ch; }
+.hero-countdown .cd-num{
+  font-family:'Space Mono',monospace; font-weight:700;
+  font-size:clamp(26px,5vw,50px); line-height:1; letter-spacing:-.01em;
+  background:linear-gradient(90deg, #FF6B4A, #F5B942, #F26FA0, #2E6FF2, #2E8B57, #FF6B4A);
+  background-size:300% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+  animation:rainbowShift 6s linear infinite;
+}
+.hero-countdown .cd-label{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); opacity:.45; margin-top:5px; }
+.hero-countdown .cd-sep{ font-size:clamp(18px,3vw,30px); color:var(--ink); opacity:.2; align-self:flex-start; margin-top:2px; }
+@keyframes rainbowShift{ to{ background-position:-300% 0; } }
+
+.hero-confetti{ position:absolute; inset:-26px -8px auto -8px; height:1px; pointer-events:none; overflow:visible; z-index:1; }
+.confetti-piece{ position:absolute; top:-16px; opacity:0; animation:confettiFall linear forwards; }
+@keyframes confettiFall{
+  0%{ transform:translateY(0) rotate(0deg); opacity:0; }
+  12%{ opacity:.9; }
+  100%{ transform:translateY(150px) rotate(340deg); opacity:0; }
+}
+
+.hero-balloon{
+  position:absolute; width:22px; height:30px; opacity:.5; pointer-events:none; z-index:0;
+  border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
+  animation:balloonFloat ease-in-out infinite;
+}
+.hero-balloon::after{ content:""; position:absolute; left:50%; top:100%; width:1px; height:22px; background:rgba(29,29,31,.18); transform:translateX(-50%); }
+.hb-1{ left:-30px; top:-22px; background:var(--mango); animation-duration:5.5s; }
+.hb-2{ right:-24px; top:-14px; background:var(--azulejo); animation-duration:6.5s; animation-delay:.4s; }
+.hb-3{ left:18%; bottom:-32px; width:16px; height:22px; background:var(--pink); animation-duration:5s; animation-delay:.8s; }
+.hb-4{ right:14%; bottom:-28px; width:18px; height:24px; background:var(--yellow); animation-duration:7s; animation-delay:.2s; }
+@keyframes balloonFloat{ 0%,100%{ transform:translateY(0) rotate(-4deg); } 50%{ transform:translateY(-14px) rotate(4deg); } }
+
+@media (max-width:480px){
+  .hero-countdown{ padding:14px 16px; gap:8px; }
+}
+
 /* ---------- Hero collage teaser ---------- */
 @keyframes heroBob{0%,100%{transform:translateY(0) rotate(var(--r,0deg));} 50%{transform:translateY(-14px) rotate(var(--r,0deg));}}
 .team-video-wrap{position:absolute; inset:0; z-index:0; overflow:hidden;}
@@ -719,6 +768,8 @@ textarea:focus{border-color:var(--mango);}
   .text-reveal-word{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; }
   .social-icon:hover{ transform:none !important; }
   #siteFooter::before{ animation:none !important; }
+  .hero-countdown .cd-num{ background-position:0 0; }
+  .hero-balloon{ display:none; }
 }
 
 @media (max-width: 900px){
@@ -1078,6 +1129,25 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
       <div class="flex flex-wrap gap-3 mt-10">
         <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
         <button class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+      </div>
+
+      <!-- Big hero countdown: rainbow-gradient digits, ambient confetti + floating balloons -->
+      <div class="hero-countdown-wrap mt-12">
+        <div class="hero-confetti" id="heroConfettiLayer" aria-hidden="true"></div>
+        <span class="hero-balloon hb-1" aria-hidden="true"></span>
+        <span class="hero-balloon hb-2" aria-hidden="true"></span>
+        <span class="hero-balloon hb-3" aria-hidden="true"></span>
+        <span class="hero-balloon hb-4" aria-hidden="true"></span>
+        <div class="hero-countdown" id="heroCountdown" role="timer" aria-label="Countdown to departure">
+          <div class="cd-unit"><span class="cd-num" id="hcDays">--</span><span class="cd-label">Days</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="hcHours">--</span><span class="cd-label">Hrs</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="hcMins">--</span><span class="cd-label">Min</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="hcSecs">--</span><span class="cd-label">Sec</span></div>
+        </div>
+        <p class="mono text-[11px] tracking-[.1em] uppercase mt-3" style="color:var(--ink); opacity:.4;">Until wheels-up from Pune</p>
       </div>
 
       <!-- Departure board: same live data as before, restyled as a quiet
@@ -1942,6 +2012,51 @@ function updateNavCountdown(){
 }
 updateNavCountdown();
 setInterval(updateNavCountdown, 1000);
+
+/* ============================================================
+   HERO COUNTDOWN — big rainbow-gradient timer in the hero. Same
+   JOURNEY_START as the nav pill, just broken into separate D/H/M/S
+   digits for the bigger display.
+=============================================================*/
+function updateHeroCountdown(){
+  const dEl = document.getElementById('hcDays');
+  if(!dEl) return;
+  const hEl = document.getElementById('hcHours'), mEl = document.getElementById('hcMins'), sEl = document.getElementById('hcSecs');
+  const remaining = Math.max(0, JOURNEY_START - Date.now());
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const secs = Math.floor((remaining % 60000) / 1000);
+  dEl.textContent = String(days).padStart(2,'0');
+  hEl.textContent = String(hours).padStart(2,'0');
+  mEl.textContent = String(mins).padStart(2,'0');
+  sEl.textContent = String(secs).padStart(2,'0');
+}
+updateHeroCountdown();
+setInterval(updateHeroCountdown, 1000);
+
+/* ---------- Ambient confetti drifting around the hero countdown ---------- */
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = document.getElementById('heroConfettiLayer');
+  if(!layer) return;
+  const colors = ['var(--mango)','var(--yellow)','var(--pink)','var(--azulejo)','var(--palm)'];
+  function spawnConfetti(){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const w = 5 + Math.random()*5, h = w*1.6;
+    p.style.width = w+'px'; p.style.height = h+'px';
+    p.style.left = (Math.random()*100)+'%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    const dur = 2.6 + Math.random()*2;
+    p.style.animationDuration = dur+'s';
+    layer.appendChild(p);
+    setTimeout(()=> p.remove(), dur*1000 + 250);
+  }
+  for(let i=0;i<6;i++) setTimeout(spawnConfetti, i*300);
+  setInterval(spawnConfetti, 750);
+})();
 
 /* ============================================================
    NAV: active link tracking + hide-on-scroll-down
