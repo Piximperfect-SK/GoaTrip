@@ -135,6 +135,13 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   #walletFab{ padding:12px 18px; font-size:13.5px; }
   #walletFab .fab-icon{ font-size:17px; }
 }
+@media (min-width:768px){
+  /* Desktop already has Wallet in the nav rail — the floating FAB is mobile-only.
+     This has to be an ID-selector rule (not the Tailwind md:hidden class) because
+     #walletFab{display:flex} above is also an ID selector and would otherwise win
+     on specificity regardless of source order. */
+  #walletFab{ display:none !important; }
+}
 
 .navlink{color:#DCE9E4; opacity:.75; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent; transition:.2s; white-space:nowrap;}
 @media (min-width:1024px) and (max-width:1279px){
@@ -614,6 +621,16 @@ label{font-size:12px; font-weight:600; letter-spacing:.03em; color:var(--teal-80
 .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
 .reveal.in{opacity:1; transform:translateY(0);}
 
+/* ---------- Text reveal: word-by-word, on load / on scroll ---------- */
+.text-reveal-word{
+  display:inline-block; opacity:0; transform:translateY(0.6em);
+  filter:blur(4px); will-change:transform,opacity,filter;
+}
+.heading-reveal.in .text-reveal-word{
+  animation:textRevealWord .7s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes textRevealWord{ to{ opacity:1; transform:translateY(0); filter:blur(0); } }
+
 /* ---------- Registration status (backend-controlled, read-only on site) ---------- */
 .reg-status-wrap{display:flex; align-items:center; gap:10px;}
 .reg-dot{width:10px; height:10px; border-radius:9999px; background:#C9A227; flex-shrink:0;}
@@ -698,7 +715,11 @@ textarea:focus{border-color:var(--mango);}
 .wiz-success .stampwrap{width:64px; height:64px; border-radius:9999px; background:rgba(62,124,89,.12); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; font-size:28px; animation:wizPop .5s cubic-bezier(.34,1.56,.64,1) both;}
 @keyframes wizPop{from{transform:scale(0); opacity:0;} to{transform:scale(1); opacity:1;}}
 
-@media (prefers-reduced-motion: reduce){*{transition:none !important; scroll-behavior:auto !important; animation:none !important;}}
+@media (prefers-reduced-motion: reduce){*{transition:none !important; scroll-behavior:auto !important; animation:none !important;}
+  .text-reveal-word{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; }
+  .social-icon:hover{ transform:none !important; }
+  #siteFooter::before{ animation:none !important; }
+}
 
 @media (max-width: 900px){
   input, select{font-size:16px;}
@@ -835,6 +856,32 @@ textarea:focus{border-color:var(--mango);}
 .z-index-1{position:relative; z-index:1;}
 
 .footer-bg{background:#161618; color:var(--sand);}
+
+/* ---------- Footer (Framer-ported: gradient top rule, social row, nav columns) ---------- */
+#siteFooter{ position:relative; overflow:hidden; }
+#siteFooter::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, var(--mango), var(--pink), var(--azulejo), var(--mango));
+  background-size:200% 100%; opacity:.7; animation:footerLineFlow 8s linear infinite;
+}
+@keyframes footerLineFlow{ to{ background-position:200% 0; } }
+
+.footer-social{ display:flex; gap:10px; flex-wrap:wrap; }
+.social-icon{
+  width:38px; height:38px; border-radius:9999px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--sand);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), background .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.social-icon svg{ width:17px; height:17px; stroke:currentColor; fill:none; transition:stroke .25s ease; display:block; }
+.social-icon:hover{
+  transform:translateY(-4px) scale(1.1) rotate(-6deg);
+  border-color:var(--mango); background:rgba(255,122,69,.14);
+  box-shadow:0 10px 24px -10px rgba(255,122,69,.6);
+}
+.social-icon:active{ transform:translateY(-1px) scale(.96); }
+#siteFooter .navlink{ color:var(--sand); opacity:.55; padding:6px 0; }
+#siteFooter .navlink:hover, #siteFooter .navlink.active{ opacity:1; color:white; }
 
 .detail-dot-a{background:#0f6b56;}
 .detail-dot-b{background:#3aa0e6;}
@@ -1003,7 +1050,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <span class="navlink" data-target="#team">Crew</span>
 </div>
 
-<a id="walletFab" href="goa-wallet.html" title="Trip Wallet">
+<a id="walletFab" class="md:hidden" href="goa-wallet.html" title="Trip Wallet">
   <span class="fab-icon">💰</span>
   <span>Trip Wallet</span>
 </a>
@@ -1019,7 +1066,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
         <span class="hero-eyebrow-rule"></span>2–5 October · Pune to Goa
       </p>
 
-      <h1 class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.94]">
+      <h1 id="heroHeading" class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.94]">
         Twelve tickets.<br>One Goa.
       </h1>
 
@@ -1074,7 +1121,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <svg class="sea-fish rev gallery-fish-b" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#8FE3E8"/><path d="M0 17l10-8v16z" fill="#8FE3E8"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
   <div class="max-w-6xl mx-auto px-5 md:px-10 relative">
     <div class="section-num mb-4"><span>01</span><span class="rule"></span><span>Places to visit</span></div>
-    <h2 class="display text-4xl md:text-5xl font-semibold mb-2">Places to visit in Goa.</h2>
+    <h2 class="display text-4xl md:text-5xl font-semibold mb-2 section-heading-anim">Places to visit in Goa.</h2>
     <p class="opacity-70 max-w-lg mb-8" id="placesIntro">Six spots worth building a day around — swipe through, or let it auto-play while you scroll.</p>
   </div>
 
@@ -1093,7 +1140,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <svg class="jelly journey-jelly-b" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(143,227,232,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(143,227,232,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
   <div class="max-w-5xl mx-auto relative">
     <div class="section-num mb-4"><span>03</span><span class="rule"></span><span>Route</span></div>
-    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2">Rail, then road.</h2>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2 section-heading-anim">Rail, then road.</h2>
     <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go, and yes, you're still sinking deeper into the sea as you do it.</p>
     <p class="text-xs opacity-50 mb-12 mono" id="journeyDatesNote">Onward: 2 Oct 2026 · Return: same route, reversed, on 5 Oct 2026</p>
 
@@ -1154,7 +1201,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="max-w-5xl mx-auto relative">
     <div class="section-num mb-4"><span>04</span><span class="rule"></span><span>Day by day</span></div>
     <div class="flex flex-wrap items-end justify-between gap-4 mb-2">
-      <h2 class="display text-4xl md:text-5xl font-semibold mt-2">The itinerary.</h2>
+      <h2 class="display text-4xl md:text-5xl font-semibold mt-2 section-heading-anim">The itinerary.</h2>
       <a href="itinerary.html" class="btn-ghost text-sm">Organiser? Edit itinerary →</a>
     </div>
     <p class="opacity-70 max-w-lg mb-2">Travel days are locked. The open days update live as organisers plan them on the itinerary page.</p>
@@ -1175,7 +1222,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="max-w-3xl mx-auto relative">
     <div class="section-num mb-4"><span>05</span><span class="rule"></span><span>Lock your seat</span></div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-      <h2 class="display text-4xl md:text-5xl font-semibold mt-2">Register for the run.</h2>
+      <h2 class="display text-4xl md:text-5xl font-semibold mt-2 section-heading-anim">Register for the run.</h2>
       <div class="reg-status-wrap card px-4 py-3">
         <span id="regDot" class="reg-dot pending"></span>
         <div>
@@ -1321,13 +1368,78 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   </div>
   <div class="max-w-5xl mx-auto z-index-1">
     <div class="section-num mb-4"><span>06</span><span class="rule"></span><span>Who's running this</span></div>
-    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12">The crew.</h2>
+    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12 section-heading-anim">The crew.</h2>
     <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
   </div>
 </section>
 
-<footer class="py-10 px-5 md:px-10 text-center text-xs opacity-50 footer-bg">
-  🫧 Pune → Londa → Goa · built for the crew, edit freely.
+<footer class="footer-bg" id="siteFooter">
+  <div class="max-w-6xl mx-auto px-5 md:px-10 pt-20 pb-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] gap-10 lg:gap-16">
+
+      <div class="reveal footer-reveal">
+        <div class="flex items-center gap-2.5 mb-4">
+          <img src="pictures/logo-icon.png" alt="" class="w-9 h-9">
+          <span class="display font-semibold text-lg text-white">Tulip<span style="color:var(--mango)">Travels</span></span>
+        </div>
+        <p class="text-sm opacity-60 max-w-xs leading-relaxed">Pune → Londa → Goa · 2–5 October. Twelve tickets, one trip — built for the crew, edited freely.</p>
+        <div class="footer-social mt-6" aria-label="Social links">
+          <a class="social-icon" href="https://github.com/Piximperfect-SK" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </a>
+          <!-- Placeholders — swap href="#" for the real profile URL on each -->
+          <a class="social-icon" href="#" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="X (Twitter)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="WhatsApp">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><polygon points="10 9 16 12 10 15 10 9"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </a>
+          <a class="social-icon" href="#" aria-label="Email">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="reveal footer-reveal">
+        <p class="mono text-[11px] tracking-[.14em] uppercase opacity-45 mb-4">Explore</p>
+        <div class="flex flex-col">
+          <span class="navlink block" data-target="#gallery">Gallery</span>
+          <span class="navlink block" data-target="#places">Places</span>
+          <span class="navlink block" data-target="#journey">Journey</span>
+          <span class="navlink block" data-target="#itinerary">Itinerary</span>
+          <span class="navlink block" data-target="#register">Register</span>
+          <span class="navlink block" data-target="#team">Crew</span>
+        </div>
+      </div>
+
+      <div class="reveal footer-reveal">
+        <p class="mono text-[11px] tracking-[.14em] uppercase opacity-45 mb-4">Pages</p>
+        <div class="flex flex-col">
+          <a class="navlink block" href="itinerary.html">Plan Itinerary</a>
+          <a class="navlink block" href="boarding-pass.html">Boarding Pass</a>
+          <a class="navlink block" href="goa-wallet.html">Trip Wallet</a>
+          <a class="navlink block" href="cancellation.html">Support</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal footer-reveal mt-14 pt-6 flex flex-wrap items-center justify-between gap-3" style="border-top:1px solid rgba(255,255,255,.08);">
+      <p class="mono text-xs opacity-45">🫧 Pune → Londa → Goa · built for the crew, edit freely.</p>
+      <p class="mono text-xs opacity-60" title="Designed &amp; Developed">D&amp;D by <span class="opacity-90 font-semibold">Shubham Kumar</span></p>
+    </div>
+  </div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -1901,6 +2013,43 @@ window.addEventListener('scroll', ()=>{
    above) rather than present in the DOM from page load. */
 
 /* ============================================================
+   TEXT REVEAL — word-by-word, blur+rise. Hero fires on load,
+   section titles fire on scroll (same threshold pattern as the
+   .leg-card/.polaroid reveals below). One motif, used everywhere
+   a heading appears, rather than mixing several animation styles.
+=============================================================*/
+function splitWords(el){
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  const nodes = []; let n;
+  while(n = walker.nextNode()) nodes.push(n);
+  nodes.forEach(node=>{
+    const parts = node.textContent.split(/(\s+)/);
+    const frag = document.createDocumentFragment();
+    parts.forEach(p=>{
+      if(!p.trim()) frag.appendChild(document.createTextNode(p));
+      else{ const s = document.createElement('span'); s.className='text-reveal-word'; s.textContent=p; frag.appendChild(s); }
+    });
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+function setupHeadingReveal(el, {immediate=false, baseDelay=0}={}){
+  if(!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.classList.add('heading-reveal');
+  splitWords(el);
+  el.querySelectorAll('.text-reveal-word').forEach((w,i)=> w.style.animationDelay = (baseDelay + i*0.045)+'s');
+  if(immediate){
+    requestAnimationFrame(()=> requestAnimationFrame(()=> el.classList.add('in')));
+  } else {
+    const headingObs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); headingObs.unobserve(e.target); } });
+    }, {threshold:.4});
+    headingObs.observe(el);
+  }
+}
+setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});
+document.querySelectorAll('.section-heading-anim').forEach(h=> setupHeadingReveal(h));
+
+/* ============================================================
    REVEAL ON SCROLL
 =============================================================*/
 const io = new IntersectionObserver((entries)=>{
@@ -1912,7 +2061,7 @@ const io = new IntersectionObserver((entries)=>{
     }
   });
 },{threshold:.2});
-document.querySelectorAll('.leg-card, .polaroid').forEach(el=>io.observe(el));
+document.querySelectorAll('.leg-card, .polaroid, .footer-reveal').forEach(el=>io.observe(el));
 
 /* ============================================================
    ROUTE PARALLAX
