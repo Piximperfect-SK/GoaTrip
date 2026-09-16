@@ -511,6 +511,10 @@
         <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><circle cx="18" cy="7" r="3"/><path d="M22 21v-1a4 4 0 0 0-3-3.87"/></svg></span>
         Team / Crew
       </button>
+      <button type="button" class="dash-tab sb-link" data-tab="content">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+        Page content
+      </button>
     </nav>
 
     <div class="sb-foot">
@@ -649,6 +653,61 @@
         </div>
       </div>
 
+      <!-- ---- Page content ---- -->
+      <div class="dash-panel hidden" id="panel-content">
+        <div class="sec-card">
+          <h3>Page content</h3>
+          <p class="cardsub">Edits the copy shown on the public site's homepage (index.html) — hero text, the countdown, and the footer/social links. Leave a field blank to fall back to the site's built-in default rather than showing nothing. Changes apply the next time a visitor loads or refreshes the page.</p>
+
+          <form id="contentForm">
+            <div class="subhead"><h4>Hero</h4></div>
+            <div class="field-row"><label>Eyebrow line</label><input data-key="hero.eyebrow" maxlength="120" placeholder="2–5 October · Pune to Goa"/></div>
+            <div class="row">
+              <div class="field-row"><label>Headline — line 1</label><input data-key="hero.titleLine1" maxlength="60" placeholder="Twelve tickets."/></div>
+              <div class="field-row"><label>Headline — line 2</label><input data-key="hero.titleLine2" maxlength="60" placeholder="One Goa."/></div>
+            </div>
+            <div class="field-row"><label>Subtext</label><textarea data-key="hero.subtext" maxlength="400" rows="3" placeholder="An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide."></textarea></div>
+            <div class="row">
+              <div class="field-row"><label>Primary button label</label><input data-key="hero.ctaPrimary" maxlength="40" placeholder="Explore the trip"/></div>
+              <div class="field-row"><label>Secondary button label</label><input data-key="hero.ctaSecondary" maxlength="40" placeholder="Reserve a seat"/></div>
+            </div>
+
+            <div class="subhead"><h4>Countdown</h4></div>
+            <div class="row">
+              <div class="field-row"><label>Counts down to (local date &amp; time)</label><input type="datetime-local" data-key="hero.countdownTarget" /></div>
+              <div class="field-row"><label>Caption under the timer</label><input data-key="hero.countdownCaption" maxlength="60" placeholder="Until wheels-up from Pune"/></div>
+            </div>
+
+            <div class="subhead"><h4>Footer</h4></div>
+            <div class="field-row"><label>Tagline</label><input data-key="footer.tagline" maxlength="200" placeholder="🫧 Pune → Londa → Goa · built for the crew, edit freely."/></div>
+            <div class="field-row"><label>Credit name (shown as "D&amp;D by ___")</label><input data-key="footer.credit" maxlength="80" placeholder="Shubham Kumar"/></div>
+
+            <div class="subhead"><h4>Social links</h4><p>Leave any of these blank to keep that icon in place but unlinked.</p></div>
+            <div class="row">
+              <div class="field-row"><label>GitHub</label><input data-key="social.github" maxlength="300" placeholder="https://github.com/…"/></div>
+              <div class="field-row"><label>Instagram</label><input data-key="social.instagram" maxlength="300" placeholder="https://instagram.com/…"/></div>
+            </div>
+            <div class="row">
+              <div class="field-row"><label>X / Twitter</label><input data-key="social.twitter" maxlength="300" placeholder="https://x.com/…"/></div>
+              <div class="field-row"><label>LinkedIn</label><input data-key="social.linkedin" maxlength="300" placeholder="https://linkedin.com/in/…"/></div>
+            </div>
+            <div class="row">
+              <div class="field-row"><label>WhatsApp</label><input data-key="social.whatsapp" maxlength="300" placeholder="https://wa.me/…"/></div>
+              <div class="field-row"><label>YouTube</label><input data-key="social.youtube" maxlength="300" placeholder="https://youtube.com/@…"/></div>
+            </div>
+            <div class="row">
+              <div class="field-row"><label>Facebook</label><input data-key="social.facebook" maxlength="300" placeholder="https://facebook.com/…"/></div>
+              <div class="field-row"><label>Email</label><input data-key="social.email" maxlength="300" placeholder="mailto:you@example.com"/></div>
+            </div>
+
+            <div style="margin-top:18px; display:flex; gap:10px; align-items:center;">
+              <button type="submit" class="btn-primary">Save changes</button>
+              <span class="mono" id="contentSaveStatus" style="font-size:12px; opacity:.6;"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+
   </div>
 </div>
 
@@ -742,6 +801,7 @@ function showLoggedIn(name){
   loadCancellations();
   loadBoardMembers();
   loadCrew();
+  loadContent();
 }
 
 /* ---------- mobile sidebar toggle ---------- */
@@ -762,6 +822,7 @@ const TAB_TITLES = {
   registrations: ['Console', 'Registrations'],
   cancellations: ['Console', 'Cancellations'],
   crew: ['Console', 'Team / Crew'],
+  content: ['Console', 'Page content'],
 };
 document.querySelectorAll('.dash-tab').forEach(tab=>{
   tab.addEventListener('click', ()=>{
@@ -799,7 +860,7 @@ async function populateTripPicker(){
   sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
   currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
   if(currentTripId) sel.value = currentTripId;
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); });
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -1100,6 +1161,63 @@ function renderCrew(){
   }));
 }
 el('addCrewForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentTripId){showDashBanner('bad','Select a trip first.');return;}try{const res=await callCrewPost({action:'add',token:getToken(),tripId:currentTripId,payload:{name:el('cm-name').value.trim(),role:el('cm-role').value.trim(),note:el('cm-note').value.trim()}});if(res.error)throw new Error(res.error);currentCrew=res.crew||[];renderCrew();el('addCrewForm').reset();showDashBanner('ok','Crew member added.');}catch(err){showDashBanner('bad',err.message);}});
+
+/* ---------- page content (index.html hero/footer/socials) ---------- */
+async function callContentGet(params){
+  const url = FUNCTIONS_BASE + '/content?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function callContentPost(body){
+  const res = await fetch(FUNCTIONS_BASE + '/content', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
+// hero.countdownTarget is stored as a plain ISO string ("2026-10-02T01:50:00")
+// but <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" with no seconds
+// or timezone suffix — trim/pad between the two formats at the edges only,
+// so the stored value stays a normal ISO string everywhere else (index.html
+// feeds it straight into `new Date(...)`).
+function isoToLocalInput(iso){
+  if(!iso) return '';
+  return String(iso).slice(0, 16);
+}
+function localInputToIso(val){
+  if(!val) return '';
+  return val.length === 16 ? val + ':00' : val;
+}
+async function loadContent(){
+  if(!currentTripId) return;
+  try{
+    const res = await callContentGet({ action:'get', tripId: currentTripId });
+    if(res.error) throw new Error(res.error);
+    const content = res.content || {};
+    document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
+      const key = field.dataset.key;
+      const value = content[key] || '';
+      field.value = key === 'hero.countdownTarget' ? isoToLocalInput(value) : value;
+    });
+  }catch(err){ console.warn('loadContent failed', err); }
+}
+el('contentForm')?.addEventListener('submit', async e=>{
+  e.preventDefault();
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  const status = el('contentSaveStatus');
+  const fields = {};
+  document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
+    const key = field.dataset.key;
+    fields[key] = key === 'hero.countdownTarget' ? localInputToIso(field.value.trim()) : field.value.trim();
+  });
+  if(status) status.textContent = 'Saving…';
+  try{
+    const res = await callContentPost({ action:'updateContentBatch', token:getToken(), tripId:currentTripId, fields });
+    if(res.error) throw new Error(res.error);
+    showDashBanner('ok','Page content saved.');
+    if(status) status.textContent = 'Saved just now.';
+  }catch(err){
+    showDashBanner('bad', err.message);
+    if(status) status.textContent = '';
+  }
+});
 
 async function loadCancellations(){
   try{

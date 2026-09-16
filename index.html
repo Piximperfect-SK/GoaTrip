@@ -417,32 +417,30 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 @keyframes blobDriftB{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-50px,-30px) scale(1.1);}}
 
 /* ---------- Site-wide ambient gradient ----------
-   Same visual language as .hero-gradient/.hero-blob (soft, heavily
-   blurred colour planes), fixed behind the whole page. Three blobs
-   cycle through the brand palette as --depth (0→1 across the full
-   scroll range, already tracked for the hero/ocean-dive parallax
-   below) advances, and drift slowly on their own so the page never
-   feels static even mid-scroll.
-
-   Deliberately BEHIND every component (z-index:-1) rather than an
-   overlay on top — components stay fully crisp and untouched, and the
-   gradient only shows through page margins/gaps and any section that
-   doesn't paint its own solid background, the same way .hero-gradient
-   sits behind the hero's own text. It's a backdrop, not a tint. */
-.page-gradient{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background:var(--paper);}
-.pg-blob{
-  position:absolute; width:60vw; height:60vw; max-width:820px; max-height:820px; border-radius:50%;
-  filter:blur(130px) saturate(130%); opacity:.5;
-  will-change:transform, background; transition:background 1.1s ease-out;
-}
-.pg-blob-1{top:-16%; left:-14%; animation:pgDriftA 30s ease-in-out infinite;}
-.pg-blob-2{top:30%; right:-18%; animation:pgDriftB 34s ease-in-out infinite;}
-.pg-blob-3{bottom:-20%; left:20%; animation:pgDriftC 38s ease-in-out infinite;}
-@keyframes pgDriftA{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(4vw,3vh) scale(1.08);}}
-@keyframes pgDriftB{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-3vw,4vh) scale(1.1);}}
-@keyframes pgDriftC{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(3vw,-3vh) scale(1.06);}}
-@media (max-width:640px){ .pg-blob{ width:90vw; height:90vw; opacity:.4; } }
-@media (prefers-reduced-motion:reduce){ .pg-blob{ animation:none; transition:background 1.1s ease-out; } }
+   Vanilla port of Aceternity's BackgroundGradientAnimation: five
+   brand-colour blobs pushed through an SVG goo filter (blur + contrast
+   contour) so they melt into each other at the edges instead of
+   showing as separate circles, plus a sixth blob that follows the
+   cursor. Fixed behind the whole page (z-index:-1) — components stay
+   crisp on top, and the gradient reads through page margins/gaps and
+   any section that doesn't paint its own solid background, same role
+   the old scroll-colour-cycling version played, just with genuine
+   organic motion (orbit / drift / sway) instead of a JS colour tween. */
+.gradient-bg{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background:var(--paper);}
+.gradient-goo-defs{position:absolute; width:0; height:0;}
+.gradients-container{position:absolute; inset:-10%; filter:url(#gradientGoo) blur(6px);}
+.g-blob{position:absolute; left:50%; top:50%; width:60vmax; height:60vmax; border-radius:50%; mix-blend-mode:multiply;}
+.g-blob-1{background:radial-gradient(circle at center, rgba(255,107,74,.75) 0, rgba(255,107,74,0) 62%); animation:gMoveVertical 32s ease-in-out infinite;}
+.g-blob-2{width:50vmax; height:50vmax; background:radial-gradient(circle at center, rgba(46,111,242,.7) 0, rgba(46,111,242,0) 62%); transform-origin:calc(50% - 22vmax) calc(50% + 8vmax); animation:gMoveInCircle 24s reverse infinite;}
+.g-blob-3{width:52vmax; height:52vmax; top:calc(50% + 12vmax); background:radial-gradient(circle at center, rgba(242,111,160,.7) 0, rgba(242,111,160,0) 62%); transform-origin:calc(50% + 18vmax); animation:gMoveInCircle 42s linear infinite;}
+.g-blob-4{width:66vmax; height:66vmax; background:radial-gradient(circle at center, rgba(245,185,66,.6) 0, rgba(245,185,66,0) 62%); animation:gMoveHorizontal 38s ease infinite; opacity:.8;}
+.g-blob-5{width:78vmax; height:78vmax; left:calc(50% - 12vmax); background:radial-gradient(circle at center, rgba(46,139,87,.55) 0, rgba(46,139,87,0) 62%); transform-origin:calc(50% - 18vmax) calc(50% + 16vmax); animation:gMoveInCircle 20s ease infinite;}
+.g-blob-interactive{width:38vmax; height:38vmax; opacity:.55; background:radial-gradient(circle at center, rgba(255,107,74,.55) 0, rgba(255,107,74,0) 60%); transition:transform 1.1s ease-out; transform:translate(-50%,-50%) translate(var(--gx,50vw), var(--gy,50vh));}
+@keyframes gMoveInCircle{0%{transform:translate(-50%,-50%) rotate(0deg);}50%{transform:translate(-50%,-50%) rotate(180deg);}100%{transform:translate(-50%,-50%) rotate(360deg);}}
+@keyframes gMoveVertical{0%,100%{transform:translate(-50%,-60%);}50%{transform:translate(-50%,-40%);}}
+@keyframes gMoveHorizontal{0%,100%{transform:translate(-60%,-50%) rotate(-6deg);}50%{transform:translate(-40%,-50%) rotate(6deg);}}
+@media (max-width:640px){ .gradients-container{ filter:url(#gradientGoo) blur(3px); } .g-blob-interactive{ display:none; } }
+@media (prefers-reduced-motion:reduce){ .g-blob{ animation:none !important; } .g-blob-interactive{ transition:none; } }
 
 
 
@@ -971,17 +969,63 @@ textarea:focus{border-color:var(--mango);}
    devices keep their normal tap behaviour untouched. */
 html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 #cursorTrailCanvas{ position:fixed; inset:0; width:100vw; height:100vh; display:block; pointer-events:none; z-index:9999; }
+
+/* ---------- Tracing beam ----------
+   Vanilla port of Aceternity's TracingBeam, generalised to the whole
+   page instead of one narrow blog column: a fixed vertical line down
+   the left edge, a gradient stroke that fills in as you scroll (0%→100%
+   of total document height), and a glowing dot riding the leading edge —
+   same "beam that traces your reading position" idea, driven off the
+   same scroll fraction already computed for the ocean-dive parallax. */
+#tracingBeam{position:fixed; left:14px; top:0; height:100vh; width:20px; z-index:35; pointer-events:none;}
+#tracingBeam svg{width:100%; height:100%; overflow:visible; display:block;}
+.tb-track{stroke:rgba(29,29,31,.1); stroke-width:2; stroke-linecap:round;}
+.tb-progress{stroke:url(#tbGradient); stroke-width:2.5; stroke-linecap:round; filter:drop-shadow(0 0 5px rgba(255,122,69,.5));}
+.tb-dot{fill:var(--mango); filter:drop-shadow(0 0 6px rgba(255,122,69,.75)); transition:cy .08s linear;}
+.tb-dot-ring{fill:none; stroke:var(--mango); stroke-width:1.5; opacity:.5; animation:tbPulse 2s ease-out infinite;}
+@keyframes tbPulse{0%{r:6; opacity:.6;}100%{r:14; opacity:0;}}
+@media (max-width:1024px){ #tracingBeam{ display:none; } }
+@media (prefers-reduced-motion:reduce){ .tb-dot-ring{ animation:none; opacity:0; } }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 </head>
 <body>
 
-<div class="page-gradient" id="pageGradient" aria-hidden="true">
-  <div class="pg-blob pg-blob-1" id="pgBlob1"></div>
-  <div class="pg-blob pg-blob-2" id="pgBlob2"></div>
-  <div class="pg-blob pg-blob-3" id="pgBlob3"></div>
+<svg class="gradient-goo-defs"><defs>
+  <filter id="gradientGoo">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur"/>
+    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -11" result="goo"/>
+    <feBlend in="SourceGraphic" in2="goo"/>
+  </filter>
+  <linearGradient id="tbGradient" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#FF6B4A"/>
+    <stop offset="35%" stop-color="#F26FA0"/>
+    <stop offset="70%" stop-color="#2E6FF2"/>
+    <stop offset="100%" stop-color="#2E8B57"/>
+  </linearGradient>
+</defs></svg>
+
+<div class="gradient-bg" id="pageGradient" aria-hidden="true">
+  <div class="gradients-container">
+    <div class="g-blob g-blob-1"></div>
+    <div class="g-blob g-blob-2"></div>
+    <div class="g-blob g-blob-3"></div>
+    <div class="g-blob g-blob-4"></div>
+    <div class="g-blob g-blob-5"></div>
+    <div class="g-blob g-blob-interactive" id="gBlobInteractive"></div>
+  </div>
 </div>
 <canvas id="cursorTrailCanvas" aria-hidden="true"></canvas>
+
+<!-- Page-wide tracing beam: fixed left edge, fills with scroll progress -->
+<div id="tracingBeam" aria-hidden="true">
+  <svg viewBox="0 0 20 100" preserveAspectRatio="none">
+    <line x1="10" y1="0" x2="10" y2="100" class="tb-track"/>
+    <line x1="10" y1="0" x2="10" y2="0" id="tbProgressLine" class="tb-progress"/>
+    <circle cx="10" cy="0" r="10" class="tb-dot-ring" id="tbDotRing"/>
+    <circle cx="10" cy="0" r="4" class="tb-dot" id="tbDot"/>
+  </svg>
+</div>
 
 <!-- ============ LOGO INTRO — zooms out from center to the nav logo ============ -->
 <div id="logoIntro" aria-hidden="true">
@@ -1114,21 +1158,21 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-32 pb-20">
     <div class="hero-intro">
       <p class="mono text-[11px] tracking-[.14em] uppercase mb-5" style="color:var(--ink); opacity:.5;">
-        <span class="hero-eyebrow-rule"></span>2–5 October · Pune to Goa
+        <span class="hero-eyebrow-rule"></span><span id="heroEyebrow">2–5 October · Pune to Goa</span>
       </p>
 
       <h1 id="heroHeading" class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.94]">
-        Twelve tickets.<br>One Goa.
+        <span id="heroLine1">Twelve tickets.</span><br><span id="heroLine2">One Goa.</span>
       </h1>
 
-      <p class="max-w-md mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
+      <p id="heroSubtext" class="max-w-md mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
         An overnight train out of Pune, a drive through the fog of the Western Ghats,
         and four days where the only itinerary is the tide.
       </p>
 
       <div class="flex flex-wrap gap-3 mt-10">
-        <button class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
-        <button class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+        <button id="heroCtaPrimary" class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
+        <button id="heroCtaSecondary" class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
       </div>
 
       <!-- Big hero countdown: rainbow-gradient digits, ambient confetti + floating balloons -->
@@ -1147,7 +1191,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
           <span class="cd-sep">:</span>
           <div class="cd-unit"><span class="cd-num" id="hcSecs">--</span><span class="cd-label">Sec</span></div>
         </div>
-        <p class="mono text-[11px] tracking-[.1em] uppercase mt-3" style="color:var(--ink); opacity:.4;">Until wheels-up from Pune</p>
+        <p id="heroCountdownCaption" class="mono text-[11px] tracking-[.1em] uppercase mt-3" style="color:var(--ink); opacity:.4;">Until wheels-up from Pune</p>
       </div>
 
       <!-- Departure board: same live data as before, restyled as a quiet
@@ -1454,29 +1498,30 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
         </div>
         <p class="text-sm opacity-60 max-w-xs leading-relaxed">Pune → Londa → Goa · 2–5 October. Twelve tickets, one trip — built for the crew, edited freely.</p>
         <div class="footer-social mt-6" aria-label="Social links">
-          <a class="social-icon" href="https://github.com/Piximperfect-SK" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+          <a id="socialGithub" class="social-icon" href="https://github.com/Piximperfect-SK" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
           </a>
-          <!-- Placeholders — swap href="#" for the real profile URL on each -->
-          <a class="social-icon" href="#" aria-label="Instagram">
+          <!-- Content-manager driven — Admin → Page content → Social links.
+               href stays "#" until an admin sets a URL there. -->
+          <a id="socialInstagram" class="social-icon" href="#" aria-label="Instagram">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="X (Twitter)">
+          <a id="socialTwitter" class="social-icon" href="#" aria-label="X (Twitter)">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="LinkedIn">
+          <a id="socialLinkedin" class="social-icon" href="#" aria-label="LinkedIn">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="WhatsApp">
+          <a id="socialWhatsapp" class="social-icon" href="#" aria-label="WhatsApp">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="YouTube">
+          <a id="socialYoutube" class="social-icon" href="#" aria-label="YouTube">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="4"/><polygon points="10 9 16 12 10 15 10 9"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="Facebook">
+          <a id="socialFacebook" class="social-icon" href="#" aria-label="Facebook">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
           </a>
-          <a class="social-icon" href="#" aria-label="Email">
+          <a id="socialEmail" class="social-icon" href="#" aria-label="Email">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </a>
         </div>
@@ -1506,8 +1551,8 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     </div>
 
     <div class="reveal footer-reveal mt-14 pt-6 flex flex-wrap items-center justify-between gap-3" style="border-top:1px solid rgba(255,255,255,.08);">
-      <p class="mono text-xs opacity-45">🫧 Pune → Londa → Goa · built for the crew, edit freely.</p>
-      <p class="mono text-xs opacity-60" title="Designed &amp; Developed">D&amp;D by <span class="opacity-90 font-semibold">Shubham Kumar</span></p>
+      <p id="footerTagline" class="mono text-xs opacity-45">🫧 Pune → Londa → Goa · built for the crew, edit freely.</p>
+      <p class="mono text-xs opacity-60" title="Designed &amp; Developed">D&amp;D by <span id="footerCreditName" class="opacity-90 font-semibold">Shubham Kumar</span></p>
     </div>
   </div>
 </footer>
@@ -1729,45 +1774,51 @@ function syncPlacesFromItinerary(days){
 // thing that ever populates this carousel.
 
 /* ============================================================
-   PAGE GRADIENT: cycles the fixed background blobs through the
-   brand palette as --depth advances (0 at page top, 1 at page
-   bottom). Each blob reads a different point along the same
-   palette loop so the three colours never match, and crossfades
-   smoothly (via the CSS `transition:background` on .pg-blob)
-   rather than snapping between stops.
+   GRADIENT BACKGROUND — interactive blob. The five ambient blobs
+   drift/orbit on pure CSS animation now (see .g-blob keyframes); this
+   just makes the sixth one follow the pointer, ported from Aceternity's
+   BackgroundGradientAnimation "interactive" layer. Desktop-only (no
+   touch position to follow), and skipped for reduced-motion.
 =============================================================*/
-const PG_PALETTE = ['#FF6B4A', '#F5B942', '#F26FA0', '#2E6FF2', '#2E8B57']; // mango, yellow, pink, azulejo, palm
-function pgHexToRgb(hex){
-  const v = hex.replace('#','');
-  return [parseInt(v.slice(0,2),16), parseInt(v.slice(2,4),16), parseInt(v.slice(4,6),16)];
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if(!window.matchMedia('(pointer:fine)').matches) return;
+  const blob = document.getElementById('gBlobInteractive');
+  if(!blob) return;
+  window.addEventListener('mousemove', e=>{
+    blob.style.setProperty('--gx', e.clientX + 'px');
+    blob.style.setProperty('--gy', e.clientY + 'px');
+  }, {passive:true});
+})();
+
+/* ============================================================
+   TRACING BEAM — fills the fixed left-edge beam's gradient stroke
+   and slides its dot down to match overall scroll progress (see
+   updateDepth() above, which calls this with the same 0..1 frac
+   used for the ocean-dive depth). ViewBox is kept 1:1 with actual
+   viewport pixels (set here + on resize) so the dot renders as a
+   true circle instead of getting stretched by the SVG's own scaling.
+=============================================================*/
+const tbSvg = document.querySelector('#tracingBeam svg');
+const tbTrack = document.querySelector('#tracingBeam .tb-track');
+const tbProgressLine = document.getElementById('tbProgressLine');
+const tbDot = document.getElementById('tbDot');
+const tbDotRing = document.getElementById('tbDotRing');
+function sizeTracingBeam(){
+  if(!tbSvg) return;
+  const vh = window.innerHeight;
+  tbSvg.setAttribute('viewBox', `0 0 20 ${vh}`);
+  if(tbTrack) tbTrack.setAttribute('y2', vh);
 }
-const PG_PALETTE_RGB = PG_PALETTE.map(pgHexToRgb);
-function pgColorAt(t){
-  // t is 0..1, loops back to the first colour at t=1 for a seamless cycle.
-  const n = PG_PALETTE_RGB.length;
-  const scaled = ((t % 1) + 1) % 1 * n;
-  const i = Math.floor(scaled) % n;
-  const j = (i + 1) % n;
-  const f = scaled - Math.floor(scaled);
-  const a = PG_PALETTE_RGB[i], b = PG_PALETTE_RGB[j];
-  const r = Math.round(a[0] + (b[0]-a[0])*f);
-  const g = Math.round(a[1] + (b[1]-a[1])*f);
-  const bl = Math.round(a[2] + (b[2]-a[2])*f);
-  return `${r},${g},${bl}`;
+function updateTracingBeam(frac){
+  if(!tbSvg) return;
+  const y = frac * window.innerHeight;
+  if(tbProgressLine) tbProgressLine.setAttribute('y2', y);
+  if(tbDot) tbDot.setAttribute('cy', y);
+  if(tbDotRing) tbDotRing.setAttribute('cy', y);
 }
-const pgBlobEls = [document.getElementById('pgBlob1'), document.getElementById('pgBlob2'), document.getElementById('pgBlob3')];
-function updatePageGradient(frac){
-  if(!pgBlobEls[0]) return;
-  // Each blob is offset along the palette loop so all three are always
-  // different colours, and the whole trio slowly rotates through the
-  // palette together as the page scrolls top to bottom.
-  const offsets = [0, 0.33, 0.66];
-  pgBlobEls.forEach((el, i) => {
-    if(!el) return;
-    const rgb = pgColorAt(frac * 1.4 + offsets[i]); // *1.4 so a full scroll doesn't just land back near the start colour
-    el.style.background = `radial-gradient(circle, rgba(${rgb},1) 0%, rgba(${rgb},0) 72%)`;
-  });
-}
+sizeTracingBeam();
+window.addEventListener('resize', sizeTracingBeam);
 
 /* ============================================================
    CURSOR DOT TRAIL — vanilla-JS port of the Framer "CursorDotTrail"
@@ -1882,10 +1933,10 @@ function updatePageGradient(frac){
     const max = document.body.scrollHeight - window.innerHeight;
     const frac = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
     root.style.setProperty('--depth', frac.toFixed(4));
-    updatePageGradient(frac);
+    updateTracingBeam(frac);
     ticking = false;
   }
-  updateDepth(); // paint the gradient at its initial (top-of-page) colours immediately, don't wait for the first scroll event
+  updateDepth(); // paint the initial (top-of-page) state immediately, don't wait for the first scroll event
   window.addEventListener('scroll', ()=>{
     if(!ticking){ requestAnimationFrame(updateDepth); ticking = true; }
     
@@ -1994,7 +2045,7 @@ function updatePageGradient(frac){
 /* ============================================================
    NAV COUNTDOWN — compact live timer stuck to the navbar
 =============================================================*/
-const JOURNEY_START = new Date('2026-10-02T01:50:00').getTime();
+let JOURNEY_START = new Date('2026-10-02T01:50:00').getTime(); // overridden by loadPageContent() if hero.countdownTarget is set
 
 function updateNavCountdown(){
   const el = document.getElementById('navCountdownText');
@@ -2372,7 +2423,60 @@ async function loadRegistrationStatus(){
   await loadItinerary();
   await loadRegistrationStatus();
   await loadTeam();
+  await loadPageContent();
 })();
+
+/* ============================================================
+   PAGE CONTENT — hero copy, countdown target, footer/socials, all
+   editable from Admin → Page content instead of this file. Every
+   element already carries its hardcoded default as markup, so a
+   missing/unreachable content table changes nothing: this only
+   overwrites what actually has a saved value.
+=============================================================*/
+async function loadPageContent(){
+  if(!window.TRIP) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/content?action=get&tripId=' + encodeURIComponent(TRIP.id));
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    applyContent(data.content || {});
+  }catch(err){
+    console.warn('loadPageContent failed — keeping the built-in defaults', err);
+  }
+}
+function applyContent(content){
+  const setText = (id, key) => { const v = content[key]; if(v){ const el = document.getElementById(id); if(el) el.textContent = v; } };
+  const setLink = (id, key) => {
+    const v = content[key];
+    if(!v) return;
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.href = v;
+    el.setAttribute('target', '_blank');
+    el.setAttribute('rel', 'noopener noreferrer');
+  };
+  setText('heroEyebrow', 'hero.eyebrow');
+  setText('heroLine1', 'hero.titleLine1');   // plain text swap — skips the word-reveal animation for this line only
+  setText('heroLine2', 'hero.titleLine2');
+  setText('heroSubtext', 'hero.subtext');
+  setText('heroCtaPrimary', 'hero.ctaPrimary');
+  setText('heroCtaSecondary', 'hero.ctaSecondary');
+  setText('heroCountdownCaption', 'hero.countdownCaption');
+  setText('footerTagline', 'footer.tagline');
+  setText('footerCreditName', 'footer.credit');
+  if(content['hero.countdownTarget']){
+    const t = new Date(content['hero.countdownTarget']).getTime();
+    if(!isNaN(t)) JOURNEY_START = t; // next 1s tick in updateNavCountdown/updateHeroCountdown picks this up automatically
+  }
+  setLink('socialGithub', 'social.github');
+  setLink('socialInstagram', 'social.instagram');
+  setLink('socialTwitter', 'social.twitter');
+  setLink('socialLinkedin', 'social.linkedin');
+  setLink('socialWhatsapp', 'social.whatsapp');
+  setLink('socialYoutube', 'social.youtube');
+  setLink('socialFacebook', 'social.facebook');
+  setLink('socialEmail', 'social.email');
+}
 
 /* ============================================================
    REGISTRATION WIZARD — rail-progress, one question at a time
