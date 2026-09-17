@@ -482,14 +482,24 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 }
 .liq-brand{ font-family:'Fraunces',serif; font-weight:600; font-size:22px; }
 .liq-desc{ font-size:13px; opacity:.85; margin-top:4px; }
-.liq-directions{
-  display:inline-block; margin-top:12px; padding:8px 16px; border-radius:9999px;
-  background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.4); color:#fff;
-  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; text-decoration:none;
-  pointer-events:auto; mix-blend-mode:normal; transition:background .2s ease, transform .15s ease;
+.liq-active-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  margin-top:14px; padding:14px 20px; border-radius:12px; background:var(--sand-2, #F2F1ED);
+  border:1px solid var(--line, #E6E6E9);
 }
-.liq-directions:hover{ background:rgba(255,255,255,.3); transform:translateY(-1px); }
+.liq-active-name{ font-family:'Fraunces',serif; font-weight:600; font-size:16px; color:var(--ink,#1D1D1F); }
+.liq-directions{
+  display:inline-flex; align-items:center; gap:4px; padding:9px 18px; border-radius:9999px;
+  background:var(--ink,#1D1D1F); color:#fff; flex-shrink:0;
+  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; text-decoration:none;
+  transition:background .2s ease, transform .15s ease;
+}
+.liq-directions:hover{ background:var(--mango,#FF6B4A); transform:translateY(-1px); }
 .liq-directions:active{ transform:translateY(0) scale(.97); }
+@media (max-width:480px){
+  .liq-active-bar{ padding:12px 16px; }
+  .liq-active-name{ font-size:14px; }
+}
 .liq-index{
   position:absolute; bottom:10%; left:50%; transform:translateX(-50%);
   font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.08em;
@@ -1383,11 +1393,14 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div id="liqLabels" class="liq-labels">
       <div id="liqBrand" class="liq-brand"></div>
       <div id="liqDesc" class="liq-desc"></div>
-      <a id="liqDirections" class="liq-directions" href="#" target="_blank" rel="noopener noreferrer">Directions →</a>
     </div>
     <div id="liqIndexWrap" class="liq-index"></div>
     <div id="liqCursor" class="liq-cursor">View</div>
     <button type="button" id="liqClose" class="liq-close" aria-label="Close focused place">Close</button>
+  </div>
+  <div class="liq-active-bar max-w-[1440px] mx-auto px-5 md:px-10" id="liqActiveBar" style="display:none;">
+    <span id="liqActiveName" class="liq-active-name"></span>
+    <a id="liqDirections" class="liq-directions" href="#" target="_blank" rel="noopener noreferrer">Directions →</a>
   </div>
   <p class="text-sm opacity-50 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here.</p>
   <p class="text-xs opacity-40 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidHint">Scroll, drag, or swipe to browse — click the centered image to zoom in.</p>
@@ -2563,13 +2576,18 @@ function updateLiquidIndex(i, count){
   if(el) el.textContent = `${String(i+1).padStart(2,'0')}/${String(Math.max(count,1)).padStart(2,'0')}`;
 }
 function updateLiquidDirections(project){
-  const el = document.getElementById('liqDirections');
-  if(!el) return;
-  if(!project || project.lat==null || project.lng==null){ el.style.display = 'none'; return; }
-  el.style.display = '';
+  const bar = document.getElementById('liqActiveBar');
+  const nameEl = document.getElementById('liqActiveName');
+  const linkEl = document.getElementById('liqDirections');
+  if(!bar || !linkEl) return;
+  if(!project){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  if(nameEl) nameEl.textContent = project.brand || '';
+  if(project.lat==null || project.lng==null){ linkEl.style.display = 'none'; return; }
+  linkEl.style.display = '';
   const dest = `${project.lat},${project.lng}`;
   const origin = project.origin ? `${project.origin.lat},${project.origin.lng}` : '';
-  el.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+  linkEl.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
 }
 function initLiquidCarousel(entries, origin){
   const mount = document.getElementById('liquidCarouselMount');
@@ -2631,6 +2649,7 @@ async function renderGalleryCards(entries, fromItinerary){
   // const shell = document.getElementById('card3dShell'); ... render3DCardCarousel(entries, origin);
 
   const liquidShell = document.getElementById('liquidCarouselShell');
+  const liquidActiveBar = document.getElementById('liqActiveBar');
   const liquidEmptyNote = document.getElementById('liquidEmptyNote');
   const liquidHint = document.getElementById('liquidHint');
 
@@ -2641,6 +2660,7 @@ async function renderGalleryCards(entries, fromItinerary){
     // if(dots) dots.innerHTML = '';
     if(liquidEngine){ liquidEngine.destroy(); liquidEngine = null; }
     if(liquidShell) liquidShell.style.display = 'none';
+    if(liquidActiveBar) liquidActiveBar.style.display = 'none';
     if(liquidHint) liquidHint.style.display = 'none';
     if(liquidEmptyNote) liquidEmptyNote.style.display = 'block';
     if(intro) intro.textContent = 'No places resolved yet — add some in the itinerary planner and they\u2019ll show up here automatically.';
@@ -3132,7 +3152,14 @@ function setupHeadingReveal(el, {immediate=false, baseDelay=0}={}){
     headingObs.observe(el);
   }
 }
-setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});
+// MOVED (see boot() below): was `setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});`
+// here, firing immediately on script load with the hardcoded default hero
+// text ("Twelve tickets." etc). loadPageContent() then overwrote that text
+// later (after itinerary/registration/team all finished loading), which
+// destroyed the reveal-animation spans mid-flight and looked like the
+// heading "corrected itself" a second after first painting. Now fired
+// from boot() right after admin-edited content has been fetched+applied,
+// so the reveal animates the FINAL text from frame one — no flash.
 document.querySelectorAll('.section-heading-anim').forEach(h=> setupHeadingReveal(h));
 
 /* ============================================================
@@ -3340,10 +3367,16 @@ async function loadRegistrationStatus(){
   await initTripContext();
   document.title = `${TRIP.name} — ${TRIP.shortDates || ''}`;
   renderHeroFromTrip(TRIP);
-  await loadItinerary();
-  await loadRegistrationStatus();
-  await loadTeam();
-  await loadPageContent();
+  await loadPageContent();   // admin-edited hero copy, fetched+applied BEFORE the reveal animation fires (see note above heading-reveal setup)
+  setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});
+  // None of these depend on each other or touch the hero heading, so run
+  // them together instead of one-after-another — faster overall load,
+  // and it no longer delays getting the correct hero text on screen.
+  await Promise.all([
+    loadItinerary(),
+    loadRegistrationStatus(),
+    loadTeam(),
+  ]);
 })();
 
 /* ============================================================
