@@ -1254,17 +1254,17 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="hero-sky" aria-hidden="true"></div>
   <div class="hero-gradient" id="heroGradient" aria-hidden="true"></div>
 
-  <div class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 w-full pt-32 pb-20">
+  <div class="relative z-10 max-w-[1440px] mx-auto px-6 md:px-10 w-full pt-32 pb-20">
     <div class="hero-intro">
       <p class="mono text-[11px] tracking-[.14em] uppercase mb-5" style="color:var(--ink); opacity:.5;">
         <span class="hero-eyebrow-rule"></span><span id="heroEyebrow">2–5 October · Pune to Goa</span>
       </p>
 
-      <h1 id="heroHeading" class="display font-semibold text-[13vw] md:text-[6.2rem] leading-[0.94]">
+      <h1 id="heroHeading" class="display font-semibold text-[clamp(2.75rem,9vw,8.5rem)] leading-[0.94]">
         <span id="heroLine1">Twelve tickets.</span><br><span id="heroLine2">One Goa.</span>
       </h1>
 
-      <p id="heroSubtext" class="max-w-md mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
+      <p id="heroSubtext" class="max-w-xl mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
         An overnight train out of Pune, a drive through the fog of the Western Ghats,
         and four days where the only itinerary is the tide.
       </p>
@@ -1332,15 +1332,15 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 <section id="gallery" class="py-20 md:py-24 gallery-bg">
   <svg class="sea-fish gallery-fish-a" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#FFAB85"/><path d="M0 17l10-8v16z" fill="#FFAB85"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
   <svg class="sea-fish rev gallery-fish-b" viewBox="0 0 64 34"><path d="M2 17c10-12 34-14 46-6-4 3-4 9 0 12-12 8-36 6-46-6z" fill="#8FE3E8"/><path d="M0 17l10-8v16z" fill="#8FE3E8"/><circle cx="40" cy="14" r="1.6" fill="#0C3E3A"/></svg>
-  <div class="max-w-6xl mx-auto px-5 md:px-10 relative">
+  <div class="max-w-[1440px] mx-auto px-5 md:px-10 relative">
     <div class="section-num mb-4"><span>01</span><span class="rule"></span><span>Places to visit</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mb-2 section-heading-anim">Places to visit in Goa.</h2>
     <p class="opacity-70 max-w-lg mb-8" id="placesIntro">Six spots worth building a day around — swipe through, or let it auto-play while you scroll.</p>
   </div>
 
   <!-- ============ OLD CAROUSEL (commented out — "lineup" flex-grow gallery) ============
-  <div class="lineup-gallery max-w-6xl mx-auto px-5 md:px-10" id="placesWrapper"></div>
-  <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
+  <div class="lineup-gallery max-w-[1440px] mx-auto px-5 md:px-10" id="placesWrapper"></div>
+  <div class="carousel-controls max-w-[1440px] mx-auto px-5 md:px-10">
     <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
     <div class="lineup-dots places-pagination" id="placesDots"></div>
     <button class="carousel-arrow carousel-next" aria-label="Next place">›</button>
@@ -1353,11 +1353,11 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
        - 3D Card: CardContainer/CardBody/CardItem, reimplemented in vanilla JS/CSS
          (this page isn't a React app) — see .card3d-* below and render3DCardCarousel() in the script. -->
   <!-- ============ ATTEMPT 2 (commented out — CSS/JS "3D Card" tilt approximation) ============
-  <div class="card3d-shell max-w-6xl mx-auto" id="card3dShell" style="display:none;">
+  <div class="card3d-shell max-w-[1440px] mx-auto" id="card3dShell" style="display:none;">
     <div class="card3d-row" id="card3dRow"></div>
   </div>
-  <p class="text-sm opacity-50 max-w-6xl mx-auto px-5 md:px-10" id="card3dEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here as a browsable set of cards.</p>
-  <div class="carousel-controls max-w-6xl mx-auto px-5 md:px-10">
+  <p class="text-sm opacity-50 max-w-[1440px] mx-auto px-5 md:px-10" id="card3dEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here as a browsable set of cards.</p>
+  <div class="carousel-controls max-w-[1440px] mx-auto px-5 md:px-10">
     <button class="carousel-arrow carousel-prev" aria-label="Previous place">‹</button>
     <div class="lineup-dots places-pagination" id="placesDots"></div>
     <button class="carousel-arrow carousel-next" aria-label="Next place">›</button>
@@ -1370,7 +1370,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
        https://framerusercontent.com/modules/ZbZFW0rSsvM2nIfFKaLY/kpCFFax8ciLkuLf0kMrs/liquid_glass_carousel.js
        and adapted from a Framer/React component into plain JS below
        (initLiquidCarousel / createLiquidCarousel). ============ -->
-  <div class="liquid-carousel-shell max-w-6xl mx-auto" id="liquidCarouselShell" style="display:none;">
+  <div class="liquid-carousel-shell max-w-[1440px] mx-auto" id="liquidCarouselShell" style="display:none;">
     <div id="liquidCarouselMount" class="liquid-carousel-mount"></div>
     <div id="liqLabels" class="liq-labels">
       <div id="liqBrand" class="liq-brand"></div>
@@ -1380,8 +1380,8 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div id="liqCursor" class="liq-cursor">View</div>
     <button type="button" id="liqClose" class="liq-close" aria-label="Close focused place">Close</button>
   </div>
-  <p class="text-sm opacity-50 max-w-6xl mx-auto px-5 md:px-10 mt-3" id="liquidEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here.</p>
-  <p class="text-xs opacity-40 max-w-6xl mx-auto px-5 md:px-10 mt-3" id="liquidHint">Scroll, drag, or swipe to browse — click the centered image to zoom in.</p>
+  <p class="text-sm opacity-50 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here.</p>
+  <p class="text-xs opacity-40 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidHint">Scroll, drag, or swipe to browse — click the centered image to zoom in.</p>
 </section>
 
 <!-- ============ PLACES (Goa collage) ============ -->
@@ -1389,7 +1389,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 <section id="journey" class="journey py-24 px-5 md:px-10 journey-bg">
   <svg class="jelly journey-jelly-a" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(255,171,133,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(255,171,133,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
   <svg class="jelly journey-jelly-b" viewBox="0 0 60 70"><path d="M30 4C14 4 4 18 4 30c0 10 8 14 26 14s26-4 26-14C56 18 46 4 30 4z" fill="rgba(143,227,232,.55)"/><path d="M12 46c0 8 2 18 2 18M22 46c0 10 1 20 1 20M32 46c0 9 1 18 1 18M42 46c0 8 2 18 2 18" stroke="rgba(143,227,232,.5)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-  <div class="max-w-5xl mx-auto relative">
+  <div class="max-w-[1200px] mx-auto relative">
     <div class="section-num mb-4"><span>03</span><span class="rule"></span><span>Route</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-2 section-heading-anim">Rail, then road.</h2>
     <p class="opacity-70 max-w-lg mb-2">Two legs, one ticket. Scroll through the journey — the marker below tracks your progress along the line as you go, and yes, you're still sinking deeper into the sea as you do it.</p>
@@ -1449,7 +1449,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="plankton itinerary-plankton-2"></div>
   <div class="plankton itinerary-plankton-3"></div>
   <div class="plankton itinerary-plankton-4"></div>
-  <div class="max-w-5xl mx-auto relative">
+  <div class="max-w-[1200px] mx-auto relative">
     <div class="section-num mb-4"><span>04</span><span class="rule"></span><span>Day by day</span></div>
     <div class="flex flex-wrap items-end justify-between gap-4 mb-2">
       <h2 class="display text-4xl md:text-5xl font-semibold mt-2 section-heading-anim">The itinerary.</h2>
@@ -1470,7 +1470,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <div class="plankton register-plankton-3"></div>
   <div class="plankton register-plankton-4"></div>
   <svg class="sea-fish rev register-fish" viewBox="0 0 64 34"><path d=""M0 17l10-8v16z" fill="#9fd8ff"/><circle cx="40" cy="14" r="1.6" fill="#05203a"/></svg>
-  <div class="max-w-3xl mx-auto relative">
+  <div class="max-w-[900px] mx-auto relative">
     <div class="section-num mb-4"><span>05</span><span class="rule"></span><span>Lock your seat</span></div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <h2 class="display text-4xl md:text-5xl font-semibold mt-2 section-heading-anim">Register for the run.</h2>
@@ -1617,7 +1617,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
       <source src="videos/beach_1.mp4" type="video/mp4">
     </video>
   </div>
-  <div class="max-w-5xl mx-auto z-index-1">
+  <div class="max-w-[1200px] mx-auto z-index-1">
     <div class="section-num mb-4"><span>06</span><span class="rule"></span><span>Who's running this</span></div>
     <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12 section-heading-anim">The crew.</h2>
     <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -1625,7 +1625,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 </section>
 
 <footer class="footer-bg" id="siteFooter">
-  <div class="max-w-6xl mx-auto px-5 md:px-10 pt-20 pb-10">
+  <div class="max-w-[1440px] mx-auto px-5 md:px-10 pt-20 pb-10">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] gap-10 lg:gap-16">
 
       <div class="reveal footer-reveal">
