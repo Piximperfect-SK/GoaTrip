@@ -588,7 +588,7 @@
         </div>
         <div class="sec-card">
           <h3>All admins</h3>
-          <p class="cardsub">Approve, revoke, restore access, or clear a login lockout. You can't revoke your own account.</p>
+          <p class="cardsub">Approve, revoke, restore access, clear a login lockout, or permanently delete an account. You can't revoke or delete your own account.</p>
           <div id="adminList"></div>
         </div>
       </div>
@@ -1105,11 +1105,16 @@ function renderAdminList(){
         ${a.status === 'Approved' && !isSelf ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
         ${(a.status === 'Revoked' || a.status === 'Rejected') ? `<button class="btn-ghost" data-action="reinstate" data-name="${escapeHtml(a.name)}">Restore</button>` : ''}
         ${(a.isLocked || a.failedAttempts > 0) ? `<button class="btn-ghost" data-action="unlock" data-name="${escapeHtml(a.name)}">Unlock</button>` : ''}
+        ${!isSelf ? `<button class="btn-danger" data-action="delete" data-name="${escapeHtml(a.name)}">Delete</button>` : ''}
       </div>
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-action]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
+      if(btn.dataset.action === 'delete'){
+        const sure = confirm(`Permanently delete admin "${btn.dataset.name}"? This removes their account entirely and can't be undone — they'd need to request access again from scratch.`);
+        if(!sure) return;
+      }
       btn.disabled = true;
       try{
         const res = await callPost({ action: btn.dataset.action + 'Admin', token:getToken(), name:btn.dataset.name });

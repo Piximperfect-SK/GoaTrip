@@ -270,6 +270,19 @@ async function reinstateAdmin(targetName) {
   return { ok: true, message: `Restored access for ${rows[0].name}.` };
 }
 
+// Permanently deletes an admin row (unlike revoke, which just blocks
+// login — this removes the record entirely, freeing up the name for a
+// fresh request). Irreversible, so callers should confirm with the user
+// before calling this.
+async function deleteAdmin(actorName, targetName) {
+  if (String(targetName).toLowerCase() === String(actorName).toLowerCase()) {
+    throw new Error('You cannot delete your own account.');
+  }
+  const { rows } = await query('DELETE FROM admins WHERE lower(name)=lower($1) RETURNING name', [targetName]);
+  if (!rows.length) throw new Error('Admin not found.');
+  return { ok: true, message: `Deleted ${rows[0].name}.` };
+}
+
 // Manually clears a failed-login lockout — for when a legit admin got locked out.
 async function unlockAdmin(targetName) {
   const { rows } = await query("UPDATE admins SET failed_attempts=0, locked_until=NULL WHERE lower(name)=lower($1) RETURNING name", [targetName]);
@@ -425,6 +438,12 @@ exports.handler = async (event) => {
         if (!admin) return unauthorized('Session expired or invalid — please log in again.');
         if (admin.must_change_pin) return badRequest('Set a permanent PIN before making changes.');
         return ok(await reinstateAdmin(body.name));
+      }
+      if (body.action === 'deleteAdmin') {
+        const admin = await requireSession(body.token);
+        if (!admin) return unauthorized('Session expired or invalid — please log in again.');
+        if (admin.must_change_pin) return badRequest('Set a permanent PIN before making changes.');
+        return ok(await deleteAdmin(admin.name, body.name));
       }
       if (body.action === 'unlockAdmin') {
         const admin = await requireSession(body.token);
