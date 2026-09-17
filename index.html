@@ -454,6 +454,11 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
    everything else here is the label/index/cursor/close chrome that
    sits on top of it, mirroring the original component's own JSX.
 =============================================================*/
+/* ============================================================
+   ATTEMPT 3 (commented out — LIQUID GLASS CAROUSEL, Three.js port).
+   Left intact but unused; replaced below by .fsc-* (FocusSliceCarousel).
+=============================================================*/
+/*
 .liquid-carousel-shell{
   position:relative; width:100%; overflow:hidden; border-radius:18px;
   height:56vh; min-height:380px; max-height:620px;
@@ -506,6 +511,102 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 @media (max-width:640px){
   .liquid-carousel-shell{ height:44vh; min-height:300px; border-radius:12px; }
   .liq-brand{ font-size:17px; }
+}
+*/
+
+/* ============================================================
+   FOCUS-SLICE CAROUSEL — faithful port of the Framer
+   "FocusSliceCarousel" (LineupGallery). One flex row of full-bleed
+   image cards; each closed card is a cropped slice of its own photo
+   (every .fsc-img in a card is sized to the FULL row width and
+   centered, so a card growing via flex-grow just reveals more of
+   the same underlying image rather than cropping to a new region —
+   that continuity is the whole trick). Click/tap opens a card; its
+   white info panel slides up from the bottom.
+=============================================================*/
+.fsc-shell{
+  --fsc-dur:.62s; --fsc-ease:cubic-bezier(.32,.72,0,1);
+  position:relative; width:100%; box-sizing:border-box; overflow:hidden;
+  height:56vh; min-height:380px; max-height:620px;
+  background:var(--sand-2,#F5F5F7); padding:28px; border-radius:42px;
+}
+.fsc-row{ display:flex; gap:18px; width:100%; height:100%; }
+.fsc-card{
+  position:relative; flex-basis:0; min-width:0; flex-grow:1; height:100%;
+  border-radius:28px; overflow:hidden; isolation:isolate; cursor:pointer;
+  background:#E8E8ED; transform:translateZ(0);
+  transition:flex-grow var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-card.open{ flex-grow:3.2; cursor:default; }
+.fsc-img{
+  position:absolute; top:0; left:50%; height:100%; width:var(--fsc-img-w,1100px);
+  object-fit:cover; -webkit-user-select:none; user-select:none; pointer-events:none;
+  transform:translateX(-50%) scale(1.06);
+  transition:transform var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-card:hover:not(.open) .fsc-img{ transform:translateX(-50%) scale(1.03); }
+.fsc-card.open .fsc-img{ transform:translateX(-50%) scale(1); }
+.fsc-scrim{
+  position:absolute; inset:0; pointer-events:none; opacity:1;
+  background:linear-gradient(to top, rgba(0,0,0,.45) 0%, rgba(0,0,0,.08) 34%, rgba(0,0,0,0) 58%);
+  transition:opacity var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-card.open .fsc-scrim{ opacity:0; }
+.fsc-vtitle{
+  position:absolute; left:22px; bottom:76px; color:#fff; pointer-events:none; opacity:1;
+  writing-mode:vertical-rl; transform:rotate(180deg); font-size:15px; font-weight:600;
+  letter-spacing:-0.01em; white-space:nowrap; font-family:'Space Grotesk',sans-serif;
+  transition:opacity var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-card.open .fsc-vtitle{ opacity:0; }
+.fsc-panel{
+  position:absolute; left:-1px; right:-1px; bottom:-1px; height:calc(38% + 1px);
+  border-bottom-left-radius:29px; border-bottom-right-radius:29px;
+  padding:27px 31px; box-sizing:border-box; display:flex; flex-direction:column; justify-content:center;
+  overflow:hidden; pointer-events:none; transform:translateY(101%);
+  transition:transform var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-card.open .fsc-panel{ transform:translateY(0%); pointer-events:auto; }
+.fsc-panel-bg{
+  position:absolute; inset:0; background:#fff; opacity:.92;
+  border-bottom-left-radius:29px; border-bottom-right-radius:29px;
+}
+.fsc-panel-inner{ position:relative; width:var(--fsc-panel-w,100%); flex-shrink:0; }
+.fsc-kicker{
+  font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:rgba(29,29,31,.55); white-space:nowrap; font-family:'Space Mono',monospace;
+}
+.fsc-title{
+  margin-top:6px; font-size:28px; line-height:1.1; font-weight:600; letter-spacing:-0.028em;
+  color:var(--ink,#1D1D1F); white-space:nowrap; font-family:'Fraunces',serif;
+}
+.fsc-subtitle{ margin-top:8px; font-size:14px; line-height:1.42; color:rgba(29,29,31,.55); max-width:520px; }
+.fsc-action{
+  margin-top:14px; display:inline-flex; align-items:center; gap:4px; font-size:14px;
+  color:var(--mango,#FF6B4A); white-space:nowrap; text-decoration:none; font-weight:600;
+}
+.fsc-action:hover{ text-decoration:underline; }
+.fsc-toggle{
+  position:absolute; right:20px; bottom:20px; width:36px; height:36px; border-radius:999px;
+  display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.92);
+  box-shadow:0 2px 10px rgba(0,0,0,.16); cursor:pointer; z-index:2; transform:rotate(0deg);
+  transition:transform .2s ease, background var(--fsc-dur) var(--fsc-ease), box-shadow var(--fsc-dur) var(--fsc-ease);
+}
+.fsc-toggle:hover{ transform:scale(1.06); }
+.fsc-toggle:active{ transform:scale(.94); }
+.fsc-card.open .fsc-toggle{ transform:rotate(45deg); background:rgba(0,0,0,.06); box-shadow:none; }
+.fsc-card.open .fsc-toggle:hover{ transform:rotate(45deg) scale(1.06); }
+.fsc-card.open .fsc-toggle:active{ transform:rotate(45deg) scale(.94); }
+.fsc-toggle svg{ width:15px; height:15px; display:block; }
+@media (max-width:640px){
+  .fsc-shell{ height:46vh; min-height:320px; padding:14px; border-radius:30px; }
+  .fsc-card{ border-radius:18px; }
+  .fsc-title{ font-size:19px; }
+  .fsc-panel{ padding:16px 18px; }
+  .fsc-vtitle{ left:14px; bottom:54px; font-size:12px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .fsc-card, .fsc-img, .fsc-scrim, .fsc-vtitle, .fsc-panel, .fsc-toggle{ transition:none; }
 }
 @media (max-width:640px){
   .lineup-gallery{ gap:10px; }
@@ -1286,12 +1387,9 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   </div>
   ============ END ATTEMPT 2 ============ -->
 
-  <!-- ============ NEW CAROUSEL — faithful port of the Framer "Liquid Glass
-       Carousel" (Three.js + custom GLSL lens shader: chromatic dispersion,
-       glow, blue ring, rim wave, refraction) — real source pulled from
-       https://framerusercontent.com/modules/ZbZFW0rSsvM2nIfFKaLY/kpCFFax8ciLkuLf0kMrs/liquid_glass_carousel.js
-       and adapted from a Framer/React component into plain JS below
-       (initLiquidCarousel / createLiquidCarousel). ============ -->
+  <!-- ============ ATTEMPT 3 (commented out — Three.js "Liquid Glass"
+       carousel port; engine code (createLiquidCarousel/initLiquidCarousel
+       etc.) is left intact further down in the script, just unused) ============
   <div class="liquid-carousel-shell max-w-[1440px] mx-auto" id="liquidCarouselShell" style="display:none;">
     <div id="liquidCarouselMount" class="liquid-carousel-mount"></div>
     <div id="liqLabels" class="liq-labels">
@@ -1308,6 +1406,22 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   </div>
   <p class="text-sm opacity-50 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here.</p>
   <p class="text-xs opacity-40 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="liquidHint">Scroll, drag, or swipe to browse — click the centered image to zoom in.</p>
+  ============ END ATTEMPT 3 ============ -->
+
+  <!-- ============ NEW CAROUSEL — faithful port of the Framer
+       "FocusSliceCarousel" (a.k.a. LineupGallery): full-bleed flex cards
+       that grow via flex-grow when clicked, revealing more of the same
+       underlying photo (each closed card is a cropped "slice" of it),
+       with a white info panel sliding up from the bottom and a
+       circular +/× toggle. Real source pulled from
+       https://framerusercontent.com/modules/83v3ZnnIYnwzCHItcJSp/oWeEbaTULNbKPjKUk7HS/FocusSliceCarousel.js
+       and reimplemented as plain CSS transitions + vanilla JS below
+       (see .fsc-* CSS and renderFocusSliceCarousel() in the script). ============ -->
+  <div class="fsc-shell max-w-[1440px] mx-auto" id="fscShell" style="display:none;">
+    <div class="fsc-row" id="fscRow"></div>
+  </div>
+  <p class="text-sm opacity-50 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="fscEmptyNote" style="display:none;">Add places to your itinerary and they'll appear here.</p>
+  <p class="text-xs opacity-40 max-w-[1440px] mx-auto px-5 md:px-10 mt-3" id="fscHint">Tap a photo to open it — tap the × to close.</p>
 </section>
 
 <!-- ============ PLACES (Goa collage) ============ -->
@@ -2532,35 +2646,148 @@ function initLiquidCarousel(entries, origin){
 let entryDoneFlag = false;
 
 
+/* ============================================================
+   FOCUS-SLICE CAROUSEL — faithful port of the Framer
+   "FocusSliceCarousel" (LineupGallery) component. Real source:
+     https://framerusercontent.com/modules/83v3ZnnIYnwzCHItcJSp/oWeEbaTULNbKPjKUk7HS/FocusSliceCarousel.js
+   Ported from React/framer-motion to plain DOM + CSS transitions
+   (see the .fsc-* rules above). Mechanics kept identical:
+     - flex row of cards, each flex-basis:0 so flex-grow alone
+       controls width; opening a card sets its flex-grow to
+       `focusRatio` (3.2) while the rest stay at 1
+     - every card's <img> is the SAME width (the whole row's own
+       width, not its own slice's width) and centered — so a
+       closed card shows a cropped strip of its photo, and growing
+       it just reveals more of that same image rather than
+       cropping to a different region
+     - `openWidth` (used to size the text panel so it doesn't
+       rewrap while the card is still animating open) is computed
+       with the original's exact flexbox math:
+       track * focusRatio / (focusRatio + count - 1)
+=============================================================*/
+const FSC_PADDING = 28, FSC_GAP = 18, FSC_FOCUS_RATIO = 3.2;
+
+function buildFocusSliceCards(entries, origin){
+  return entries.map(e => {
+    const p = e.place;
+    const name = p.resolvedName || p.name;
+    const distKm = (origin && p.lat!=null) ? haversineKm(origin, {lat:p.lat, lng:p.lng}) : null;
+    const subtitle = placeTypeLabel(p.placeType) + (distKm!=null ? ` · ~${Math.round(distKm)} km from the villa` : '');
+    const hasCoords = p.lat!=null && p.lng!=null;
+    const dest = hasCoords ? `${p.lat},${p.lng}` : '';
+    const originStr = origin ? `${origin.lat},${origin.lng}` : '';
+    const href = hasCoords ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originStr)}&destination=${encodeURIComponent(dest)}&travelmode=driving` : '';
+    return {
+      photo: p.photo || 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=1600&h=1000&fit=crop',
+      kicker: e.badge || '',
+      title: name,
+      subtitle,
+      href,
+    };
+  });
+}
+
+function buildFscCardHTML(card, index){
+  return `
+    <div class="fsc-card" data-index="${index}" tabindex="0" role="button" aria-label="${escapeHtml(card.title)}">
+      <img class="fsc-img" src="${card.photo}" alt="${escapeHtml(card.title)}" draggable="false" referrerpolicy="no-referrer">
+      <div class="fsc-scrim"></div>
+      <div class="fsc-vtitle">${escapeHtml(card.title)}</div>
+      <div class="fsc-panel">
+        <div class="fsc-panel-bg"></div>
+        <div class="fsc-panel-inner">
+          ${card.kicker ? `<div class="fsc-kicker">${escapeHtml(card.kicker)}</div>` : ''}
+          <div class="fsc-title">${escapeHtml(card.title)}</div>
+          ${card.subtitle ? `<div class="fsc-subtitle">${escapeHtml(card.subtitle)}</div>` : ''}
+          ${card.href ? `<a class="fsc-action" href="${card.href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Directions <span>›</span></a>` : ''}
+        </div>
+      </div>
+      <div class="fsc-toggle" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1D1D1F" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+    </div>`;
+}
+
+let fscOpenIndex = -1;
+function fscSetOpen(index){
+  fscOpenIndex = index;
+  document.querySelectorAll('#fscRow .fsc-card').forEach(card => {
+    card.classList.toggle('open', Number(card.dataset.index) === index);
+  });
+}
+
+// Recomputes the two CSS custom properties every card reads from:
+// --fsc-img-w (same raw container width fed to every <img>, per the
+// original's own `width:width` — deliberately the outer box's width,
+// not the narrower per-card slice) and --fsc-panel-w (the open card's
+// eventual width minus its own padding, so the panel text's line
+// breaks are decided once instead of rewrapping every animation frame).
+function fscUpdateMetrics(){
+  const shell = document.getElementById('fscShell');
+  if(!shell) return;
+  const count = Math.max(document.querySelectorAll('#fscRow .fsc-card').length, 1);
+  const width = shell.getBoundingClientRect().width;
+  const track = Math.max(width - FSC_PADDING*2 - FSC_GAP*(count-1), 0);
+  const openWidth = track * FSC_FOCUS_RATIO / (FSC_FOCUS_RATIO + count - 1);
+  shell.style.setProperty('--fsc-img-w', width + 'px');
+  shell.style.setProperty('--fsc-panel-w', Math.max(openWidth - 60, 0) + 'px');
+}
+
+let fscResizeObserver = null;
+function renderFocusSliceCarousel(entries, origin){
+  const shell = document.getElementById('fscShell');
+  const row = document.getElementById('fscRow');
+  if(!shell || !row) return;
+
+  const cards = buildFocusSliceCards(entries, origin);
+  row.innerHTML = cards.map((c,i) => buildFscCardHTML(c,i)).join('');
+
+  row.querySelectorAll('.fsc-card').forEach(cardEl => {
+    const index = Number(cardEl.dataset.index);
+    cardEl.addEventListener('click', () => { if(fscOpenIndex !== index) fscSetOpen(index); });
+    cardEl.addEventListener('keydown', e => { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); if(fscOpenIndex !== index) fscSetOpen(index); } });
+    const toggle = cardEl.querySelector('.fsc-toggle');
+    toggle.addEventListener('click', e => {
+      e.stopPropagation();
+      fscSetOpen(fscOpenIndex === index ? -1 : index);
+    });
+  });
+
+  fscUpdateMetrics();
+  fscSetOpen(cards.length ? 0 : -1); // first card open by default, matching the original's useState(0)
+
+  if(fscResizeObserver) fscResizeObserver.disconnect();
+  fscResizeObserver = new ResizeObserver(() => fscUpdateMetrics());
+  fscResizeObserver.observe(shell);
+}
+
 async function renderGalleryCards(entries, fromItinerary){
   const wrap = document.getElementById('placesWrapper'); // old lineup gallery — no longer rendered into, kept for reference
   const intro = document.getElementById('placesIntro');
   // OLD CAROUSEL (commented out): lineupStopAutoplay();
   // ATTEMPT 2 (commented out — CSS "3D card" tilt):
   // const shell = document.getElementById('card3dShell'); ... render3DCardCarousel(entries, origin);
+  // ATTEMPT 3 (commented out — Three.js "Liquid Glass" carousel):
+  // const liquidShell = document.getElementById('liquidCarouselShell'); ... initLiquidCarousel(entries, origin);
 
-  const liquidShell = document.getElementById('liquidCarouselShell');
-  const liquidActiveBar = document.getElementById('liqActiveBar');
-  const liquidEmptyNote = document.getElementById('liquidEmptyNote');
-  const liquidHint = document.getElementById('liquidHint');
+  const fscShell = document.getElementById('fscShell');
+  const fscEmptyNote = document.getElementById('fscEmptyNote');
+  const fscHint = document.getElementById('fscHint');
 
   if(!entries.length){
-    // OLD CAROUSEL (commented out):
-    // if(wrap) wrap.innerHTML = '';
-    // const dots = document.getElementById('placesDots');
-    // if(dots) dots.innerHTML = '';
-    if(liquidEngine){ liquidEngine.destroy(); liquidEngine = null; }
-    if(liquidShell) liquidShell.style.display = 'none';
-    if(liquidActiveBar) liquidActiveBar.style.display = 'none';
-    if(liquidHint) liquidHint.style.display = 'none';
-    if(liquidEmptyNote) liquidEmptyNote.style.display = 'block';
+    const row = document.getElementById('fscRow');
+    if(row) row.innerHTML = '';
+    if(fscResizeObserver){ fscResizeObserver.disconnect(); fscResizeObserver = null; }
+    if(fscShell) fscShell.style.display = 'none';
+    if(fscHint) fscHint.style.display = 'none';
+    if(fscEmptyNote) fscEmptyNote.style.display = 'block';
     if(intro) intro.textContent = 'No places resolved yet — add some in the itinerary planner and they\u2019ll show up here automatically.';
     return;
   }
 
-  if(liquidShell) liquidShell.style.display = '';
-  if(liquidHint) liquidHint.style.display = '';
-  if(liquidEmptyNote) liquidEmptyNote.style.display = 'none';
+  if(fscShell) fscShell.style.display = '';
+  if(fscHint) fscHint.style.display = '';
+  if(fscEmptyNote) fscEmptyNote.style.display = 'none';
 
   const origin = await getOriginCoords();
 
@@ -2568,12 +2795,13 @@ async function renderGalleryCards(entries, fromItinerary){
   // if(wrap) wrap.innerHTML = entries.map((e,i)=>buildPlaceCardHTML(e, i, origin)).join('');
   // initPlacesGallery();
 
-  initLiquidCarousel(entries, origin);
+  renderFocusSliceCarousel(entries, origin);
 
   if(intro){
-    intro.textContent = `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — scroll or drag to browse, click the centered photo to zoom in.`;
+    intro.textContent = `${entries.length} spot${entries.length===1?'':'s'} pulled straight from the itinerary — tap a photo to open it.`;
   }
 }
+
 
 /**
  * Pulls every place that itinerary.html already resolved (status
