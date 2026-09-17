@@ -482,6 +482,14 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 }
 .liq-brand{ font-family:'Fraunces',serif; font-weight:600; font-size:22px; }
 .liq-desc{ font-size:13px; opacity:.85; margin-top:4px; }
+.liq-directions{
+  display:inline-block; margin-top:12px; padding:8px 16px; border-radius:9999px;
+  background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.4); color:#fff;
+  font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; text-decoration:none;
+  pointer-events:auto; mix-blend-mode:normal; transition:background .2s ease, transform .15s ease;
+}
+.liq-directions:hover{ background:rgba(255,255,255,.3); transform:translateY(-1px); }
+.liq-directions:active{ transform:translateY(0) scale(.97); }
 .liq-index{
   position:absolute; bottom:10%; left:50%; transform:translateX(-50%);
   font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.08em;
@@ -1375,6 +1383,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div id="liqLabels" class="liq-labels">
       <div id="liqBrand" class="liq-brand"></div>
       <div id="liqDesc" class="liq-desc"></div>
+      <a id="liqDirections" class="liq-directions" href="#" target="_blank" rel="noopener noreferrer">Directions →</a>
     </div>
     <div id="liqIndexWrap" class="liq-index"></div>
     <div id="liqCursor" class="liq-cursor">View</div>
@@ -2058,8 +2067,8 @@ const LIQUID_FRAGMENT_SHADER = `
 `;
 
 const LIQUID_DEFAULTS = {
-  panelHeight:380, gap:16, glide:.075, wheelSensitivity:1,
-  snap:true, snapDistance:60, snapDelay:120, speedShrink:60,
+  panelHeight:380, gap:16, glide:.20, wheelSensitivity:1.15,
+  snap:true, snapDistance:60, snapDelay:40, speedShrink:60,
   lensShape:'circle', lensRotation:65, lensWidth:.565, lensHeight:1, lensX:.5, lensY:.5,
   dispersion:11, zoom:0, blur:0, glow:4.2, blueRing:6, blueColor:'#ff6b4a',
   shimmer:true, rimWave:.6, entryAnimation:true, focusScale:1.18,
@@ -2553,6 +2562,15 @@ function updateLiquidIndex(i, count){
   const el = document.getElementById('liqIndexWrap');
   if(el) el.textContent = `${String(i+1).padStart(2,'0')}/${String(Math.max(count,1)).padStart(2,'0')}`;
 }
+function updateLiquidDirections(project){
+  const el = document.getElementById('liqDirections');
+  if(!el) return;
+  if(!project || project.lat==null || project.lng==null){ el.style.display = 'none'; return; }
+  el.style.display = '';
+  const dest = `${project.lat},${project.lng}`;
+  const origin = project.origin ? `${project.origin.lat},${project.origin.lng}` : '';
+  el.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+}
 function initLiquidCarousel(entries, origin){
   const mount = document.getElementById('liquidCarouselMount');
   if(!mount || typeof THREE === 'undefined') return;
@@ -2564,7 +2582,7 @@ function initLiquidCarousel(entries, origin){
     const name = p.resolvedName || p.name;
     const distKm = (origin && p.lat!=null) ? haversineKm(origin, {lat:p.lat, lng:p.lng}) : null;
     const desc = (e.badge ? e.badge + ' · ' : '') + placeTypeLabel(p.placeType) + (distKm!=null ? ` · ~${Math.round(distKm)} km` : '');
-    return { image:{ src: p.photo || 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=900&h=1100&fit=crop' }, brand: name, description: desc };
+    return { image:{ src: p.photo || 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=900&h=1100&fit=crop' }, brand: name, description: desc, lat: p.lat, lng: p.lng, origin };
   });
 
   const propsRef = { current: LIQUID_DEFAULTS };
@@ -2576,7 +2594,10 @@ function initLiquidCarousel(entries, origin){
   try{
     liquidEngine = createLiquidCarousel(mount, {
       projects, propsRef, cursorElement: cursorEl,
-      onActiveChange: (i) => { updateLiquidLabels(projects[i] || projects[0]); updateLiquidIndex(i, projects.length); },
+      onActiveChange: (i) => {
+        const p = projects[i] || projects[0];
+        updateLiquidLabels(p); updateLiquidIndex(i, projects.length); updateLiquidDirections(p);
+      },
       onFocusChange: (focused) => {
         if(labelsEl) labelsEl.style.transform = focused ? 'translate(-50%, -4vh)' : 'translate(-50%, 0)';
         if(indexEl) indexEl.style.opacity = focused ? '0' : (entryDoneFlag ? '1' : '0');
@@ -2596,9 +2617,11 @@ function initLiquidCarousel(entries, origin){
 
   updateLiquidLabels(projects[0]);
   updateLiquidIndex(0, projects.length);
+  updateLiquidDirections(projects[0]);
   if(closeEl) closeEl.onclick = () => liquidEngine && liquidEngine.closeFocus();
 }
 let entryDoneFlag = false;
+
 
 async function renderGalleryCards(entries, fromItinerary){
   const wrap = document.getElementById('placesWrapper'); // old lineup gallery — no longer rendered into, kept for reference
