@@ -70,4 +70,5 @@ module.exports = {
   generateTempPin,
   createSessionToken,
   verifySessionToken,
+  SESSION_TTL_MS,
 };
