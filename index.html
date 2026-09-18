@@ -284,6 +284,11 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .hero-scrim::after{content:""; position:absolute; inset:0; background:radial-gradient(900px 460px at 82% 8%, rgba(255,107,74,.08), transparent 60%);}
 .hero-intro{color:var(--ink);}
 .hero-intro p{color:var(--ink); opacity:.72;}
+/* Centered hero layout: the block itself (not just its outer
+   container) is centered in the available width, so the hero uses
+   the full viewport on wide screens instead of sitting in the left
+   half with empty space to the right. */
+.hero-intro-centered{ text-align:center; max-width:900px; margin-left:auto; margin-right:auto; }
 .grain{position:absolute; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay; z-index:2;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 .hero-intro{animation:heroIntro 1s cubic-bezier(.22,1,.36,1) both;}
@@ -1304,7 +1309,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 <header class="hero">
 
   <div class="relative z-10 container-xl pt-32 pb-20">
-    <div class="hero-intro">
+    <div class="hero-intro hero-intro-centered">
       <p class="mono text-[11px] tracking-[.14em] uppercase mb-5" style="color:var(--ink); opacity:.5;">
         <span class="hero-eyebrow-rule"></span><span id="heroEyebrow">2–5 October · Pune to Goa</span>
       </p>
@@ -1313,12 +1318,12 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
         <span id="heroLine1">Twelve tickets.</span><br><span id="heroLine2">One Goa.</span>
       </h1>
 
-      <p id="heroSubtext" class="max-w-xl mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
+      <p id="heroSubtext" class="max-w-xl mx-auto mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
         An overnight train out of Pune, a drive through the fog of the Western Ghats,
         and four days where the only itinerary is the tide.
       </p>
 
-      <div class="flex flex-wrap gap-3 mt-10">
+      <div class="flex flex-wrap justify-center gap-3 mt-10">
         <button id="heroCtaPrimary" class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
         <button id="heroCtaSecondary" class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
       </div>
@@ -1344,7 +1349,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 
       <!-- Departure board: same live data as before, restyled as a quiet
            inline ticket strip rather than a glowing split-flap panel. -->
-      <div class="dep-board mt-14" id="depBoard" aria-label="Trip departure board">
+      <div class="dep-board mt-14 mx-auto" id="depBoard" aria-label="Trip departure board">
         <div class="dep-board-head">
           <span class="dep-board-title" id="heroStampDepart">DEPART · PUNE</span>
           <span class="dep-board-title" style="opacity:.35;" id="heroDuration">4D / 3N</span>
@@ -3520,6 +3525,7 @@ async function loadRegistrationStatus(){
   renderHeroFromTrip(TRIP);
   await loadPageContent();   // admin-edited hero copy, fetched+applied BEFORE the reveal animation fires (see note above heading-reveal setup)
   setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});
+  setupHeadingReveal(document.getElementById('heroSubtext'), {immediate:true, baseDelay:0.55});
   // None of these depend on each other or touch the hero heading, so run
   // them together instead of one-after-another — faster overall load,
   // and it no longer delays getting the correct hero text on screen.
