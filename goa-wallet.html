@@ -957,6 +957,7 @@
 
       <div id="equalWarning" class="banner warn mb-4" style="display:none;"></div>
 
+      <p class="text-xs opacity-45 mb-4">This gives the <i>fewest payments</i> for just the people/transactions you pick — separate from "Who owes whom" on the Settlements tab, which shows the direct, full-ledger answer for everyone.</p>
       <button type="button" class="btn-ghost w-full mb-4" onclick="calculateEqualSettlement()">Calculate equal split</button>
 
       <div id="equalResults"></div>
@@ -1144,8 +1145,15 @@ let PARTICIPANTS = [];
    nice-to-have on top of the existing hardcoded roster, not a
    required sync path like pullFromSheet().
 =============================================================*/
+let lastParticipantSyncAt = 0;
 async function syncParticipantsFromRegistrations(){
   if(!window.TRIP) return;
+  // Light debounce — this runs on every boot AND every manual refresh,
+  // so a user hammering Refresh shouldn't fire it more than once every
+  // few seconds.
+  const now = Date.now();
+  if(now - lastParticipantSyncAt < 5000) return;
+  lastParticipantSyncAt = now;
   try{
     const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
     const data = await res.json();
@@ -1333,32 +1341,98 @@ async function pullFromSheet(manual){
   if(manual) syncParticipantsFromRegistrations();
 }
 
-async function pushToSheet(action, payload, actor){
+/* ============================================================
+   PENDING-WRITE QUEUE
+   A write that fails purely because the backend is unreachable
+   (network error, no JSON back) is queued here and retried
+   automatically — on the next 'online' event, on boot, and on a
+   light interval — instead of relying on the user noticing the
+   "saved locally" banner and manually hitting Refresh. A write the
+   backend actively REJECTED (validation error, feature flag, etc.)
+   is a real answer, not a connectivity blip, so it's surfaced but
+   never queued/retried.
+=============================================================*/
+const PENDING_OPS_KEY = 'goaWalletPendingOps';
+function loadPendingOps(){
+  try{ const v = JSON.parse(localStorage.getItem(PENDING_OPS_KEY)); return Array.isArray(v) ? v : []; }
+  catch(e){ return []; }
+}
+function savePendingOps(ops){ localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops)); }
+function enqueuePendingOp(action, payload, actor){
+  const key = action + ':' + (payload && payload.id);
+  const ops = loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key);
+  ops.push({action, payload, actor, queuedAt:new Date().toISOString()});
+  savePendingOps(ops);
+  updatePendingIndicator();
+}
+function dequeuePendingOp(action, payload){
+  const key = action + ':' + (payload && payload.id);
+  savePendingOps(loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key));
+  updatePendingIndicator();
+}
+function updatePendingIndicator(){
+  const n = loadPendingOps().length;
+  const label = document.getElementById('syncLabel');
+  if(label) label.title = n > 0 ? `${n} change${n===1?'':'s'} waiting to sync` : '';
+}
+let flushingPendingOps = false;
+async function flushPendingOps(){
+  if(flushingPendingOps || !window.TRIP) return;
+  const ops = loadPendingOps();
+  if(!ops.length) return;
+  flushingPendingOps = true;
+  let recovered = 0;
+  for(const op of ops){
+    const result = await pushToSheet(op.action, op.payload, op.actor, {fromQueue:true});
+    if(result !== null){ dequeuePendingOp(op.action, op.payload); recovered++; }
+  }
+  flushingPendingOps = false;
+  if(recovered > 0){ showBanner('ok', `Synced ${recovered} change${recovered===1?'':'s'} that were waiting offline.`); renderAll(); }
+}
+window.addEventListener('online', flushPendingOps);
+setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
+
+async function pushToSheet(action, payload, actor, opts){
+  opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
   setSyncStatus('pending');
+  let res, text;
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
+    res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({action, payload, actor, ts:new Date().toISOString()})
     });
-    const text = await res.text();
-    let data;
-    try{ data = JSON.parse(text); }
-    catch(parseErr){
-      throw new Error('Backend did not return JSON on write — please try again.');
-    }
-    if(data.error) throw new Error(data.error);
-    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
-    persistLocal();
-    setSyncStatus('ok');
-    clearBanner();
-    return data;
-  }catch(err){
+    text = await res.text();
+  }catch(networkErr){
+    // Fetch itself threw — no connection, DNS failure, etc. This is
+    // exactly the case worth queuing for an automatic retry.
     setSyncStatus('bad');
-    showBanner('err', `<b>Change saved locally, but the backend write failed.</b> ${err.message} It will show as synced again once the endpoint is reachable — hit Refresh to retry.`);
+    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
+    showBanner('err', `<b>Change saved locally — couldn't reach the backend.</b> It'll sync automatically once you're back online.`);
     return null;
   }
+  let data;
+  try{ data = JSON.parse(text); }
+  catch(parseErr){
+    setSyncStatus('bad');
+    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
+    showBanner('err', `<b>Change saved locally — the backend response was invalid.</b> It'll retry automatically.`);
+    return null;
+  }
+  if(data.error){
+    // A real rejection (validation, feature flag, etc.) — not a
+    // connectivity problem, so never queued/retried.
+    setSyncStatus('bad');
+    if(opts.fromQueue) dequeuePendingOp(action, payload);
+    showBanner('err', `<b>Backend rejected this change:</b> ${data.error}`);
+    return null;
+  }
+  wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+  persistLocal();
+  setSyncStatus('ok');
+  clearBanner();
+  return data;
 }
 
 /* ============================================================
@@ -2131,8 +2205,28 @@ async function removeSettlement(id){
    entry — nothing else in the ledger moves. Splitting logic itself
    (share calculation per expense) is untouched.
 =============================================================*/
+// Union of the cached PARTICIPANTS roster with every payer/split/
+// settlement name actually present in the synced wallet data. A name
+// can exist in server-side expenses/settlements while being missing
+// from this device's local PARTICIPANTS cache (e.g. removed locally,
+// or never re-synced) — without this union, that person's share
+// silently drops out of computeNetBalances()/pairwiseSettlements()
+// instead of surfacing as an unresolved balance.
+function effectiveParticipants(){
+  const set = new Set(PARTICIPANTS);
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer) set.add(ex.payer);
+    (ex.split||[]).forEach(p=>{ if(p) set.add(p); });
+  });
+  wallet.settlements.forEach(s=>{
+    if(s.from) set.add(s.from);
+    if(s.to) set.add(s.to);
+  });
+  return Array.from(set);
+}
+
 function computeNetBalances(){
-  const net = {}; PARTICIPANTS.forEach(p=> net[p]=0);
+  const net = {}; effectiveParticipants().forEach(p=> net[p]=0);
   wallet.expenses.forEach(ex=>{
     if(net[ex.payer]===undefined) net[ex.payer]=0;
     net[ex.payer] += Number(ex.amount);
@@ -2177,8 +2271,9 @@ function pairwiseSettlements(){
   const ledger = buildPairwiseLedger();
   const seen = new Set();
   const result = [];
-  PARTICIPANTS.forEach(a=>{
-    PARTICIPANTS.forEach(b=>{
+  const people = effectiveParticipants();
+  people.forEach(a=>{
+    people.forEach(b=>{
       if(a===b) return;
       const key = [a,b].sort().join('|');
       if(seen.has(key)) return;
@@ -3113,6 +3208,7 @@ try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing
   populateSelects();
   await applyFeatureFlags(trip.id);
   await pullFromSheet();
+  await flushPendingOps();
   await syncParticipantsFromRegistrations();
 })();
 
