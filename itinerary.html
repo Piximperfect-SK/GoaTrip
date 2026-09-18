@@ -169,6 +169,7 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
   </div>
   <div class="flex items-center gap-3">
     <span class="mono text-xs flex items-center gap-2 opacity-70"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+    <a href="test_itenary.html" id="mapViewLink" class="btn-ghost" title="Split-screen map view">🗺 Map view</a>
     <button class="btn-ghost" onclick="pullItinerary(true)">Reload</button>
     <button class="btn-primary" onclick="saveItinerary()">Save changes</button>
   </div>
@@ -345,6 +346,8 @@ async function saveItinerary(){
   if(sub) sub.textContent = trip.shortDates ? `${trip.name.toUpperCase()} · ${trip.shortDates}` : trip.name.toUpperCase();
   const route = document.getElementById('itinRoute');
   if(route) route.textContent = `ROUTE · ${(trip.origin||'').toUpperCase()} → ${(trip.waypoint||'').toUpperCase()} → ${(trip.destination||'').toUpperCase()}`;
+  const mapLink = document.getElementById('mapViewLink');
+  if(mapLink) mapLink.href = withTrip('test_itenary.html');
   await pullItinerary();
 })();
 

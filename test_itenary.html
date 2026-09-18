@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://*.wikimedia.org; media-src 'self'; connect-src 'self' https://unpkg.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#FBFBFD" />
+<title>Itinerary Map — Goa Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
+<style>
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; height:100vh; overflow:hidden;}
+h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
+.mono{font-family:'Space Mono', monospace;}
+label{font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.75;}
+
+#topbar{position:sticky; top:0; z-index:40; background:rgba(251,251,253,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); border-bottom:1px solid var(--line);}
+.btn-icon{width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1.5px solid var(--line); background:white; color:var(--ink); text-decoration:none; flex-shrink:0;}
+.btn-icon:hover{background:var(--sand-2); border-color:var(--ink);}
+
+.app-shell{display:flex; flex-direction:column; height:calc(100vh - 64px);}
+
+/* ---------- Day tabs ---------- */
+.day-tabs{display:flex; gap:8px; overflow-x:auto; padding:12px 20px; scrollbar-width:none; border-bottom:1px solid var(--line); background:white; flex-shrink:0;}
+.day-tabs::-webkit-scrollbar{display:none;}
+.day-tab{flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:8px 15px; border-radius:14px; border:1.5px solid var(--line); background:var(--sand-2); cursor:pointer; transition:.18s; min-width:84px;}
+.day-tab:hover{border-color:rgba(29,29,31,.3);}
+.day-tab.active{border-color:var(--ink); background:var(--ink); color:white; box-shadow:0 10px 22px -12px rgba(29,29,31,.5);}
+.day-tab .dt-label{font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; opacity:.6;}
+.day-tab.active .dt-label{opacity:.75;}
+.day-tab .dt-date{font-weight:700; font-size:13px;}
+.day-tab-add{flex:0 0 auto; width:36px; height:36px; border-radius:14px; border:1.5px dashed var(--line); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--teal-700); opacity:.6; transition:.18s; align-self:center;}
+.day-tab-add:hover{opacity:1; border-color:var(--ink);}
+
+/* ---------- Split layout ---------- */
+.split{display:flex; flex:1; min-height:0;}
+.pane-left{width:44%; min-width:340px; max-width:560px; overflow-y:auto; border-right:1px solid var(--line); background:var(--paper);}
+.pane-right{flex:1; position:relative; background:var(--sand-2); overflow:hidden;}
+@media (max-width:900px){
+  .split{flex-direction:column;}
+  .pane-left{width:100%; max-width:none; border-right:none; border-bottom:1px solid var(--line); max-height:52vh;}
+  .pane-right{min-height:38vh;}
+}
+
+.left-inner{padding:18px 18px 90px;}
+.day-title-row{display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:14px;}
+.day-title-row h2{font-size:20px; margin:2px 0 0;}
+.day-title-row .mono{font-size:10.5px; opacity:.55;}
+
+/* ---------- Timeline ---------- */
+.timeline{position:relative; padding-left:30px;}
+.timeline::before{content:''; position:absolute; left:12px; top:4px; bottom:4px; width:2px; background:var(--line); border-radius:2px;}
+.tl-item{position:relative; margin-bottom:4px; scroll-margin-top:20px;}
+.tl-node{position:absolute; left:-30px; top:12px; width:25px; height:25px; border-radius:50%; background:white; border:2px solid var(--mango); display:flex; align-items:center; justify-content:center; font-size:12px; z-index:2; box-shadow:0 0 0 4px var(--paper); transition:.2s;}
+.tl-item.tl-active .tl-node{background:var(--mango); border-color:var(--mango); transform:scale(1.12);}
+.tl-card{padding:13px 14px; cursor:pointer; transition:.18s; border:1.5px solid var(--line);}
+.tl-item.tl-active .tl-card{border-color:var(--mango); box-shadow:0 10px 26px -16px rgba(255,107,74,.55);}
+.tl-card:hover{border-color:rgba(29,29,31,.35);}
+.tl-row1{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+.time-badge{font-family:'Space Mono',monospace; font-size:11px; padding:3px 9px; border-radius:9999px; background:var(--sand-2); border:1px solid var(--line); white-space:nowrap;}
+.tl-title{font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; flex:1; min-width:0;}
+.tl-loc{display:flex; align-items:center; gap:6px; font-size:12.5px; opacity:.65;}
+.tl-loc-status{font-size:10px; margin-left:auto; flex-shrink:0;}
+.tl-loc-status.ok{color:var(--palm);}
+.tl-loc-status.bad{color:var(--mango-2);}
+.tl-loc-status.pending{color:#C9A227;}
+.tl-thumb{width:100%; height:96px; object-fit:cover; border-radius:10px; margin-top:9px;}
+.tl-actions{display:flex; gap:6px; margin-top:9px; justify-content:flex-end;}
+.tl-mini-btn{font-size:10.5px; padding:4px 9px; border-radius:9999px; border:1px solid var(--line); background:white; cursor:pointer; transition:.15s;}
+.tl-mini-btn:hover{border-color:var(--ink);}
+.tl-mini-btn.danger{color:var(--mango-2); border-color:rgba(232,93,42,.35);}
+
+.travel-row{display:flex; align-items:center; gap:8px; margin:6px 0 10px 0; padding-left:2px; font-family:'Space Mono',monospace; font-size:11px; opacity:.55;}
+.travel-row .dots{flex:1; border-top:1px dashed var(--line);}
+
+.edit-panel{display:none; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);}
+.tl-item.tl-editing .edit-panel{display:block;}
+.edit-panel input, .edit-panel select, .edit-panel textarea{width:100%; border:1.5px solid var(--line); border-radius:10px; padding:8px 10px; font-family:inherit; font-size:12.5px; margin-bottom:7px; background:white; color:var(--ink);}
+.edit-grid{display:grid; grid-template-columns:52px 1fr 1fr; gap:6px;}
+
+.add-activity-card{border:1.5px dashed var(--line); border-radius:14px; padding:5px; text-align:center; margin-top:8px;}
+.add-activity-btn{width:100%; background:transparent; border:none; padding:12px; font-weight:600; font-size:12.5px; color:var(--teal-700); cursor:pointer;}
+.add-activity-btn:hover{color:var(--mango-2);}
+.empty-state{text-align:center; padding:40px 16px; opacity:.5; font-size:13px;}
+
+/* ---------- Map ---------- */
+.map-svg-wrap{position:absolute; inset:0;}
+.map-svg-wrap svg{width:100%; height:100%; display:block;}
+.map-marker{cursor:pointer;}
+.map-marker circle.dot{transition:.2s;}
+.map-marker.active circle.dot{filter:drop-shadow(0 6px 12px rgba(255,107,74,.5));}
+.map-marker text{font-family:'Space Mono',monospace; font-weight:700; pointer-events:none; user-select:none;}
+.map-route{fill:none; stroke:var(--mango); stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; opacity:.85;}
+.map-empty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; opacity:.45; font-size:13px; text-align:center; padding:20px;}
+.map-controls{position:absolute; right:16px; bottom:16px; display:flex; flex-direction:column; gap:6px; z-index:5;}
+.map-ctrl-btn{width:36px; height:36px; border-radius:10px; background:white; border:1px solid var(--line); box-shadow:0 8px 20px -10px rgba(29,29,31,.3); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; font-weight:700;}
+.map-ctrl-btn:hover{border-color:var(--ink);}
+.map-badge{position:absolute; left:16px; top:16px; background:white; border:1px solid var(--line); border-radius:12px; padding:8px 13px; font-size:11px; font-family:'Space Mono',monospace; box-shadow:0 8px 20px -10px rgba(29,29,31,.3); z-index:5;}
+</style>
+</head>
+<body>
+
+<div id="topbar" class="flex items-center justify-between gap-3 px-5" style="padding-top:calc(14px + var(--sat)); padding-bottom:14px;">
+  <div class="flex items-center gap-3">
+    <a href="#" id="backLink" class="btn-icon" title="Back to itinerary editor">⌂</a>
+    <div>
+      <p class="mono text-[10px] tracking-widest opacity-50" id="mapSubtitle">ITINERARY MAP</p>
+      <h1 class="display text-lg font-semibold leading-tight">Trip Map View</h1>
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="mono text-xs flex items-center gap-2 opacity-70"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+    <a href="#" id="editorLink" class="btn-ghost text-xs" style="padding:8px 16px;">Full editor</a>
+  </div>
+</div>
+
+<div class="app-shell">
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="split">
+    <div class="pane-left"><div class="left-inner" id="leftInner"></div></div>
+    <div class="pane-right">
+      <div class="map-svg-wrap" id="mapWrap"></div>
+      <div class="map-badge" id="mapBadge" style="display:none;"></div>
+      <div class="map-controls">
+        <button class="map-ctrl-btn" onclick="mapZoom(1.25)">+</button>
+        <button class="map-ctrl-btn" onclick="mapZoom(0.8)">−</button>
+        <button class="map-ctrl-btn" style="font-size:12px;" onclick="fitMap(true)" title="Reset view">⤢</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+/* ============================================================
+   DATA — same shape/migration as itinerary.html so both pages
+   read/write the same backend blob without conflicting.
+=============================================================*/
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem('goaItineraryDraft')) || null; }catch(e){ return null; } }
+function persistLocal(){ localStorage.setItem('goaItineraryDraft', JSON.stringify(days)); }
+let days = loadLocal() || [];
+let activeDayIndex = 0;
+let activeActivityKey = null; // `${di}-${ai}` — drives highlight sync between timeline & map
+let mapZoomLevel = 1;
+let mapPan = {x:0, y:0};
+
+function genId(){ return 'a' + Math.random().toString(36).slice(2,9); }
+function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function guessTimeOfDay(text){ const s=String(text||'').toLowerCase();
+  if(/\b(morning|breakfast|sunrise)\b/.test(s)) return 'morning';
+  if(/\b(afternoon|lunch|noon)\b/.test(s)) return 'afternoon';
+  if(/\b(evening|dinner|sunset)\b/.test(s)) return 'evening';
+  if(/\b(night|late)\b/.test(s)) return 'night'; return null; }
+function guessIcon(text){ const s=String(text||'').toLowerCase();
+  if(/\bbeach|shore|coast\b/.test(s)) return '🏖️';
+  if(/\bbreakfast|lunch|dinner|food|restaurant|cafe|eat\b/.test(s)) return '🍽️';
+  if(/\bfort|temple|church|basilica|heritage|museum\b/.test(s)) return '🏛️';
+  if(/\bshop|market|bazaar\b/.test(s)) return '🛍️';
+  if(/\bcab|train|flight|drive|transfer|board|airport|station\b/.test(s)) return '✈️';
+  if(/\bparty|club|dj|night\b/.test(s)) return '🎉';
+  if(/\bcruise|boat|kayak|water\b/.test(s)) return '🚤';
+  if(/\bcheck.?in|hotel|villa|resort\b/.test(s)) return '🏨';
+  return '📍'; }
+function migrateDay(d){
+  if(Array.isArray(d.activities)) return d;
+  const items = d.items || []; const places = d.places || [];
+  const activities = items.map((text,i)=>({ id:genId(), timeOfDay:guessTimeOfDay(text)||(i===0?'morning':i===items.length-1?'evening':'afternoon'),
+    icon:guessIcon(text), title:(text||'').trim()||'Untitled activity', startTime:'', endTime:'', place: places[i]?{...places[i]}:null, note:'' }));
+  for(let i=items.length;i<places.length;i++){ activities.push({ id:genId(), timeOfDay:'morning', icon:guessIcon(places[i].name), title:places[i].name||'Place', startTime:'', endTime:'', place:places[i], note:'' }); }
+  return { day:d.day, date:d.date, title:d.title, tag:d.tag, tbd:d.tbd, activities };
+}
+function migrateAll(list){ return (list||[]).map(migrateDay); }
+
+const TOD_META = { morning:{label:'Morning',icon:'🌅'}, afternoon:{label:'Afternoon',icon:'☀️'}, evening:{label:'Evening',icon:'🌇'}, night:{label:'Night',icon:'🌙'} };
+const ICON_CHOICES = ['📍','✈️','🏨','🏖️','🍽️','🏛️','🛍️','🚗','🎉','🚤','⛰️','🎭','📸'];
+
+async function pullItinerary(){
+  if(!window.TRIP){ setSyncStatus('bad'); render(); return; }
+  setSyncStatus('pending');
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(TRIP.id));
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    if(Array.isArray(data.days) && data.days.length){ days = migrateAll(data.days); persistLocal(); }
+    else if(!days.length && Array.isArray(TRIP.defaultItinerary)){ days = migrateAll(JSON.parse(JSON.stringify(TRIP.defaultItinerary))); }
+    else{ days = migrateAll(days); }
+    if(activeDayIndex >= days.length) activeDayIndex = 0;
+    setSyncStatus('ok');
+  }catch(err){
+    setSyncStatus('bad');
+    days = migrateAll(days);
+    console.warn('Itinerary map: backend unreachable, using local draft.', err);
+  }
+  render();
+}
+async function saveItinerary(){
+  persistLocal();
+  if(!window.TRIP) return;
+  setSyncStatus('pending');
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(TRIP.id), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'saveItinerary', payload:{days}, ts:new Date().toISOString()})
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    setSyncStatus('ok');
+  }catch(err){ setSyncStatus('bad'); console.warn('Save failed', err); }
+}
+
+(async function boot(){
+  const trip = await initTripContext();
+  document.title = `Itinerary Map — ${trip.name}`;
+  document.getElementById('mapSubtitle').textContent = trip.shortDates ? `${trip.name.toUpperCase()} · ${trip.shortDates}` : trip.name.toUpperCase();
+  document.getElementById('backLink').href = withTrip('index.html');
+  document.getElementById('editorLink').href = withTrip('itinerary.html');
+  await pullItinerary();
+})();
+
+/* ============================================================
+   RENDER — day tabs + timeline (left)
+=============================================================*/
+const dayTabsEl = document.getElementById('dayTabs');
+const leftInnerEl = document.getElementById('leftInner');
+function fmtDateShort(iso){ if(!iso) return 'No date'; const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return iso; return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function setActiveDay(di){ activeDayIndex=di; activeActivityKey=null; mapZoomLevel=1; mapPan={x:0,y:0}; render(); }
+function setActiveActivity(di,ai){ activeActivityKey = di+'-'+ai; renderTimelineHighlight(); renderMap(); const el=document.getElementById('tl-'+di+'-'+ai); if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+
+function render(){
+  if(!days.length){
+    dayTabsEl.innerHTML = '';
+    leftInnerEl.innerHTML = `<div class="empty-state">No days yet — add your first one.</div><div class="text-center mt-3"><button class="btn-primary" onclick="addDay()">+ Add day</button></div>`;
+    renderMap();
+    return;
+  }
+  if(activeDayIndex >= days.length) activeDayIndex = days.length-1;
+
+  dayTabsEl.innerHTML = days.map((d,di)=>`
+    <div class="day-tab ${di===activeDayIndex?'active':''}" onclick="setActiveDay(${di})">
+      <span class="dt-label">${escAttr(d.day||('Day '+(di+1)))}</span>
+      <span class="dt-date">${d.date ? fmtDateShort(d.date) : (d.tbd?'TBD':'—')}</span>
+    </div>`).join('') + `<div class="day-tab-add" onclick="addDay()" title="Add day">+</div>`;
+
+  const d = days[activeDayIndex]; const di = activeDayIndex; const acts = d.activities || [];
+
+  let timelineHtml = '';
+  acts.forEach((a,ai)=>{
+    timelineHtml += renderActivity(d, di, a, ai);
+    if(ai < acts.length-1){
+      const travel = travelBetween(acts[ai], acts[ai+1]);
+      if(travel) timelineHtml += `<div class="travel-row"><span class="dots"></span><span>🚗 ${travel.mins} min · ${travel.km} km</span><span class="dots"></span></div>`;
+      else timelineHtml += `<div class="travel-row"><span class="dots"></span></div>`;
+    }
+  });
+
+  leftInnerEl.innerHTML = `
+    <div class="day-title-row">
+      <div>
+        <p class="mono">DAY ${di+1} · ${d.date ? fmtDateShort(d.date) : 'No date'}</p>
+        <h2 class="display">${escAttr(d.title || 'Untitled day')}</h2>
+      </div>
+      <button class="tl-mini-btn danger" onclick="removeDay(${di})">Remove day</button>
+    </div>
+    <div class="timeline" id="timelineEl">${timelineHtml || ''}</div>
+    ${!acts.length ? `<div class="empty-state">No activities yet for this day.</div>` : ''}
+    <div class="add-activity-card"><button class="add-activity-btn" onclick="addActivity(${di})">＋ Add Activity</button></div>
+  `;
+  renderMap();
+}
+
+function renderTimelineHighlight(){
+  document.querySelectorAll('.tl-item').forEach(el=>{
+    el.classList.toggle('tl-active', el.dataset.key === activeActivityKey);
+  });
+}
+
+function travelBetween(a1, a2){
+  const p1 = a1 && a1.place, p2 = a2 && a2.place;
+  if(!p1 || !p2 || p1.lat==null || p2.lat==null) return null;
+  const km = haversineKm({lat:p1.lat,lng:p1.lng}, {lat:p2.lat,lng:p2.lng});
+  const mins = Math.max(3, Math.round(km / 25 * 60 / 5) * 5); // ~25km/h avg, rounded to 5 min
+  return { km: km < 10 ? km.toFixed(1) : Math.round(km), mins };
+}
+
+function renderActivity(d, di, a, ai){
+  const tod = TOD_META[a.timeOfDay] || TOD_META.morning;
+  const p = a.place;
+  const key = di+'-'+ai;
+  const timeLabel = a.startTime ? (a.endTime ? `${a.startTime}–${a.endTime}` : a.startTime) : tod.label;
+  const statusCls = p ? (p.status||'') : '';
+  const statusLabel = p ? (p.status==='pending'?'Resolving…':p.status==='ok'?'📍 Located':p.status==='bad'?'Unresolved':'') : '';
+  return `
+    <div class="tl-item" id="tl-${di}-${ai}" data-key="${key}">
+      <div class="tl-node">${a.icon||'📍'}</div>
+      <div class="card tl-card" onclick="setActiveActivity(${di},${ai})">
+        <div class="tl-row1">
+          <span class="time-badge">${tod.icon} ${escAttr(timeLabel)}</span>
+          <span class="tl-title">${escAttr(a.title || 'Untitled activity')}</span>
+        </div>
+        <div class="tl-loc">
+          <span>📍 ${escAttr(p && p.name ? p.name : 'No location set')}</span>
+          <span class="tl-loc-status ${statusCls}">${statusLabel}</span>
+        </div>
+        ${p && p.photo ? `<img class="tl-thumb" src="${escAttr(p.photo)}" alt="${escAttr(p.name)}"/>` : ''}
+        ${a.note ? `<p class="text-xs mt-2 opacity-70">${escAttr(a.note)}</p>` : ''}
+        <div class="tl-actions" onclick="event.stopPropagation()">
+          ${p && p.lat!=null ? `<button class="tl-mini-btn" onclick="setActiveActivity(${di},${ai})">🗺 View on map</button>` : ''}
+          <button class="tl-mini-btn" onclick="toggleEdit(${di},${ai})">✎ Edit</button>
+          ${ai>0 ? `<button class="tl-mini-btn" onclick="moveActivity(${di},${ai},-1)">↑</button>` : ''}
+          ${ai < (d.activities.length-1) ? `<button class="tl-mini-btn" onclick="moveActivity(${di},${ai},1)">↓</button>` : ''}
+          <button class="tl-mini-btn danger" onclick="removeActivity(${di},${ai})">✕</button>
+        </div>
+        <div class="edit-panel" onclick="event.stopPropagation()">
+          <div class="edit-grid">
+            <select onchange="updateActivity(${di},${ai},'icon',this.value)">${ICON_CHOICES.map(ic=>`<option ${a.icon===ic?'selected':''}>${ic}</option>`).join('')}</select>
+            <input type="time" value="${escAttr(a.startTime)}" onchange="updateActivity(${di},${ai},'startTime',this.value)"/>
+            <input type="time" value="${escAttr(a.endTime)}" onchange="updateActivity(${di},${ai},'endTime',this.value)"/>
+          </div>
+          <input value="${escAttr(a.title)}" placeholder="Activity title" oninput="updateActivity(${di},${ai},'title',this.value)"/>
+          <input value="${escAttr(p ? p.name : '')}" placeholder="📍 Location (e.g. Baga Beach)"
+            oninput="updateActivityPlaceName(${di},${ai},this.value)"
+            onblur="resolveActivityPlace(${di},${ai})"
+            onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"/>
+          <textarea rows="2" placeholder="Optional note…" oninput="updateActivity(${di},${ai},'note',this.value)">${escAttr(a.note)}</textarea>
+          <button class="btn-primary text-xs" style="padding:8px 16px;" onclick="saveItinerary(); toggleEdit(${di},${ai})">Done</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleEdit(di,ai){ document.getElementById('tl-'+di+'-'+ai).classList.toggle('tl-editing'); }
+function updateDay(di,key,val){ days[di][key]=val; if(key==='tag') render(); }
+function addDay(){ days.push({ day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, activities:[] }); activeDayIndex=days.length-1; render(); }
+function removeDay(di){ if(!confirm('Remove this day?')) return; days.splice(di,1); if(activeDayIndex>=days.length) activeDayIndex=Math.max(0,days.length-1); persistLocal(); render(); }
+function addActivity(di){
+  days[di].activities = days[di].activities || [];
+  const count = days[di].activities.length; const rotation=['morning','afternoon','evening','night'];
+  days[di].activities.push({ id:genId(), timeOfDay:rotation[count%rotation.length], icon:'📍', title:'', startTime:'', endTime:'', place:null, note:'' });
+  render();
+  requestAnimationFrame(()=>toggleEdit(di, days[di].activities.length-1));
+}
+function updateActivity(di,ai,key,val){ days[di].activities[ai][key]=val; persistLocal(); if(key==='icon'||key==='title') render(); }
+function removeActivity(di,ai){ days[di].activities.splice(ai,1); persistLocal(); render(); }
+function moveActivity(di,ai,dir){ const arr=days[di].activities; const j=ai+dir; if(j<0||j>=arr.length) return; [arr[ai],arr[j]]=[arr[j],arr[ai]]; persistLocal(); render(); }
+
+/* Place resolution — delegates entirely to the shared /places backend
+   (see shared.js resolvePlace) which already geocodes + coordinate-matches
+   a photo server-side, so "Baga", "Baga Beach" and "Baga Beach Goa" all
+   resolve to the same coordinates and pull a photo verified to be near
+   them, rather than a generic first-hit image. */
+function updateActivityPlaceName(di,ai,val){
+  const a = days[di].activities[ai];
+  if(!a.place) a.place = { name:'', photo:null, status:'' };
+  a.place.name = val;
+}
+async function resolveActivityPlace(di,ai){
+  const a = days[di] && days[di].activities && days[di].activities[ai];
+  if(!a || !a.place) return;
+  const p = a.place; const rawName = (p.name||'').trim();
+  if(!rawName){ a.place=null; persistLocal(); render(); return; }
+  if(p.status==='ok' && p._fetchedFor===rawName) return;
+  p.status='pending'; render();
+  try{
+    const resolved = await resolvePlace(rawName);
+    if(!resolved){ p.photo=null; p.lat=null; p.lng=null; p.status='bad'; render(); return; }
+    p.lat=resolved.lat; p.lng=resolved.lng; p.resolvedName=resolved.name; p.displayName=resolved.displayName;
+    p.photo=resolved.photo; p.caption=resolved.photoTitle||resolved.name; p.source=resolved.photoSource;
+    p.status='ok'; p._fetchedFor=rawName;
+  }catch(err){ p.photo=null; p.lat=null; p.lng=null; p.status='bad'; }
+  persistLocal(); render();
+}
+
+/* ============================================================
+   MAP — stylized SVG map (no external tile server, so it stays
+   inside the site's existing CSP img-src/connect-src allowlist).
+   Plots resolved places for the active day, draws a sequential
+   route line, and keeps markers <-> timeline cards in sync.
+=============================================================*/
+const mapWrapEl = document.getElementById('mapWrap');
+const mapBadgeEl = document.getElementById('mapBadge');
+const MAP_W = 800, MAP_H = 900;
+
+function mapZoom(factor){ mapZoomLevel = Math.min(4, Math.max(0.6, mapZoomLevel*factor)); applyMapTransform(); }
+function fitMap(reset){ mapZoomLevel=1; mapPan={x:0,y:0}; if(reset) renderMap(); else applyMapTransform(); }
+function applyMapTransform(){
+  const g = document.getElementById('mapZoomGroup');
+  if(!g) return;
+  g.setAttribute('transform', `translate(${MAP_W/2},${MAP_H/2}) scale(${mapZoomLevel}) translate(${-MAP_W/2 + mapPan.x},${-MAP_H/2 + mapPan.y})`);
+}
+
+function renderMap(){
+  const d = days[activeDayIndex];
+  const acts = (d && d.activities) || [];
+  const pts = acts.map((a,ai)=>({ a, ai, p:a.place })).filter(x=>x.p && x.p.lat!=null && x.p.lng!=null);
+
+  if(pts.length < 1){
+    mapWrapEl.innerHTML = `<div class="map-empty"><div style="font-size:32px;">🗺️</div><div>Add and resolve locations for this day<br/>to see them plotted here.</div></div>`;
+    mapBadgeEl.style.display='none';
+    return;
+  }
+
+  const lats = pts.map(x=>x.p.lat), lngs = pts.map(x=>x.p.lng);
+  let minLat=Math.min(...lats), maxLat=Math.max(...lats), minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
+  const latPad = Math.max((maxLat-minLat)*0.28, 0.01), lngPad = Math.max((maxLng-minLng)*0.28, 0.01);
+  minLat-=latPad; maxLat+=latPad; minLng-=lngPad; maxLng+=lngPad;
+
+  const project = (lat,lng)=>{
+    const x = ((lng-minLng)/(maxLng-minLng)) * MAP_W;
+    const y = MAP_H - ((lat-minLat)/(maxLat-minLat)) * MAP_H;
+    return [x,y];
+  };
+
+  const coords = pts.map(x=>project(x.p.lat,x.p.lng));
+  const routeD = coords.map((c,i)=> (i===0?'M':'L') + c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
+
+  let gridLines = '';
+  for(let i=1;i<7;i++){
+    gridLines += `<line x1="0" y1="${i*MAP_H/7}" x2="${MAP_W}" y2="${i*MAP_H/7}" stroke="var(--line)" stroke-width="1"/>`;
+    gridLines += `<line x1="${i*MAP_W/7}" y1="0" x2="${i*MAP_W/7}" y2="${MAP_H}" stroke="var(--line)" stroke-width="1"/>`;
+  }
+
+  const markers = pts.map((x,idx)=>{
+    const [cx,cy] = coords[idx];
+    const key = x.ai; // note: keyed by di+'-'+ai for active check below
+    const isActive = activeActivityKey === (activeDayIndex+'-'+x.ai);
+    return `<g class="map-marker ${isActive?'active':''}" transform="translate(${cx},${cy})" onclick="setActiveActivity(${activeDayIndex},${x.ai})">
+      <circle class="dot" r="${isActive?15:12}" fill="${isActive?'var(--mango)':'white'}" stroke="var(--ink)" stroke-width="1.5"/>
+      <text x="0" y="4" text-anchor="middle" font-size="11" fill="${isActive?'white':'var(--ink)'}">${idx+1}</text>
+    </g>`;
+  }).join('');
+
+  mapWrapEl.innerHTML = `
+    <svg viewBox="0 0 ${MAP_W} ${MAP_H}" preserveAspectRatio="xMidYMid meet">
+      <rect width="${MAP_W}" height="${MAP_H}" fill="var(--sand-2)"/>
+      <g id="mapZoomGroup">
+        ${gridLines}
+        ${coords.length>1 ? `<path class="map-route" d="${routeD}"/>` : ''}
+        ${markers}
+      </g>
+    </svg>`;
+  applyMapTransform();
+
+  if(pts.length>1){
+    let totalKm=0;
+    for(let i=0;i<pts.length-1;i++){ totalKm += haversineKm({lat:pts[i].p.lat,lng:pts[i].p.lng},{lat:pts[i+1].p.lat,lng:pts[i+1].p.lng}); }
+    mapBadgeEl.style.display='block';
+    mapBadgeEl.innerHTML = `${pts.length} stops · ~${totalKm.toFixed(1)} km total`;
+  } else {
+    mapBadgeEl.style.display='none';
+  }
+}
+</script>
+<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
+</body>
+</html>
