@@ -108,7 +108,7 @@ label{font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:up
 
 <div id="topbar" class="flex items-center justify-between gap-3 px-5" style="padding-top:calc(14px + var(--sat)); padding-bottom:14px;">
   <div class="flex items-center gap-3">
-    <a href="#" id="backLink" class="btn-icon" title="Back to itinerary editor">⌂</a>
+    <a href="#" id="backLink" class="btn-icon" title="Back to itinerary editor"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></a>
     <div>
       <p class="mono text-[10px] tracking-widest opacity-50" id="mapSubtitle">ITINERARY MAP</p>
       <h1 class="display text-lg font-semibold leading-tight">Trip Map View</h1>
@@ -129,8 +129,8 @@ label{font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:up
       <div class="map-badge" id="mapBadge" style="display:none;"></div>
       <div class="map-controls">
         <button class="map-ctrl-btn" onclick="mapZoom(1.25)">+</button>
-        <button class="map-ctrl-btn" onclick="mapZoom(0.8)">−</button>
-        <button class="map-ctrl-btn" style="font-size:12px;" onclick="fitMap(true)" title="Reset view">⤢</button>
+        <button class="map-ctrl-btn" onclick="mapZoom(0.8)">-</button>
+        <button class="map-ctrl-btn" onclick="fitMap(true)" title="Reset view"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
       </div>
     </div>
   </div>
@@ -296,7 +296,7 @@ function renderActivity(d, di, a, ai){
   const statusCls = p ? (p.status||'') : '';
   const statusLabel = p ? (p.status==='pending'?'Resolving…':p.status==='ok'?'📍 Located':p.status==='bad'?'Unresolved':'') : '';
   return `
-    <div class="tl-item" id="tl-${di}-${ai}" data-key="${key}">
+    <div class="tl-item ${a._editOpen?'tl-editing':''}" id="tl-${di}-${ai}" data-key="${key}">
       <div class="tl-node">${a.icon||'📍'}</div>
       <div class="card tl-card" onclick="setActiveActivity(${di},${ai})">
         <div class="tl-row1">
@@ -334,7 +334,17 @@ function renderActivity(d, di, a, ai){
     </div>`;
 }
 
-function toggleEdit(di,ai){ document.getElementById('tl-'+di+'-'+ai).classList.toggle('tl-editing'); }
+function toggleEdit(di,ai){
+  const a = days[di].activities[ai];
+  a._editOpen = !a._editOpen;
+  render();
+  if(a._editOpen){
+    requestAnimationFrame(()=>{
+      const input = document.querySelector(`#tl-${di}-${ai} .edit-panel input`);
+      if(input) input.focus();
+    });
+  }
+}
 function updateDay(di,key,val){ days[di][key]=val; if(key==='tag') render(); }
 function addDay(){ days.push({ day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, activities:[] }); activeDayIndex=days.length-1; render(); }
 function removeDay(di){ if(!confirm('Remove this day?')) return; days.splice(di,1); if(activeDayIndex>=days.length) activeDayIndex=Math.max(0,days.length-1); persistLocal(); render(); }
@@ -345,7 +355,21 @@ function addActivity(di){
   render();
   requestAnimationFrame(()=>toggleEdit(di, days[di].activities.length-1));
 }
-function updateActivity(di,ai,key,val){ days[di].activities[ai][key]=val; persistLocal(); if(key==='icon'||key==='title') render(); }
+function updateActivity(di,ai,key,val){
+  days[di].activities[ai][key]=val;
+  persistLocal();
+  if(key==='icon'){ render(); return; }
+  if(key==='title'){
+    // Live-patch the visible title instead of a full render(), which would
+    // rebuild the DOM on every keystroke, stealing focus and collapsing
+    // the edit panel back closed after one character.
+    const titleEl = document.querySelector(`#tl-${di}-${ai} .tl-title`);
+    if(titleEl) titleEl.textContent = val || 'Untitled activity';
+    return;
+  }
+  // startTime/endTime/note: picked up next time render() runs (e.g. when
+  // the edit panel closes) — no need to rebuild the DOM while typing.
+}
 function removeActivity(di,ai){ days[di].activities.splice(ai,1); persistLocal(); render(); }
 function moveActivity(di,ai,dir){ const arr=days[di].activities; const j=ai+dir; if(j<0||j>=arr.length) return; [arr[ai],arr[j]]=[arr[j],arr[ai]]; persistLocal(); render(); }
 

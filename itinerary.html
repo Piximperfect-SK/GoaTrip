@@ -161,7 +161,7 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
 
 <div id="topbar">
   <div class="flex items-center gap-3">
-    <a href="index.html" class="btn-icon" title="Back to trip site">⌂</a>
+    <a href="index.html" class="btn-icon" title="Back to trip site"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></a>
     <div>
       <p class="mono text-[10px] tracking-widest opacity-50" id="itinSubtitle">ITINERARY</p>
       <h1 class="display text-lg font-semibold leading-tight">Itinerary Planner</h1>
@@ -169,7 +169,7 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
   </div>
   <div class="flex items-center gap-3">
     <span class="mono text-xs flex items-center gap-2 opacity-70"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
-    <a href="test_itenary.html" id="mapViewLink" class="btn-ghost" title="Split-screen map view">🗺 Map view</a>
+    <a href="test_itenary.html" id="mapViewLink" class="btn-ghost" style="display:inline-flex; align-items:center; gap:7px;" title="Split-screen map view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map view</a>
     <button class="btn-ghost" onclick="pullItinerary(true)">Reload</button>
     <button class="btn-primary" onclick="saveItinerary()">Save changes</button>
   </div>
