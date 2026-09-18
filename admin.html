@@ -349,6 +349,58 @@
     0%{ box-shadow:0 0 0 0 rgba(255,122,69,.45); }
     100%{ box-shadow:0 0 0 14px rgba(255,122,69,0); }
   }
+
+  /* ============ Page content — redesigned to match itinerary.html's
+     day-tab / timeline-card language: a pill tab strip to switch
+     sections instead of one long scroll, each section as its own
+     card, a live mini hero preview, and mono char-counters on the
+     length-limited fields. Pure presentation — same #contentForm,
+     data-key attributes and submit handler as before. ============ */
+  .content-tabs{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 4px; margin-bottom:18px; scrollbar-width:none; }
+  .content-tabs::-webkit-scrollbar{ display:none; }
+  .content-tab{
+    flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9999px;
+    border:1.5px solid var(--line); background:white; cursor:pointer; transition:.18s;
+    font-size:12.5px; font-weight:600; color:var(--teal-700);
+  }
+  .content-tab:hover{ border-color:rgba(15,38,34,.3); }
+  .content-tab.active{ border-color:var(--ink); background:var(--ink); color:white; box-shadow:0 10px 22px -12px rgba(15,38,34,.5); }
+  .content-tab .ct-count{ font-family:'Space Mono',monospace; font-size:10px; opacity:.55; }
+
+  .content-section{ display:none; }
+  .content-section.active{ display:block; animation:dpIn .25s ease; }
+  .content-card{
+    background:var(--sand-2); border:1px solid var(--line); border-radius:14px;
+    padding:18px 18px 16px; margin-bottom:16px;
+  }
+  .content-card h4{ font-family:'Fraunces',serif; font-size:.95rem; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .content-card > p{ font-size:12px; opacity:.55; margin:0 0 14px; }
+
+  .field-row{ position:relative; }
+  .char-count{
+    position:absolute; right:2px; top:0; font-family:'Space Mono',monospace; font-size:10px; opacity:.4;
+  }
+  .field-row textarea ~ .char-count{ top:auto; bottom:8px; right:10px; }
+
+  /* Live hero mini-preview: same gradient/type language as index.html's
+     hero, scaled down, so an editor can see roughly what they're
+     about to publish without switching tabs to the live site. */
+  .hero-preview{
+    border-radius:16px; padding:26px 22px; margin-bottom:18px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 140% at 10% 0%, rgba(255,107,74,.16), transparent 55%),
+      radial-gradient(120% 140% at 90% 100%, rgba(46,111,242,.14), transparent 55%),
+      var(--paper);
+    border:1px solid var(--line);
+  }
+  .hero-preview .hp-eyebrow{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; opacity:.5; margin-bottom:8px; }
+  .hero-preview .hp-title{ font-family:'Fraunces',serif; font-weight:600; font-size:clamp(1.4rem,3vw,2.1rem); line-height:1.06; margin:0 0 8px; }
+  .hero-preview .hp-sub{ font-size:12.5px; opacity:.6; max-width:440px; line-height:1.5; margin:0 0 12px; }
+  .hero-preview .hp-ctas{ display:flex; gap:8px; }
+  .hero-preview .hp-cta{ font-size:11px; font-weight:600; padding:7px 14px; border-radius:9999px; }
+  .hero-preview .hp-cta.primary{ background:var(--mango); color:white; }
+  .hero-preview .hp-cta.ghost{ border:1.5px solid var(--ink); }
+  .hero-preview .hp-tag{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; opacity:.4; position:absolute; top:14px; right:16px; }
 </style>
 </head>
 <body class="gate-mode">
@@ -660,49 +712,92 @@
           <h3>Page content</h3>
           <p class="cardsub">Edits the copy shown on the public site's homepage (index.html) — hero text, the countdown, and the footer/social links. Leave a field blank to fall back to the site's built-in default rather than showing nothing. Changes apply the next time a visitor loads or refreshes the page.</p>
 
+          <div class="hero-preview" id="heroPreview">
+            <span class="hp-tag">Live preview</span>
+            <p class="hp-eyebrow" id="hpEyebrow">2–5 October · Pune to Goa</p>
+            <h5 class="hp-title" id="hpTitle">Twelve tickets.<br>One Goa.</h5>
+            <p class="hp-sub" id="hpSub">An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide.</p>
+            <div class="hp-ctas">
+              <span class="hp-cta primary" id="hpCtaPrimary">Explore the trip</span>
+              <span class="hp-cta ghost" id="hpCtaSecondary">Reserve a seat</span>
+            </div>
+          </div>
+
+          <div class="content-tabs" id="contentTabs">
+            <div class="content-tab active" data-section="hero">🏖️ Hero</div>
+            <div class="content-tab" data-section="countdown">⏱️ Countdown</div>
+            <div class="content-tab" data-section="footer">📌 Footer</div>
+            <div class="content-tab" data-section="social">🔗 Social links</div>
+          </div>
+
           <form id="contentForm">
-            <div class="subhead"><h4>Hero</h4></div>
-            <div class="field-row"><label>Eyebrow line</label><input data-key="hero.eyebrow" maxlength="120" placeholder="2–5 October · Pune to Goa"/></div>
-            <div class="row">
-              <div class="field-row"><label>Headline — line 1</label><input data-key="hero.titleLine1" maxlength="60" placeholder="Twelve tickets."/></div>
-              <div class="field-row"><label>Headline — line 2</label><input data-key="hero.titleLine2" maxlength="60" placeholder="One Goa."/></div>
-            </div>
-            <div class="field-row"><label>Subtext</label><textarea data-key="hero.subtext" maxlength="400" rows="3" placeholder="An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide."></textarea></div>
-            <div class="row">
-              <div class="field-row"><label>Primary button label</label><input data-key="hero.ctaPrimary" maxlength="40" placeholder="Explore the trip"/></div>
-              <div class="field-row"><label>Secondary button label</label><input data-key="hero.ctaSecondary" maxlength="40" placeholder="Reserve a seat"/></div>
-            </div>
-
-            <div class="subhead"><h4>Countdown</h4></div>
-            <div class="row">
-              <div class="field-row"><label>Counts down to (local date &amp; time)</label><input type="datetime-local" data-key="hero.countdownTarget" /></div>
-              <div class="field-row"><label>Caption under the timer</label><input data-key="hero.countdownCaption" maxlength="60" placeholder="Until wheels-up from Pune"/></div>
-            </div>
-
-            <div class="subhead"><h4>Footer</h4></div>
-            <div class="field-row"><label>Tagline</label><input data-key="footer.tagline" maxlength="200" placeholder="🫧 Pune → Londa → Goa · built for the crew, edit freely."/></div>
-            <div class="field-row"><label>Credit name (shown as "D&amp;D by ___")</label><input data-key="footer.credit" maxlength="80" placeholder="Shubham Kumar"/></div>
-
-            <div class="subhead"><h4>Social links</h4><p>Leave any of these blank to keep that icon in place but unlinked.</p></div>
-            <div class="row">
-              <div class="field-row"><label>GitHub</label><input data-key="social.github" maxlength="300" placeholder="https://github.com/…"/></div>
-              <div class="field-row"><label>Instagram</label><input data-key="social.instagram" maxlength="300" placeholder="https://instagram.com/…"/></div>
-            </div>
-            <div class="row">
-              <div class="field-row"><label>X / Twitter</label><input data-key="social.twitter" maxlength="300" placeholder="https://x.com/…"/></div>
-              <div class="field-row"><label>LinkedIn</label><input data-key="social.linkedin" maxlength="300" placeholder="https://linkedin.com/in/…"/></div>
-            </div>
-            <div class="row">
-              <div class="field-row"><label>WhatsApp</label><input data-key="social.whatsapp" maxlength="300" placeholder="https://wa.me/…"/></div>
-              <div class="field-row"><label>YouTube</label><input data-key="social.youtube" maxlength="300" placeholder="https://youtube.com/@…"/></div>
-            </div>
-            <div class="row">
-              <div class="field-row"><label>Facebook</label><input data-key="social.facebook" maxlength="300" placeholder="https://facebook.com/…"/></div>
-              <div class="field-row"><label>Email</label><input data-key="social.email" maxlength="300" placeholder="mailto:you@example.com"/></div>
+            <div class="content-section active" data-section="hero">
+              <div class="content-card">
+                <h4>Eyebrow &amp; headline</h4>
+                <p>The small line above the headline, then the two headline lines shown on their own rows in the hero.</p>
+                <div class="field-row"><label>Eyebrow line</label><input data-key="hero.eyebrow" maxlength="120" placeholder="2–5 October · Pune to Goa"/><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Headline — line 1</label><input data-key="hero.titleLine1" maxlength="60" placeholder="Twelve tickets."/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Headline — line 2</label><input data-key="hero.titleLine2" maxlength="60" placeholder="One Goa."/><span class="char-count"></span></div>
+                </div>
+              </div>
+              <div class="content-card">
+                <h4>Subtext &amp; buttons</h4>
+                <p>The short paragraph under the headline, and the two CTA button labels.</p>
+                <div class="field-row"><label>Subtext</label><textarea data-key="hero.subtext" maxlength="400" rows="3" placeholder="An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide."></textarea><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Primary button label</label><input data-key="hero.ctaPrimary" maxlength="40" placeholder="Explore the trip"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Secondary button label</label><input data-key="hero.ctaSecondary" maxlength="40" placeholder="Reserve a seat"/><span class="char-count"></span></div>
+                </div>
+              </div>
             </div>
 
-            <div style="margin-top:18px; display:flex; gap:10px; align-items:center;">
+            <div class="content-section" data-section="countdown">
+              <div class="content-card">
+                <h4>⏱️ Countdown timer</h4>
+                <p>What the hero's countdown counts down to, and the small caption underneath it.</p>
+                <div class="row">
+                  <div class="field-row"><label>Counts down to (local date &amp; time)</label><input type="datetime-local" data-key="hero.countdownTarget" /></div>
+                  <div class="field-row"><label>Caption under the timer</label><input data-key="hero.countdownCaption" maxlength="60" placeholder="Until wheels-up from Pune"/><span class="char-count"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="footer">
+              <div class="content-card">
+                <h4>📌 Footer</h4>
+                <p>Shown at the bottom of every page.</p>
+                <div class="field-row"><label>Tagline</label><input data-key="footer.tagline" maxlength="200" placeholder="🫧 Pune → Londa → Goa · built for the crew, edit freely."/><span class="char-count"></span></div>
+                <div class="field-row"><label>Credit name (shown as "D&amp;D by ___")</label><input data-key="footer.credit" maxlength="80" placeholder="Shubham Kumar"/><span class="char-count"></span></div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="social">
+              <div class="content-card">
+                <h4>🔗 Social links</h4>
+                <p>Leave any of these blank to keep that icon in place but unlinked.</p>
+                <div class="row">
+                  <div class="field-row"><label>GitHub</label><input data-key="social.github" maxlength="300" placeholder="https://github.com/…"/></div>
+                  <div class="field-row"><label>Instagram</label><input data-key="social.instagram" maxlength="300" placeholder="https://instagram.com/…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>X / Twitter</label><input data-key="social.twitter" maxlength="300" placeholder="https://x.com/…"/></div>
+                  <div class="field-row"><label>LinkedIn</label><input data-key="social.linkedin" maxlength="300" placeholder="https://linkedin.com/in/…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>WhatsApp</label><input data-key="social.whatsapp" maxlength="300" placeholder="https://wa.me/…"/></div>
+                  <div class="field-row"><label>YouTube</label><input data-key="social.youtube" maxlength="300" placeholder="https://youtube.com/@…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>Facebook</label><input data-key="social.facebook" maxlength="300" placeholder="https://facebook.com/…"/></div>
+                  <div class="field-row"><label>Email</label><input data-key="social.email" maxlength="300" placeholder="mailto:you@example.com"/></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:8px; display:flex; gap:10px; align-items:center;">
               <button type="submit" class="btn-primary">Save changes</button>
+              <span class="sync-dot" id="contentSyncDot"></span>
               <span class="mono" id="contentSaveStatus" style="font-size:12px; opacity:.6;"></span>
             </div>
           </form>
@@ -1254,6 +1349,8 @@ el('contentForm')?.addEventListener('submit', async e=>{
   e.preventDefault();
   if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
   const status = el('contentSaveStatus');
+  const dot = el('contentSyncDot');
+  if(dot) dot.className = 'sync-dot pending';
   const fields = {};
   document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
     const key = field.dataset.key;
@@ -1265,11 +1362,80 @@ el('contentForm')?.addEventListener('submit', async e=>{
     if(res.error) throw new Error(res.error);
     showDashBanner('ok','Page content saved.');
     if(status) status.textContent = 'Saved just now.';
+    if(dot) dot.className = 'sync-dot ok';
   }catch(err){
     showDashBanner('bad', err.message);
     if(status) status.textContent = '';
+    if(dot) dot.className = 'sync-dot bad';
   }
 });
+
+/* ---------- content tabs, char counters, live hero preview ----------
+   Presentation only — reads the same [data-key] fields the save
+   handler above already uses, touches nothing else about how the
+   form loads or saves. */
+(function initContentTabsAndPreview(){
+  const tabs = document.querySelectorAll('#contentTabs .content-tab');
+  const sections = document.querySelectorAll('#contentForm .content-section');
+  tabs.forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      sections.forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      const match = document.querySelector(`#contentForm .content-section[data-section="${tab.dataset.section}"]`);
+      if(match) match.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('#contentForm [data-key][maxlength]').forEach(field=>{
+    const counter = field.parentElement.querySelector('.char-count');
+    if(!counter) return;
+    const update = ()=> counter.textContent = `${field.value.length}/${field.getAttribute('maxlength')}`;
+    field.addEventListener('input', update);
+    update();
+  });
+
+  const previewMap = {
+    'hero.eyebrow': v=>{ const el=document.getElementById('hpEyebrow'); if(el) el.textContent = v || '2–5 October · Pune to Goa'; },
+    'hero.titleLine1': updateHeroPreviewTitle,
+    'hero.titleLine2': updateHeroPreviewTitle,
+    'hero.subtext': v=>{ const el=document.getElementById('hpSub'); if(el) el.textContent = v || 'An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide.'; },
+    'hero.ctaPrimary': v=>{ const el=document.getElementById('hpCtaPrimary'); if(el) el.textContent = v || 'Explore the trip'; },
+    'hero.ctaSecondary': v=>{ const el=document.getElementById('hpCtaSecondary'); if(el) el.textContent = v || 'Reserve a seat'; },
+  };
+  function updateHeroPreviewTitle(){
+    const l1 = document.querySelector('[data-key="hero.titleLine1"]');
+    const l2 = document.querySelector('[data-key="hero.titleLine2"]');
+    const el = document.getElementById('hpTitle');
+    if(!el) return;
+    el.innerHTML = `${escapeHtml((l1 && l1.value) || 'Twelve tickets.')}<br>${escapeHtml((l2 && l2.value) || 'One Goa.')}`;
+  }
+  function syncContentPreview(){
+    Object.keys(previewMap).forEach(key=>{
+      const field = document.querySelector(`#contentForm [data-key="${key}"]`);
+      if(field) previewMap[key](field.value);
+    });
+    document.querySelectorAll('#contentForm [data-key][maxlength]').forEach(field=>{
+      const counter = field.parentElement.querySelector('.char-count');
+      if(counter) counter.textContent = `${field.value.length}/${field.getAttribute('maxlength')}`;
+    });
+  }
+  Object.keys(previewMap).forEach(key=>{
+    const field = document.querySelector(`#contentForm [data-key="${key}"]`);
+    if(!field) return;
+    field.addEventListener('input', ()=> previewMap[key](field.value));
+  });
+  // loadContent() (defined above) populates fields via field.value = ... —
+  // a property set, which input listeners don't fire for — so wrap it to
+  // re-sync the preview/counters right after it finishes populating.
+  if(typeof loadContent === 'function'){
+    const _origLoadContent = loadContent;
+    loadContent = async function(...args){
+      await _origLoadContent(...args);
+      syncContentPreview();
+    };
+  }
+})();
 
 async function loadCancellations(){
   try{
