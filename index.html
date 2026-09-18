@@ -2817,14 +2817,19 @@ async function renderGalleryCards(entries, fromItinerary){
 function syncPlacesFromItinerary(days){
   const seen = new Set();
   const entries = [];
+  const addPlace = (p, badge) => {
+    if(!p || p.status !== 'ok' || p.lat == null || p.lng == null) return;
+    const dedupeKey = p.placeId || (p.lat.toFixed(4)+','+p.lng.toFixed(4));
+    if(seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
+    entries.push({ place: p, badge });
+  };
   (days||[]).forEach(d=>{
-    (d.places||[]).forEach(p=>{
-      if(!p || p.status !== 'ok' || p.lat == null || p.lng == null) return;
-      const dedupeKey = p.placeId || (p.lat.toFixed(4)+','+p.lng.toFixed(4));
-      if(seen.has(dedupeKey)) return;
-      seen.add(dedupeKey);
-      entries.push({ place: p, badge: [d.day, d.date].filter(Boolean).join(' · ') });
-    });
+    const badge = [d.day, d.date].filter(Boolean).join(' · ');
+    // Newer shape: places live inside each activity.
+    (d.activities||[]).forEach(a => addPlace(a.place, badge));
+    // Older shape (not-yet-migrated saved data): a flat places array.
+    (d.places||[]).forEach(p => addPlace(p, badge));
   });
   renderGalleryCards(entries, entries.length > 0);
 }
@@ -3357,12 +3362,33 @@ const DEFAULT_ITINERARY = [
 const itinWrap = document.getElementById('itin-days');
 const itinSyncNote = document.getElementById('itinSyncNote');
 
+// Renders either shape: the newer per-day `activities` (structured
+// time-of-day / title / start-end time / place) written by the
+// redesigned itinerary.html planner, or the older plain `items` bullet
+// list (still what DEFAULT_ITINERARY below uses, and what any
+// not-yet-migrated saved trip has) — so this keeps working either way.
+const TOD_ICON = { morning:'🌅', afternoon:'☀️', evening:'🌇', night:'🌙' };
+function itinActivityLineHtml(a){
+  const time = [a.startTime, a.endTime].filter(Boolean).join(' – ');
+  const place = a.place && a.place.name ? a.place.name : '';
+  return `<li class="flex items-start gap-2">
+    <span aria-hidden="true">${a.icon || TOD_ICON[a.timeOfDay] || '📍'}</span>
+    <span>
+      <b>${escapeHtml(a.title || '')}</b>${time ? ` <span class="mono opacity-60" style="font-size:11px;">· ${escapeHtml(time)}</span>` : ''}
+      ${place ? `<span class="opacity-60"> — ${escapeHtml(place)}</span>` : ''}
+      ${a.note ? `<div class="opacity-60" style="font-size:12.5px; margin-top:2px;">${escapeHtml(a.note)}</div>` : ''}
+    </span>
+  </li>`;
+}
 function renderItinerary(days){
   itinWrap.innerHTML = '';
   (days||[]).forEach((d,i)=>{
     const el = document.createElement('div');
     el.className = "reveal day-card mb-6 p-6 relative";
     el.style.transitionDelay = (i*0.06)+'s';
+    const bodyHtml = Array.isArray(d.activities)
+      ? `<ul class="text-sm opacity-75 space-y-2 leading-relaxed">${d.activities.map(itinActivityLineHtml).join('') || '<li class="opacity-50">Nothing planned yet.</li>'}</ul>`
+      : `<ul class="text-sm opacity-75 space-y-1.5 leading-relaxed list-disc pl-4">${(d.items||[]).map(it=>`<li>${it}</li>`).join('')}</ul>`;
     el.innerHTML = `
       <span class="rail-dot absolute -left-[41px] md:-left-[57px] top-8"></span>
       <div class="flex flex-wrap items-center gap-3 mb-2">
@@ -3372,9 +3398,7 @@ function renderItinerary(days){
         ${d.tag === 'TBD' ? '<span class="mono text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(255,122,69,.14); color:var(--mango-2); border:1px dashed var(--mango)">PLACEHOLDER</span>' : ''}
       </div>
       <h3 class="display text-xl md:text-2xl font-semibold mb-3">${d.title}</h3>
-      <ul class="text-sm opacity-75 space-y-1.5 leading-relaxed list-disc pl-4">
-        ${(d.items||[]).map(it=>`<li>${it}</li>`).join('')}
-      </ul>`;
+      ${bodyHtml}`;
     itinWrap.appendChild(el);
     io.observe(el);
   });

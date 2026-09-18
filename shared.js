@@ -298,6 +298,12 @@ async function resolvePlace(rawText){
         query: cleaned, name: data.name, displayName: data.displayName,
         lat: data.lat, lng: data.lng, placeId: data.placeId,
         type: data.type, confidence: data.confidence,
+        // Photo matching now happens server-side (in the /places function),
+        // coordinate-aware and pre-ranked — this is already the best
+        // available match (or null if none was confident enough), plus a
+        // few alternates in case a caller wants to offer "try another photo".
+        photo: data.photo || null, photoTitle: data.photoTitle || null,
+        photoSource: data.photoSource || '', photoCandidates: data.photoCandidates || [],
       };
     }
   }catch(e){
