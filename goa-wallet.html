@@ -185,6 +185,29 @@
   .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; color:var(--ink); }
   .btn-icon:hover{ background:var(--sand); }
 
+  /* ---------- Admin login gate ---------- */
+  .wallet-gate{
+    position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:linear-gradient(-135deg, var(--mango) 0%, var(--azulejo) 55%, var(--teal-900) 100%);
+  }
+  .wallet-gate-card{
+    background:var(--paper); border-radius:20px; padding:36px 32px 30px; width:100%; max-width:360px;
+    box-shadow:0 30px 70px -25px rgba(0,0,0,.55); text-align:center;
+  }
+  .wallet-gate-badge{
+    width:48px; height:48px; border-radius:14px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--teal-800), var(--teal-900)); font-size:20px;
+    box-shadow:0 10px 22px -8px rgba(11,61,58,.55);
+  }
+  .wallet-gate-card h1{ font-size:1.35rem; margin:0 0 4px; color:var(--ink); }
+  .wallet-gate-sub{
+    font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--mango-2); margin:0 0 20px;
+  }
+  .wallet-gate-card .field-row{ text-align:left; }
+  .wallet-gate-note{ font-size:12px; opacity:.6; margin-top:16px; }
+  .wallet-gate-note a{ color:var(--azulejo); text-decoration:underline; }
+
   /* ---------- Form elements ----------
      One consistent look across every input/select/textarea in the app:
      generous internal padding, a clear resting vs. focus state, a
@@ -400,6 +423,34 @@
 </head>
 <body>
 
+<!-- ============ ADMIN LOGIN GATE ============
+     The whole wallet is now admin-gated: server-side, wallet.js
+     rejects both GET and POST without a valid session token (see
+     wallet.js); this overlay is the client-side login screen that
+     gets that token. It reuses the exact same sessionStorage key
+     and /admin login endpoint as admin.html, so logging in on either
+     page carries over to the other for the rest of this browser tab. -->
+<div id="walletGate" class="wallet-gate">
+  <div class="wallet-gate-card">
+    <div class="wallet-gate-badge">🔒</div>
+    <h1 class="display">Trip Wallet</h1>
+    <p class="wallet-gate-sub">Admin sign-in required</p>
+    <div id="gateBanner" class="banner err" style="display:none;"></div>
+    <form id="walletLoginForm">
+      <div class="field-row mb-3">
+        <label>Name</label>
+        <input type="text" id="wg-name" placeholder="Your admin name" autocomplete="username" required/>
+      </div>
+      <div class="field-row mb-4">
+        <label>PIN / Code</label>
+        <input type="password" id="wg-code" placeholder="Admin PIN" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="btn-primary w-full" id="wgSubmitBtn">Sign in</button>
+    </form>
+    <p class="wallet-gate-note">Not an admin yet? <a href="admin.html">Request access →</a></p>
+  </div>
+</div>
+
 <video id="pageVideo" autoplay muted loop playsinline preload="none" onerror="this.style.display='none'">
   <source src="videos/6.mp4" type="video/mp4">
 </video>
@@ -461,7 +512,7 @@
   </svg>
 </div>
 
-<div id="shell">
+<div id="shell" style="display:none;">
   <!-- ============ SIDEBAR ============ -->
   <aside id="sidebar">
     <div class="sidebar-video">
@@ -484,7 +535,9 @@
       <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
     <div class="foot">
+      <p class="mono" style="font-size:11px; opacity:.6; margin-bottom:8px;" id="walletWhoAmI"></p>
       <a href="index.html" class="hover:text-white">← Back to trip site</a>
+      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:block; margin-top:6px;">Log out</a>
     </div>
   </aside>
 
@@ -1315,14 +1368,24 @@ function setSyncStatus(state, meta){
 
 async function pullFromSheet(manual){
   if(!window.TRIP){ setSyncStatus('bad'); return; }
+  const token = getWalletToken();
+  if(!token){ setSyncStatus('bad'); showWalletGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
     catch(parseErr){
       throw new Error('Backend did not return JSON — please try again shortly.');
+    }
+    if(res.status === 401){
+      // The admin session is no longer valid (expired, or revoked) —
+      // this is an auth problem, not a connectivity blip, so drop back
+      // to the login gate instead of showing a generic error banner.
+      clearWalletSession();
+      showWalletGate('Your session expired — please sign in again.');
+      return;
     }
     if(data.error) throw new Error(data.error);
     // deposits falls back to the existing local copy (not []) if the
@@ -1395,13 +1458,15 @@ setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
 async function pushToSheet(action, payload, actor, opts){
   opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
+  const token = getWalletToken();
+  if(!token){ setSyncStatus('bad'); showWalletGate(); return null; }
   setSyncStatus('pending');
   let res, text;
   try{
     res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action, payload, actor, ts:new Date().toISOString()})
+      body: JSON.stringify({action, payload, actor, token, ts:new Date().toISOString()})
     });
     text = await res.text();
   }catch(networkErr){
@@ -1418,6 +1483,16 @@ async function pushToSheet(action, payload, actor, opts){
     setSyncStatus('bad');
     if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
     showBanner('err', `<b>Change saved locally — the backend response was invalid.</b> It'll retry automatically.`);
+    return null;
+  }
+  if(res.status === 401){
+    // Auth problem, not connectivity — never queued/retried with a
+    // token that's already known-bad. Drop back to the login gate;
+    // the change stays applied locally so nothing is lost.
+    setSyncStatus('bad');
+    if(opts.fromQueue) dequeuePendingOp(action, payload);
+    clearWalletSession();
+    showWalletGate('Your session expired — please sign in again. Your last change is saved locally and will sync once you\u2019re back in.');
     return null;
   }
   if(data.error){
@@ -3198,7 +3273,7 @@ function renderAll(){
   });
 }
 try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
-(async function boot(){
+async function initWalletApp(){
   const trip = await initTripContext();
   document.title = `Trip Wallet — ${trip.name}`;
   const sub = document.getElementById('walletSubtitle');
@@ -3210,6 +3285,103 @@ try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing
   await pullFromSheet();
   await flushPendingOps();
   await syncParticipantsFromRegistrations();
+}
+
+/* ============================================================
+   ADMIN LOGIN GATE
+   The wallet is now admin-only end to end: wallet.js rejects GET
+   and POST without a valid session token (see wallet.js), and this
+   gate is what gets that token from the person before anything else
+   on the page runs. Reuses the exact same sessionStorage keys and
+   /admin login endpoint as admin.html — logging in on either page
+   carries over to the other for the rest of this browser tab, and
+   an admin's existing admin.html session is picked up automatically
+   with no second login.
+=============================================================*/
+const WALLET_TOKEN_KEY = 'goaAdminToken';
+const WALLET_NAME_KEY = 'goaAdminName';
+function getWalletToken(){ return sessionStorage.getItem(WALLET_TOKEN_KEY); }
+function setWalletSession(token, name){
+  sessionStorage.setItem(WALLET_TOKEN_KEY, token);
+  sessionStorage.setItem(WALLET_NAME_KEY, name);
+}
+function clearWalletSession(){
+  sessionStorage.removeItem(WALLET_TOKEN_KEY);
+  sessionStorage.removeItem(WALLET_NAME_KEY);
+}
+function showWalletGate(message){
+  document.getElementById('walletGate').style.display = 'flex';
+  document.getElementById('shell').style.display = 'none';
+  document.body.style.overflow = 'hidden';
+  if(message){
+    const b = document.getElementById('gateBanner');
+    b.style.display = 'flex'; b.className = 'banner err'; b.textContent = message;
+  }
+}
+function hideWalletGate(name){
+  document.getElementById('walletGate').style.display = 'none';
+  document.getElementById('shell').style.display = 'flex';
+  document.body.style.overflow = '';
+  const who = document.getElementById('walletWhoAmI');
+  if(who) who.textContent = `Signed in as ${name || sessionStorage.getItem(WALLET_NAME_KEY) || 'admin'}`;
+}
+// Called once on load, and again after any 401 from wallet.js mid-session
+// (expired/invalid token) — verifies the token the same way admin.html
+// does (action:'whoAmI'), never trusting its mere presence in storage.
+async function verifyWalletSession(){
+  const token = getWalletToken();
+  if(!token) return null;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'whoAmI', token })
+    });
+    const data = await res.json();
+    if(data.ok && data.name) return data.name;
+  }catch(e){ /* treated as not verified below */ }
+  return null;
+}
+
+document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const btn = document.getElementById('wgSubmitBtn');
+  const banner = document.getElementById('gateBanner');
+  banner.style.display = 'none';
+  const name = document.getElementById('wg-name').value.trim();
+  const code = document.getElementById('wg-code').value.trim();
+  if(!name || !code) return;
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, code })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.message || data.error || 'Login failed.');
+    setWalletSession(data.token, name);
+    hideWalletGate(name);
+    await initWalletApp();
+    if(data.mustChangePin){
+      showBanner('warn', 'You\u2019re still on a temporary PIN — change it from the Admin console when you get a chance.');
+    }
+  }catch(err){
+    banner.style.display = 'flex'; banner.className = 'banner err'; banner.textContent = err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+});
+
+document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  clearWalletSession();
+  location.reload();
+});
+
+(async function gatedBoot(){
+  const name = await verifyWalletSession();
+  if(!name){ clearWalletSession(); showWalletGate(); return; }
+  hideWalletGate(name);
+  await initWalletApp();
 })();
 
 /* ============================================================

@@ -3,8 +3,9 @@
 // SCHEMAS/validateAction_ pattern before any write happens.
 const crypto = require('crypto');
 const { query } = require('./lib/db');
-const { ok, badRequest, serverError, parseBody } = require('./lib/http');
+const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText, sanitizeNumber, normalizeDepositType, validatePayload } = require('./lib/validate');
+const { verifySessionToken } = require('./lib/auth');
 
 // Not a secret (visible in this repo/front-end) — a "type this exact phrase"
 // guard against one stray/automated POST wiping a trip's wallet, same as
@@ -119,13 +120,23 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
     const tripId = params.tripId;
     if (!tripId) return badRequest('tripId is required.');
+    if (event.httpMethod !== 'GET' && event.httpMethod !== 'POST') return badRequest('Unsupported method.');
+
+    const body = event.httpMethod === 'POST' ? parseBody(event) : null;
+    if (event.httpMethod === 'POST' && !body) return badRequest('Invalid JSON body.');
+
+    // The wallet holds real financial data for the trip, so both reads
+    // and writes now require a valid admin session token — the same
+    // HMAC-signed token admin.html mints on login (lib/auth.js). This
+    // closes the gap the old client-only "admin gate" left open: before
+    // this check, anyone who knew the endpoint URL could read (or write)
+    // the wallet directly, bypassing the login screen entirely.
+    const token = event.httpMethod === 'GET' ? params.token : body.token;
+    const adminName = verifySessionToken(token);
+    if (!adminName) return unauthorized('Session expired or invalid — please log in again.');
 
     if (event.httpMethod === 'GET') return ok(await readState(tripId));
 
-    if (event.httpMethod !== 'POST') return badRequest('Unsupported method.');
-
-    const body = parseBody(event);
-    if (!body) return badRequest('Invalid JSON body.');
     const { action } = body;
     const payload = body.payload || {};
     let actor = sanitizeText(body.actor || 'Unknown', 80);
