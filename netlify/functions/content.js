@@ -19,7 +19,7 @@ const { verifySessionToken } = require('./lib/auth');
 const ALLOWED_KEYS = new Set([
   'hero.eyebrow', 'hero.titleLine1', 'hero.titleLine2', 'hero.subtext',
   'hero.ctaPrimary', 'hero.ctaSecondary',
-  'hero.countdownTarget', 'hero.countdownCaption',
+  'hero.countdownTarget', 'hero.tripEndTarget', 'hero.countdownCaption',
   'footer.tagline', 'footer.credit',
   'social.github', 'social.instagram', 'social.twitter', 'social.linkedin',
   'social.whatsapp', 'social.youtube', 'social.facebook', 'social.email',

@@ -323,7 +323,10 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   font-family:'Space Mono', monospace; font-size:13px; font-weight:700;
   color:var(--ink); letter-spacing:.02em; text-align:right;
 }
-.dep-status{ color:var(--palm); }
+.dep-status{ color:var(--mango-2); } /* default/upcoming — overridden by phase class below once TRIP is resolved */
+.dep-status.phase-upcoming{ color:var(--mango-2); }
+.dep-status.phase-ongoing{ color:var(--palm); }
+.dep-status.phase-completed{ color:var(--azulejo); }
 
 @media (max-width:480px){
   .dep-board{ padding:14px 16px 16px; }
@@ -1369,11 +1372,11 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
         </div>
         <div class="dep-row">
           <span class="dep-label">STATUS</span>
-          <span class="dep-value dep-status" data-final="BOARDING SOON">BOARDING SOON</span>
+          <span class="dep-value dep-status phase-upcoming" id="depStatus" data-final="BOARDING SOON">BOARDING SOON</span>
         </div>
         <div class="dep-row">
           <span class="dep-label">SEATS</span>
-          <span class="dep-value" id="depSeats" data-final="12 / 12 CONFIRMED">12 / 12 CONFIRMED</span>
+          <span class="dep-value" id="depSeats" data-final="12 REGISTERED">12 REGISTERED</span>
         </div>
       </div>
     </div>
@@ -3121,18 +3124,66 @@ window.addEventListener('resize', sizeTracingBeam);
 })();
 
 /* ============================================================
+   TRIP PHASE — the whole hero (status pill, nav pill, big
+   countdown) reacts live to where "now" sits relative to the trip:
+     upcoming  → now < JOURNEY_START (departure)
+     ongoing   → JOURNEY_START <= now < TRIP_END (return)
+     completed → now >= TRIP_END
+   JOURNEY_START/TRIP_END default to the hardcoded trip dates below
+   and are overridden by loadPageContent() if the admin has set
+   hero.countdownTarget / hero.tripEndTarget in Page content.
+   Every 1s tick re-checks the phase, so a page left open across
+   midnight on the 2nd/5th flips over on its own — no reload needed.
+=============================================================*/
+let JOURNEY_START = new Date('2026-10-02T01:50:00').getTime();
+let TRIP_END = new Date('2026-10-05T20:00:00').getTime();
+
+function getTripPhase(){
+  const now = Date.now();
+  if(now < JOURNEY_START) return 'upcoming';
+  if(now < TRIP_END) return 'ongoing';
+  return 'completed';
+}
+
+// Deliberately re-applies every tick rather than caching "last known
+// phase" and skipping unchanged ticks — depStatus also gets hit by the
+// departure-board's split-flap reveal animation on page load (see the
+// IIFE above), which captures its own "final" text once at load time
+// and can briefly stomp on whatever this function just wrote. Writing
+// on every 1s tick means that's self-corrected within a second rather
+// than needing an actual phase transition (i.e. possibly days later)
+// to fix it.
+function applyTripPhase(){
+  const phase = getTripPhase();
+  const statusEl = document.getElementById('depStatus');
+  if(statusEl){
+    statusEl.classList.remove('phase-upcoming','phase-ongoing','phase-completed');
+    statusEl.classList.add('phase-' + phase);
+    statusEl.textContent = phase === 'upcoming' ? 'BOARDING SOON' : phase === 'ongoing' ? 'ONGOING' : 'COMPLETED';
+  }
+  const captionEl = document.getElementById('heroCountdownCaption');
+  // Only supply the phase-appropriate default caption if the admin hasn't
+  // pinned their own via hero.countdownCaption — loadPageContent() (which
+  // runs once, after boot's first applyTripPhase() call) applies that
+  // override on top and wins from then on.
+  if(captionEl && !captionEl.dataset.adminOverride){
+    captionEl.textContent = phase === 'upcoming' ? 'Until wheels-up from Pune'
+      : phase === 'ongoing' ? 'Until we head back'
+      : 'Trip completed — hope it was a good one 🌴';
+  }
+  return phase;
+}
+
+/* ============================================================
    NAV COUNTDOWN — compact live timer stuck to the navbar
 =============================================================*/
-let JOURNEY_START = new Date('2026-10-02T01:50:00').getTime(); // overridden by loadPageContent() if hero.countdownTarget is set
-
 function updateNavCountdown(){
   const el = document.getElementById('navCountdownText');
   if(!el) return;
+  const phase = applyTripPhase();
+  if(phase === 'completed'){ el.textContent = 'Trip completed ✅'; return; }
+  if(phase === 'ongoing'){ el.textContent = 'In Goa now! 🌴'; return; }
   const remaining = Math.max(0, JOURNEY_START - Date.now());
-  if(remaining <= 0){
-    el.textContent = "In Goa! 🎉";
-    return;
-  }
   const days = Math.floor(remaining / 86400000);
   const hours = Math.floor((remaining % 86400000) / 3600000);
   const mins = Math.floor((remaining % 3600000) / 60000);
@@ -3143,15 +3194,19 @@ updateNavCountdown();
 setInterval(updateNavCountdown, 1000);
 
 /* ============================================================
-   HERO COUNTDOWN — big rainbow-gradient timer in the hero. Same
-   JOURNEY_START as the nav pill, just broken into separate D/H/M/S
-   digits for the bigger display.
+   HERO COUNTDOWN — big rainbow-gradient timer in the hero.
+   Pre-trip: counts down to departure (JOURNEY_START).
+   Ongoing: counts down to the return leg (TRIP_END) instead, so
+   it stays useful rather than sitting at zero for four days.
+   Completed: holds at 00:00:00:00.
 =============================================================*/
 function updateHeroCountdown(){
   const dEl = document.getElementById('hcDays');
   if(!dEl) return;
   const hEl = document.getElementById('hcHours'), mEl = document.getElementById('hcMins'), sEl = document.getElementById('hcSecs');
-  const remaining = Math.max(0, JOURNEY_START - Date.now());
+  const phase = getTripPhase();
+  const target = phase === 'upcoming' ? JOURNEY_START : TRIP_END;
+  const remaining = Math.max(0, target - Date.now());
   const days = Math.floor(remaining / 86400000);
   const hours = Math.floor((remaining % 86400000) / 3600000);
   const mins = Math.floor((remaining % 3600000) / 60000);
@@ -3447,7 +3502,19 @@ function renderHeroFromTrip(trip){
   set('depFrom', trip.origin ? trip.origin.toUpperCase() : null);
   set('depTo', (trip.waypoint || trip.destination) ? `${(trip.waypoint||'').toUpperCase()} \u2192 ${(trip.villa||trip.destination||'').toUpperCase()}` : null);
   set('depDeparts', trip.shortDates || null);
-  set('depSeats', trip.participantCount ? `${trip.participantCount} / ${trip.participantCount} CONFIRMED` : null);
+  // Was `${n} / ${n} CONFIRMED` — always the same number on both sides,
+  // so it permanently displayed as "100% full" regardless of the real
+  // headcount. There's no separate trip-capacity figure anywhere in the
+  // trip config to make a real fraction meaningful, so just show the
+  // actual count.
+  set('depSeats', trip.participantCount ? `${trip.participantCount} REGISTERED` : null);
+  // Trip start/end straight from the trip config, when the backend has
+  // them — takes priority over the hardcoded defaults above, but a
+  // saved hero.countdownTarget/hero.tripEndTarget override (applied
+  // later in loadPageContent) still wins over both, same fallback
+  // order as every other hero field.
+  if(trip.departureAt){ const t = new Date(trip.departureAt).getTime(); if(!isNaN(t)) JOURNEY_START = t; }
+  if(trip.returnAt){ const t = new Date(trip.returnAt).getTime(); if(!isNaN(t)) TRIP_END = t; }
   set('journeyDatesNote', trip.shortDates ? `Trip dates: ${trip.shortDates}` : null);
   set('leg1Title', (trip.origin && trip.waypoint) ? `${trip.origin} \u2192 ${trip.waypoint}` : null);
   set('leg2Title', (trip.waypoint && trip.villa) ? `${trip.waypoint} \u2192 ${trip.villa}` : null);
@@ -3572,12 +3639,22 @@ function applyContent(content){
   setText('heroSubtext', 'hero.subtext');
   setText('heroCtaPrimary', 'hero.ctaPrimary');
   setText('heroCtaSecondary', 'hero.ctaSecondary');
-  setText('heroCountdownCaption', 'hero.countdownCaption');
+  if(content['hero.countdownCaption']){
+    setText('heroCountdownCaption', 'hero.countdownCaption');
+    // Flags this as admin-pinned so applyTripPhase()'s per-tick default
+    // caption (upcoming/ongoing/completed copy) stops overwriting it.
+    const capEl = document.getElementById('heroCountdownCaption');
+    if(capEl) capEl.dataset.adminOverride = '1';
+  }
   setText('footerTagline', 'footer.tagline');
   setText('footerCreditName', 'footer.credit');
   if(content['hero.countdownTarget']){
     const t = new Date(content['hero.countdownTarget']).getTime();
     if(!isNaN(t)) JOURNEY_START = t; // next 1s tick in updateNavCountdown/updateHeroCountdown picks this up automatically
+  }
+  if(content['hero.tripEndTarget']){
+    const t = new Date(content['hero.tripEndTarget']).getTime();
+    if(!isNaN(t)) TRIP_END = t;
   }
   setLink('socialGithub', 'social.github');
   setLink('socialInstagram', 'social.instagram');

@@ -761,6 +761,11 @@
                   <div class="field-row"><label>Caption under the timer</label><input data-key="hero.countdownCaption" maxlength="60" placeholder="Until wheels-up from Pune"/><span class="char-count"></span></div>
                 </div>
               </div>
+              <div class="content-card">
+                <h4>🏁 Trip end / return</h4>
+                <p>Once departure passes, the site automatically switches into "ongoing" mode — the countdown flips to counting down to this instead, and the departure board's status pill switches from "Boarding soon" to "Ongoing". After this time passes too, everything switches to "Completed" on its own. Leave blank to use the built-in default (end of day, 5 Oct).</p>
+                <div class="field-row"><label>Trip ends / return leg (local date &amp; time)</label><input type="datetime-local" data-key="hero.tripEndTarget" /></div>
+              </div>
             </div>
 
             <div class="content-section" data-section="footer">
@@ -1332,6 +1337,11 @@ function localInputToIso(val){
   if(!val) return '';
   return val.length === 16 ? val + ':00' : val;
 }
+// Keys that store an ISO datetime string but are edited via a plain
+// <input type="datetime-local">, which needs the "no seconds/timezone"
+// local format — isoToLocalInput/localInputToIso convert at the edges.
+const DATETIME_KEYS = new Set(['hero.countdownTarget', 'hero.tripEndTarget']);
+
 async function loadContent(){
   if(!currentTripId) return;
   try{
@@ -1341,7 +1351,7 @@ async function loadContent(){
     document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
       const key = field.dataset.key;
       const value = content[key] || '';
-      field.value = key === 'hero.countdownTarget' ? isoToLocalInput(value) : value;
+      field.value = DATETIME_KEYS.has(key) ? isoToLocalInput(value) : value;
     });
   }catch(err){ console.warn('loadContent failed', err); }
 }
@@ -1354,7 +1364,7 @@ el('contentForm')?.addEventListener('submit', async e=>{
   const fields = {};
   document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
     const key = field.dataset.key;
-    fields[key] = key === 'hero.countdownTarget' ? localInputToIso(field.value.trim()) : field.value.trim();
+    fields[key] = DATETIME_KEYS.has(key) ? localInputToIso(field.value.trim()) : field.value.trim();
   });
   if(status) status.textContent = 'Saving…';
   try{
