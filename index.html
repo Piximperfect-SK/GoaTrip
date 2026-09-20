@@ -3655,6 +3655,17 @@ const NAME_RE = /^.{2,}$/; // length check; letter-presence checked separately b
 const PHONE_RE = /^\d{10}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+// Client-side mirror of the fake-pattern check in registration.js — gives
+// immediate feedback, but the backend is what actually enforces it, since
+// this can always be bypassed by anyone posting straight to the endpoint.
+function isSuspiciousPhone(phone){
+  if(/^(\d)\1{9}$/.test(phone)) return true;          // 9999999999
+  if(phone === '0123456789' || phone === '9876543210') return true; // full run
+  if(/^(\d{2})\1{4}$/.test(phone)) return true;        // 1212121212
+  if(/^(\d{5})\1$/.test(phone)) return true;           // 1234512345
+  return false;
+}
+
 function validateStep(i){
   if(i===0){
     const val = document.getElementById('reg-name').value.trim();
@@ -3663,9 +3674,17 @@ function validateStep(i){
     return ok;
   }
   if(i===1){
-    const phone = document.getElementById('reg-phone').value.trim();
-    const phoneOk = PHONE_RE.test(phone);
-    document.getElementById('err-phone').classList.toggle('show', !phoneOk);
+    const phoneInput = document.getElementById('reg-phone');
+    const phone = phoneInput.value.trim();
+    const phoneFormatOk = PHONE_RE.test(phone);
+    const phoneFake = phoneFormatOk && isSuspiciousPhone(phone);
+    document.getElementById('err-phone').classList.toggle('show', !phoneFormatOk);
+    if(phoneFormatOk && phoneFake){
+      showFieldTooltip(phoneInput, 'That doesn\u2019t look like a real number \u2014 please enter your actual mobile number.', 'bad');
+    }else if(!phoneFake){
+      hideFieldTooltip(phoneInput);
+    }
+    const phoneOk = phoneFormatOk && !phoneFake;
 
     const email = document.getElementById('reg-email').value.trim();
     const emailOk = !email || EMAIL_RE.test(email); // optional — blank is fine, garbage isn't
@@ -3675,6 +3694,22 @@ function validateStep(i){
   }
   return true;
 }
+
+// Live "is this number already registered?" check, fired on blur so it
+// doesn't spam the backend on every keystroke. Purely informational —
+// the actual duplicate rejection happens server-side on submit either way.
+document.getElementById('reg-phone')?.addEventListener('blur', async ()=>{
+  const phoneInput = document.getElementById('reg-phone');
+  const phone = phoneInput.value.trim();
+  if(!PHONE_RE.test(phone) || isSuspiciousPhone(phone)) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=checkPhone&phone=' + encodeURIComponent(phone));
+    const data = await res.json();
+    if(data && data.available === false){
+      showFieldTooltip(phoneInput, 'This number is already registered for this trip.', 'info');
+    }
+  }catch(e){ /* non-fatal — server re-checks on submit regardless */ }
+});
 
 wizNextBtn.addEventListener('click', ()=>{
   if(!validateStep(currentStep)) return;
@@ -3724,6 +3759,7 @@ function resetWizard(){
   document.getElementById('err-name').classList.remove('show');
   document.getElementById('err-phone').classList.remove('show');
   document.getElementById('err-email').classList.remove('show');
+  hideFieldTooltip(document.getElementById('reg-phone'));
   currentStep = 0;
   showStep(0);
   document.getElementById('registerWizard').style.display = '';
@@ -3766,6 +3802,13 @@ registerForm?.addEventListener('submit', async (e)=>{
     wizSuccess.style.display = 'block';
   }catch(err){
     setRegBanner('err', `Couldn't submit — ${err.message}. Please try again in a moment.`);
+    // Phone-related rejections (fake pattern, already registered) are
+    // easier to notice as a tooltip right on the field than buried in
+    // the top banner, since they can only surface on this step.
+    if(/phone number/i.test(err.message)){
+      currentStep = 1; showStep(1);
+      showFieldTooltip(document.getElementById('reg-phone'), err.message, 'bad');
+    }
     btn.textContent = originalLabel;
   }
   btn.disabled = false;

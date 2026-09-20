@@ -315,6 +315,50 @@ async function resolvePlace(rawText){
 }
 
 /* ============================================================
+   FIELD TOOLTIPS — a small floating message anchored to any input,
+   for things that don't have a static <p class="wiz-error"> already
+   sitting in the markup: server-side rejections, "already
+   registered" notices, "that doesn't look like a real number"
+   warnings, etc. Any form on the site can use it — not tied to the
+   registration wizard.
+   Usage: showFieldTooltip(inputEl, 'message', 'bad'|'ok'|'info')
+          hideFieldTooltip(inputEl)
+   'bad' tooltips stay until explicitly hidden (e.g. on next input);
+   'ok'/'info' auto-dismiss after a few seconds.
+   ============================================================ */
+function showFieldTooltip(inputEl, message, kind){
+  if(!inputEl) return;
+  kind = kind || 'bad';
+  hideFieldTooltip(inputEl);
+  let anchor = inputEl.parentElement;
+  if(!anchor) return;
+  if(getComputedStyle(anchor).position === 'static'){
+    anchor.classList.add('field-tooltip-anchor');
+  }
+  const tip = document.createElement('div');
+  tip.className = `field-tooltip ${kind}`;
+  tip.textContent = message;
+  anchor.appendChild(tip);
+  tip.style.top = (inputEl.offsetTop + inputEl.offsetHeight + 10) + 'px';
+  tip.style.left = inputEl.offsetLeft + 'px';
+  requestAnimationFrame(() => tip.classList.add('show'));
+  inputEl._fieldTooltip = tip;
+  if(kind !== 'bad'){
+    clearTimeout(inputEl._fieldTooltipTimer);
+    inputEl._fieldTooltipTimer = setTimeout(() => hideFieldTooltip(inputEl), 4000);
+  }
+}
+
+function hideFieldTooltip(inputEl){
+  if(!inputEl || !inputEl._fieldTooltip) return;
+  const tip = inputEl._fieldTooltip;
+  clearTimeout(inputEl._fieldTooltipTimer);
+  tip.classList.remove('show');
+  setTimeout(() => tip.remove(), 150);
+  inputEl._fieldTooltip = null;
+}
+
+/* ============================================================
    FEATURE FLAGS (admin console)
    Any page can call applyFeatureFlags(tripId) once on load. It fetches
    the public flag list for that trip (no auth needed to read) and,

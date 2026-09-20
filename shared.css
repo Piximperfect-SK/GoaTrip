@@ -134,6 +134,27 @@ input:focus, textarea:focus, select:focus{
   outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,0.14);
 }
 
+/* ---------- Field tooltip (inline validation / hints on any input) ----------
+   Generic — not tied to the registration wizard. Positioned by shared.js's
+   showFieldTooltip()/hideFieldTooltip() relative to whatever input it's
+   attached to, so any form on the site can use it. */
+.field-tooltip-anchor{ position:relative; }
+.field-tooltip{
+  position:absolute; z-index:60; max-width:260px; font-size:12.5px; line-height:1.45;
+  padding:9px 13px; border-radius:10px; font-weight:500; color:white;
+  box-shadow:0 12px 26px -10px rgba(0,0,0,.35);
+  opacity:0; transform:translateY(-4px); pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.field-tooltip.show{ opacity:1; transform:translateY(0); }
+.field-tooltip::before{
+  content:''; position:absolute; left:16px; top:-5px; width:10px; height:10px;
+  transform:rotate(45deg); background:inherit; border-radius:2px;
+}
+.field-tooltip.bad{ background:var(--mango-2); }
+.field-tooltip.ok{ background:var(--palm); }
+.field-tooltip.info{ background:var(--azulejo); }
+
 /* ---------- Status banners ---------- */
 .banner{ border-radius:12px; padding:12px 16px; font-size:13.5px; font-weight:500; }
 .banner.ok{ background:rgba(62,124,89,.10); color:var(--palm); border:1px solid rgba(62,124,89,.25); }
