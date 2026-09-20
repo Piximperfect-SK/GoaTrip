@@ -430,11 +430,11 @@
      gets that token. It reuses the exact same sessionStorage key
      and /admin login endpoint as admin.html, so logging in on either
      page carries over to the other for the rest of this browser tab. -->
-<div id="walletGate" class="wallet-gate">
+<div id="walletGate" class="wallet-gate" style="display:none;">
   <div class="wallet-gate-card">
     <div class="wallet-gate-badge">🔒</div>
     <h1 class="display">Trip Wallet</h1>
-    <p class="wallet-gate-sub">Admin sign-in required</p>
+    <p class="wallet-gate-sub" id="gateSub">Admin sign-in</p>
     <div id="gateBanner" class="banner err" style="display:none;"></div>
     <form id="walletLoginForm">
       <div class="field-row mb-3">
@@ -448,6 +448,7 @@
       <button type="submit" class="btn-primary w-full" id="wgSubmitBtn">Sign in</button>
     </form>
     <p class="wallet-gate-note">Not an admin yet? <a href="admin.html">Request access →</a></p>
+    <p class="wallet-gate-note"><a href="#" id="wgCancelBtn">Continue without signing in →</a></p>
   </div>
 </div>
 
@@ -512,7 +513,7 @@
   </svg>
 </div>
 
-<div id="shell" style="display:none;">
+<div id="shell">
   <!-- ============ SIDEBAR ============ -->
   <aside id="sidebar">
     <div class="sidebar-video">
@@ -537,7 +538,8 @@
     <div class="foot">
       <p class="mono" style="font-size:11px; opacity:.6; margin-bottom:8px;" id="walletWhoAmI"></p>
       <a href="index.html" class="hover:text-white">← Back to trip site</a>
-      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:block; margin-top:6px;">Log out</a>
+      <a href="#" id="walletAdminSigninBtn" class="hover:text-white" style="display:block; margin-top:6px;">Admin sign-in</a>
+      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:none; margin-top:6px;">Log out</a>
     </div>
   </aside>
 
@@ -1368,24 +1370,15 @@ function setSyncStatus(state, meta){
 
 async function pullFromSheet(manual){
   if(!window.TRIP){ setSyncStatus('bad'); return; }
-  const token = getWalletToken();
-  if(!token){ setSyncStatus('bad'); showWalletGate(); return; }
+  // GET is public now — no token required just to view the wallet.
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {method:'GET'});
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
     catch(parseErr){
       throw new Error('Backend did not return JSON — please try again shortly.');
-    }
-    if(res.status === 401){
-      // The admin session is no longer valid (expired, or revoked) —
-      // this is an auth problem, not a connectivity blip, so drop back
-      // to the login gate instead of showing a generic error banner.
-      clearWalletSession();
-      showWalletGate('Your session expired — please sign in again.');
-      return;
     }
     if(data.error) throw new Error(data.error);
     // deposits falls back to the existing local copy (not []) if the
@@ -1393,9 +1386,10 @@ async function pullFromSheet(manual){
     // never silently wipes locally-logged deposits.
     wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
+    WALLET_LOCKED = !!data.locked;
     setSyncStatus('ok');
-    clearBanner();
-    if(manual) showBanner('warn','Refreshed from the backend.');
+    applyWalletLockUI();
+    if(manual && !WALLET_LOCKED) showBanner('warn','Refreshed from the backend.');
   }catch(err){
     setSyncStatus('bad');
     showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
@@ -1458,8 +1452,11 @@ setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
 async function pushToSheet(action, payload, actor, opts){
   opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
+  // Token is sent when present (needed once the wallet is locked, or for
+  // the always-admin-only actions), but its absence no longer blocks the
+  // request client-side — wallet.js is the real authority on whether this
+  // particular action needs it, based on the trip's lock state.
   const token = getWalletToken();
-  if(!token){ setSyncStatus('bad'); showWalletGate(); return null; }
   setSyncStatus('pending');
   let res, text;
   try{
@@ -1486,13 +1483,16 @@ async function pushToSheet(action, payload, actor, opts){
     return null;
   }
   if(res.status === 401){
-    // Auth problem, not connectivity — never queued/retried with a
-    // token that's already known-bad. Drop back to the login gate;
-    // the change stays applied locally so nothing is lost.
+    // Either the wallet is locked and this needs an admin (most common
+    // now, since writes no longer need a token pre-lock), or an admin
+    // token specifically was invalid/expired. Either way: not a
+    // connectivity problem, so never queued/retried — and show the
+    // server's actual message rather than assuming "session expired".
     setSyncStatus('bad');
     if(opts.fromQueue) dequeuePendingOp(action, payload);
-    clearWalletSession();
-    showWalletGate('Your session expired — please sign in again. Your last change is saved locally and will sync once you\u2019re back in.');
+    if(token) clearWalletSession(); // only clear if we actually had one to invalidate
+    setWalletAdminUI(null);
+    showWalletGate(data.error || 'Please sign in as admin to continue. Your last change is saved locally and will sync once you\u2019re signed in.');
     return null;
   }
   if(data.error){
@@ -1505,8 +1505,9 @@ async function pushToSheet(action, payload, actor, opts){
   }
   wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
   persistLocal();
+  if(typeof data.locked === 'boolean'){ WALLET_LOCKED = data.locked; applyWalletLockUI(); }
   setSyncStatus('ok');
-  clearBanner();
+  if(!WALLET_LOCKED) clearBanner();
   return data;
 }
 
@@ -3288,18 +3289,20 @@ async function initWalletApp(){
 }
 
 /* ============================================================
-   ADMIN LOGIN GATE
-   The wallet is now admin-only end to end: wallet.js rejects GET
-   and POST without a valid session token (see wallet.js), and this
-   gate is what gets that token from the person before anything else
-   on the page runs. Reuses the exact same sessionStorage keys and
-   /admin login endpoint as admin.html — logging in on either page
-   carries over to the other for the rest of this browser tab, and
-   an admin's existing admin.html session is picked up automatically
-   with no second login.
+   ADMIN LOGIN (now OPTIONAL)
+   The wallet is open to everyone to view and edit until the trip's
+   admin locks it for final submission (wallet.js checks trips.wallet_locked
+   on every write). Signing in here is only needed to (a) make changes
+   once it's locked, or (b) do the handful of actions that stay
+   admin-only regardless of lock state (rename participant, manual
+   balance adjustment, remove participant, reset wallet — still gated
+   by checkWalletAdmin()/wallet.js). Reuses the same sessionStorage
+   keys and /admin login endpoint as admin.html.
 =============================================================*/
 const WALLET_TOKEN_KEY = 'goaAdminToken';
 const WALLET_NAME_KEY = 'goaAdminName';
+let IS_WALLET_ADMIN = false;
+let WALLET_LOCKED = false;
 function getWalletToken(){ return sessionStorage.getItem(WALLET_TOKEN_KEY); }
 function setWalletSession(token, name){
   sessionStorage.setItem(WALLET_TOKEN_KEY, token);
@@ -3309,21 +3312,29 @@ function clearWalletSession(){
   sessionStorage.removeItem(WALLET_TOKEN_KEY);
   sessionStorage.removeItem(WALLET_NAME_KEY);
 }
+// Opens the sign-in overlay on demand (it no longer blocks the page by
+// default — see boot() below). `message` shows an error/info banner
+// inside it; used both for the "please sign in" flows and for a stale
+// admin session discovered mid-use.
 function showWalletGate(message){
   document.getElementById('walletGate').style.display = 'flex';
-  document.getElementById('shell').style.display = 'none';
   document.body.style.overflow = 'hidden';
-  if(message){
-    const b = document.getElementById('gateBanner');
-    b.style.display = 'flex'; b.className = 'banner err'; b.textContent = message;
-  }
+  const b = document.getElementById('gateBanner');
+  if(message){ b.style.display = 'flex'; b.className = 'banner err'; b.textContent = message; }
+  else b.style.display = 'none';
 }
-function hideWalletGate(name){
+function closeWalletGate(){
   document.getElementById('walletGate').style.display = 'none';
-  document.getElementById('shell').style.display = 'flex';
   document.body.style.overflow = '';
+}
+function setWalletAdminUI(name){
+  IS_WALLET_ADMIN = !!name;
   const who = document.getElementById('walletWhoAmI');
-  if(who) who.textContent = `Signed in as ${name || sessionStorage.getItem(WALLET_NAME_KEY) || 'admin'}`;
+  if(who) who.textContent = name ? `Signed in as ${name}` : 'Not signed in as admin';
+  const signinBtn = document.getElementById('walletAdminSigninBtn');
+  const logoutBtn = document.getElementById('walletLogoutBtn');
+  if(signinBtn) signinBtn.style.display = name ? 'none' : 'block';
+  if(logoutBtn) logoutBtn.style.display = name ? 'block' : 'none';
 }
 // Called once on load, and again after any 401 from wallet.js mid-session
 // (expired/invalid token) — verifies the token the same way admin.html
@@ -3340,6 +3351,28 @@ async function verifyWalletSession(){
     if(data.ok && data.name) return data.name;
   }catch(e){ /* treated as not verified below */ }
   return null;
+}
+// Reflects lock state + admin state into the UI: hides the main
+// "add" entry points for a non-admin once the wallet is locked, and
+// explains why via the banner. Editing individual rows still goes
+// through checkWalletAdmin()/the server once locked, so this is a
+// UX convenience on top of the real (server-side) enforcement, not
+// the enforcement itself.
+function applyWalletLockUI(){
+  const readOnly = WALLET_LOCKED && !IS_WALLET_ADMIN;
+  document.querySelectorAll('[onclick="openExpenseModal()"]').forEach(b=>{ b.style.display = readOnly ? 'none' : ''; });
+  const depositBtn = document.querySelector('[onclick="openDepositModal()"]');
+  if(depositBtn) depositBtn.style.display = readOnly ? 'none' : '';
+  const settlementBtn = document.querySelector('[onclick="openSettlementModal()"]');
+  if(settlementBtn) settlementBtn.style.display = readOnly ? 'none' : '';
+  if(readOnly){
+    showBanner('warn', 'The wallet is locked for final submission — you can still view everything, but changes need an admin. <a href="#" id="walletReadonlySignin" style="text-decoration:underline;">Sign in as admin →</a>');
+    document.getElementById('walletReadonlySignin')?.addEventListener('click', (e)=>{ e.preventDefault(); showWalletGate(); });
+  } else if(WALLET_LOCKED && IS_WALLET_ADMIN){
+    showBanner('info', 'The wallet is locked for final submission — as an admin you can still make changes.');
+  } else {
+    clearBanner();
+  }
 }
 
 document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
@@ -3359,8 +3392,9 @@ document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
     const data = await res.json();
     if(!data.ok) throw new Error(data.message || data.error || 'Login failed.');
     setWalletSession(data.token, name);
-    hideWalletGate(name);
-    await initWalletApp();
+    closeWalletGate();
+    setWalletAdminUI(name);
+    applyWalletLockUI();
     if(data.mustChangePin){
       showBanner('warn', 'You\u2019re still on a temporary PIN — change it from the Admin console when you get a chance.');
     }
@@ -3371,17 +3405,27 @@ document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
   }
 });
 
+document.getElementById('wgCancelBtn')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  closeWalletGate();
+});
+
+document.getElementById('walletAdminSigninBtn')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  showWalletGate();
+});
+
 document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
   e.preventDefault();
   clearWalletSession();
   location.reload();
 });
 
-(async function gatedBoot(){
+(async function boot(){
   const name = await verifyWalletSession();
-  if(!name){ clearWalletSession(); showWalletGate(); return; }
-  hideWalletGate(name);
-  await initWalletApp();
+  if(!name) clearWalletSession();
+  setWalletAdminUI(name);
+  await initWalletApp(); // pulls wallet data (incl. lock state) and calls applyWalletLockUI() itself
 })();
 
 /* ============================================================

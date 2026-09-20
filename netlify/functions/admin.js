@@ -468,6 +468,14 @@ exports.handler = async (event) => {
         if (featureKey === 'index.registration') {
           await query('UPDATE trips SET registration_open = $2 WHERE id = $1', [tripId, enabled]);
         }
+        // 'Lock wallet (final submission)' — flips trips.wallet_locked,
+        // which wallet.js enforces server-side on every write. The ALTER
+        // here is defensive/idempotent so this works even if wallet.js
+        // hasn't run yet on a cold instance.
+        if (featureKey === 'wallet.locked') {
+          await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS wallet_locked BOOLEAN DEFAULT false');
+          await query('UPDATE trips SET wallet_locked = $2 WHERE id = $1', [tripId, enabled]);
+        }
         return ok({ ok: true, flags: await getPublicFlags(tripId) });
       }
 

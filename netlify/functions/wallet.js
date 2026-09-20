@@ -81,13 +81,32 @@ function validateSplitAmounts(action, payload) {
   return null;
 }
 
+// Self-healing column for the "final submission" lock — toggled from
+// admin.html's feature-flags panel (featureKey 'wallet.locked'), mirroring
+// how 'index.registration' flips trips.registration_open. Declared here
+// too (not just in admin.js) so wallet.js never depends on admin.js
+// having run first on a cold instance.
+let walletLockSchemaEnsured = false;
+async function ensureWalletLockSchema() {
+  if (walletLockSchemaEnsured) return;
+  await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS wallet_locked BOOLEAN DEFAULT false');
+  walletLockSchemaEnsured = true;
+}
+
+async function getWalletLockState(tripId) {
+  await ensureWalletLockSchema();
+  const { rows } = await query('SELECT wallet_locked FROM trips WHERE id=$1', [tripId]);
+  return !!(rows[0] && rows[0].wallet_locked);
+}
+
 async function readState(tripId) {
+  await ensureWalletLockSchema();
   const [expenses, settlements, deposits, activity, trip] = await Promise.all([
     query('SELECT * FROM expenses WHERE trip_id=$1 ORDER BY created_at', [tripId]),
     query('SELECT * FROM settlements WHERE trip_id=$1 ORDER BY ts', [tripId]),
     query('SELECT * FROM deposits WHERE trip_id=$1 ORDER BY ts', [tripId]),
     query('SELECT * FROM activity WHERE trip_id=$1 ORDER BY ts', [tripId]),
-    query('SELECT wallet_participants FROM trips WHERE id=$1', [tripId]),
+    query('SELECT wallet_participants, wallet_locked FROM trips WHERE id=$1', [tripId]),
   ]);
   return {
     expenses: expenses.rows.map((r) => ({
@@ -106,6 +125,10 @@ async function readState(tripId) {
     })),
     activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: r.actor, action: r.action, detail: r.detail })),
     participants: (trip.rows[0] && trip.rows[0].wallet_participants) || [],
+    // Everyone gets this back (GET is public now) so goa-wallet.html can
+    // switch itself into read-only mode client-side, on top of the real
+    // enforcement below on POST.
+    locked: !!(trip.rows[0] && trip.rows[0].wallet_locked),
   };
 }
 
@@ -125,16 +148,10 @@ exports.handler = async (event) => {
     const body = event.httpMethod === 'POST' ? parseBody(event) : null;
     if (event.httpMethod === 'POST' && !body) return badRequest('Invalid JSON body.');
 
-    // The wallet holds real financial data for the trip, so both reads
-    // and writes now require a valid admin session token — the same
-    // HMAC-signed token admin.html mints on login (lib/auth.js). This
-    // closes the gap the old client-only "admin gate" left open: before
-    // this check, anyone who knew the endpoint URL could read (or write)
-    // the wallet directly, bypassing the login screen entirely.
-    const token = event.httpMethod === 'GET' ? params.token : body.token;
-    const adminName = verifySessionToken(token);
-    if (!adminName) return unauthorized('Session expired or invalid — please log in again.');
-
+    // Reads are public: anyone with the trip link can view the wallet,
+    // locked or not. (Admin login used to be required just to *see* the
+    // page — that's gone; only writes are ever gated, and only once the
+    // wallet is locked — see below.)
     if (event.httpMethod === 'GET') return ok(await readState(tripId));
 
     const { action } = body;
@@ -145,6 +162,24 @@ exports.handler = async (event) => {
     if (typeof body.actor !== 'string' || body.actor.length < 1 || body.actor.length > 80) {
       return badRequest('Invalid actor name.');
     }
+
+    // Access rule: before the trip's admin marks the wallet "locked" (final
+    // submission), anyone can log expenses/settlements/deposits under their
+    // own name — no admin session needed. Once locked, every write requires
+    // a valid admin session token, same as before. resetWallet is always
+    // admin-only regardless of lock state — wiping a trip's whole wallet is
+    // too destructive to leave open to anyone with the link.
+    const locked = await getWalletLockState(tripId);
+    const adminName = body.token ? verifySessionToken(body.token) : null;
+    const requiresAdmin = action === 'resetWallet' || locked;
+    if (requiresAdmin && !adminName) {
+      return unauthorized(
+        action === 'resetWallet'
+          ? 'Resetting the wallet requires an admin session — please log in.'
+          : 'The wallet is locked for final submission — only admins can make changes now. Please log in as admin.'
+      );
+    }
+
     const validationError = validatePayload(SCHEMAS[action], payload) || validateSplitAmounts(action, payload);
     if (validationError) return badRequest(validationError);
     if (action === 'resetWallet' && payload.confirm !== RESET_CONFIRM_PHRASE) {
