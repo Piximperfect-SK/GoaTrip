@@ -36,16 +36,27 @@
     background-size:52px 52px;
   }
 
-  /* ---------- Full-page background video (no overlay) ---------- */
+  /* ---------- Full-page background video ---------- */
   #pageVideo{
     position:fixed !important; top:0; left:0; width:100%; height:100%;
     object-fit:cover; z-index:-3; pointer-events:none;
   }
+  /* Scrim over the video: index.html/itinerary.html/boarding-pass.html all
+     tint their background media so it reads as texture, not the dominant
+     visual — this page never had that layer, so on any viewport wider
+     than the content (an ultrawide monitor, or a desktop browser zoomed
+     out) the raw stock video filled the leftover space at full strength.
+     Sits at z-index -2 (above the video, below all real content) and
+     tints toward --paper so it matches the rest of the app's palette. */
+  #pageVideoScrim{
+    position:fixed !important; inset:0; z-index:-2; pointer-events:none;
+    background:linear-gradient(180deg, rgba(251,246,236,.72) 0%, rgba(251,246,236,.86) 45%, rgba(251,246,236,.94) 100%);
+  }
 
   /* Text sitting directly on the raw video (no card behind it) needs its
      own contrast, since there's no overlay/scrim to rely on. */
-  .on-video h3{ color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
-  .on-video p{ color:rgba(255,255,255,.88); text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
+  .on-video h3{ color:var(--ink); }
+  .on-video p{ color:var(--ink); opacity:.72; }
 
   /* ---------- Scattered decorative watermarks ----------
      6 distinct icons, faint, fixed to the viewport, each with its own
@@ -131,7 +142,7 @@
   }
   #menuToggle{ display:none; }
 
-  .page{ display:none; padding:26px 28px 60px; max-width:1400px; position:relative; }
+  .page{ display:none; padding:26px 28px 60px; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box; position:relative; }
   .page.active{ display:block; animation:pageIn .35s ease; }
   .page.watermarked::before{
     content:''; position:absolute; top:10px; right:0; width:340px; height:340px; z-index:-1;
@@ -465,6 +476,7 @@
 <video id="pageVideo" autoplay muted loop playsinline preload="none" onerror="this.style.display='none'">
   <source src="videos/6.mp4" type="video/mp4">
 </video>
+<div id="pageVideoScrim" aria-hidden="true"></div>
 
 <!-- Scattered decorative watermarks — faint, fixed, non-interactive -->
 <div class="scatter-deco deco-anchor" aria-hidden="true">
@@ -978,6 +990,27 @@
           <p class="text-xs font-semibold opacity-60 mb-2">Adjustments applied so far</p>
           <div id="peAdjustmentList" class="divide-y" style="border-color:var(--line)"></div>
         </div>
+      </div>
+
+      <!-- ---- Merge into another participant ----
+           For duplicate/typo'd names ("Vikas Kumar" vs "Vikash Kumar",
+           "Rudra" vs "Rudra Tiwari") that already have real history
+           attached — merging re-points every expense payer/split,
+           settlement, deposit and adjustment from this person onto the
+           target, then removes this (now-empty) duplicate. Unlike
+           "Remove participant" below, this is the tool for a duplicate
+           that already has money data on it. -->
+      <div class="panel p-5 mt-5" style="border-color:rgba(30,96,145,.3); background:rgba(30,96,145,.04);">
+        <h4 class="font-semibold mb-1" style="color:var(--azulejo)">Merge into another participant</h4>
+        <p class="text-xs opacity-60 mb-3">For a duplicate or typo'd name — moves every expense, settlement, deposit and adjustment from <b id="peMergeFromName"></b> onto whoever you pick below, then removes <b id="peMergeFromName2"></b> as a separate entry. Saved on this device only, same as renaming.</p>
+        <form id="mergeForm" class="flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[180px]">
+            <label>Merge into</label>
+            <select id="pe-merge-target" required></select>
+          </div>
+          <button type="submit" class="btn-ghost" style="border-color:var(--azulejo); color:var(--azulejo)">Merge</button>
+        </form>
+        <p class="text-xs mt-2" id="peMergeNote" style="opacity:.55;"></p>
       </div>
 
       <!-- ---- Remove participant ---- -->
@@ -3025,6 +3058,16 @@ function openParticipantEditModal(person){
   `;
   renderPeAdjustmentList(person);
   updatePeRemoveState(person);
+
+  document.getElementById('peMergeFromName').textContent = person;
+  document.getElementById('peMergeFromName2').textContent = person;
+  const mergeSel = document.getElementById('pe-merge-target');
+  mergeSel.innerHTML = PARTICIPANTS.filter(p => p !== person).map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('peMergeNote').textContent = PARTICIPANTS.length <= 1
+    ? 'No other participants to merge into yet.'
+    : '';
+  document.getElementById('mergeForm').querySelector('button[type="submit"]').disabled = PARTICIPANTS.length <= 1;
+
   openModal('participantEditModal');
 }
 
@@ -3161,6 +3204,75 @@ document.getElementById('renameForm').addEventListener('submit', async e=>{
   closeModal('participantEditModal');
   renderAll();
   showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
+});
+
+/* ---------------------------------------------------------------
+   MERGE — folds a duplicate/typo'd participant into another one.
+   Re-points every expense (payer + split membership/individual
+   amounts), settlement, deposit, activity-log entry and manual
+   adjustment from `source` onto `target`, then removes `source`
+   from the participant list. Local-only, same as rename/adjustments.
+------------------------------------------------------------------*/
+document.getElementById('mergeForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const source = peCurrentPerson;
+  const target = document.getElementById('pe-merge-target').value;
+  if(!source || !target || source === target) return;
+  if(!confirm(`Merge "${source}" into "${target}"?\n\nEvery expense, settlement, deposit and adjustment recorded for "${source}" will be moved onto "${target}", and "${source}" will then be removed from the participant list. This can't be undone automatically.`)) return;
+
+  const actor = await checkWalletAdmin('merge participants');
+  if(!actor) return;
+
+  // Expenses: reassign payer; merge split membership + individual amounts.
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer === source) ex.payer = target;
+    if((ex.split||[]).includes(source)){
+      if(ex.split.includes(target)){
+        // Both source and target are already in this split — drop the
+        // source slot rather than leaving a duplicate entry for the
+        // same (now-merged) person.
+        ex.split = ex.split.filter(p => p !== source);
+        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
+          const sourceAmt = Number(ex.splitAmounts[source]) || 0;
+          const targetAmt = Number(ex.splitAmounts[target]) || 0;
+          ex.splitAmounts[target] = sourceAmt + targetAmt;
+          delete ex.splitAmounts[source];
+        }
+      }else{
+        ex.split = ex.split.map(p => p === source ? target : p);
+        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
+          ex.splitAmounts[target] = ex.splitAmounts[source];
+          delete ex.splitAmounts[source];
+        }
+      }
+    }
+  });
+
+  // Settlements: reassign from/to. A settlement directly between source
+  // and target becomes self-referential after merging (paying yourself)
+  // — drop those rather than keep a meaningless record.
+  wallet.settlements = wallet.settlements.filter(s=>{
+    const newFrom = s.from === source ? target : s.from;
+    const newTo = s.to === source ? target : s.to;
+    if(newFrom === newTo) return false;
+    s.from = newFrom; s.to = newTo;
+    return true;
+  });
+
+  // Deposits, activity log, manual adjustments — simple rename onto target.
+  (wallet.deposits||[]).forEach(d=>{ if(d.person === source) d.person = target; });
+  wallet.activity.forEach(a=>{ if(a.actor === source) a.actor = target; });
+  adjustments.forEach(a=>{ if(a.person === source) a.person = target; });
+  persistAdjustments();
+
+  const idx = PARTICIPANTS.indexOf(source);
+  if(idx !== -1) PARTICIPANTS.splice(idx, 1);
+  persistParticipants();
+
+  persistLocal();
+  closeModal('participantEditModal');
+  renderAll();
+  showBanner('ok', `Merged <b>${source}</b> into <b>${target}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
 });
 
 document.getElementById('adjustmentForm').addEventListener('submit', async e=>{

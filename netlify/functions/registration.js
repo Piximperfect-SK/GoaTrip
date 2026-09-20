@@ -6,8 +6,13 @@ const { isFeatureEnabled } = require('./lib/flags');
 const { verifySessionToken } = require('./lib/auth');
 
 async function readParticipantNames(tripId) {
+  // DISTINCT ON (lower(trim(name))) — trimmed AND case-insensitive, so
+  // "Apporv Pratik" and " Apporv Pratik " (accidental leading/trailing
+  // whitespace from a phone keyboard, autocomplete, etc.) collapse into
+  // one participant instead of showing up twice everywhere this list is
+  // used (wallet sync, boarding-pass lookup, itinerary places, etc.).
   const { rows } = await query(
-    'SELECT DISTINCT ON (lower(name)) name FROM registrations WHERE trip_id = $1 ORDER BY lower(name), ts ASC',
+    'SELECT DISTINCT ON (lower(trim(name))) trim(name) AS name FROM registrations WHERE trip_id = $1 ORDER BY lower(trim(name)), ts ASC',
     [tripId]
   );
   return rows.map((r) => r.name);
@@ -79,14 +84,34 @@ exports.handler = async (event) => {
       const validationError = validatePayload(REGISTER_SCHEMA, payload);
       if (validationError) return badRequest(validationError);
 
+      // validatePayload above only checks type/length/required — it has no
+      // idea what a "valid" name, phone or email actually looks like, which
+      // is exactly why a single digit or a string of letters was passing
+      // as a phone number before. Enforce the real formats here, server
+      // side, since client-side validation (the wizard's Next-button
+      // guard) is only a UX nicety — it can't be trusted as the actual
+      // security boundary; anyone can POST directly to this endpoint.
+      const cleanName = sanitizeText(payload.name, 120).trim();
+      if (cleanName.length < 2 || !/[A-Za-z]/.test(cleanName)) {
+        return badRequest('Please enter a valid name.');
+      }
+      const cleanPhone = sanitizeText(payload.phone, 30).trim();
+      if (!/^\d{10}$/.test(cleanPhone)) {
+        return badRequest('Phone number must be exactly 10 digits, no letters or symbols.');
+      }
+      const cleanEmail = sanitizeText(payload.email || '', 120).trim();
+      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
+        return badRequest('Please enter a valid email address, or leave it blank.');
+      }
+
       await query(
         `INSERT INTO registrations (trip_id, name, phone, email, travelling_from, food, notes)
          VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [
           tripId,
-          sanitizeText(payload.name, 120),
-          sanitizeText(payload.phone, 30),
-          sanitizeText(payload.email || '', 120),
+          cleanName,
+          cleanPhone,
+          cleanEmail,
           sanitizeText(payload.travellingFrom || '', 80),
           sanitizeText(payload.food || '', 40),
           sanitizeText(payload.notes || '', 500),

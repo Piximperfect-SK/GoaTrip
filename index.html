@@ -1567,8 +1567,8 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
           <div class="wiz-step-panel active" data-step="0">
             <p class="wiz-eyebrow">01 · Introductions</p>
             <p class="wiz-question">What's your name?</p>
-            <input type="text" id="reg-name" class="wiz-input" placeholder="Full name, as on your boarding pass" autocomplete="name"/>
-            <p class="wiz-error" id="err-name">⚠ Please enter your name to continue</p>
+            <input type="text" id="reg-name" class="wiz-input" placeholder="Full name, as on your boarding pass" autocomplete="name" required minlength="2" maxlength="120"/>
+            <p class="wiz-error" id="err-name">⚠ Please enter your full name (at least 2 letters) to continue</p>
             <p class="wiz-hint">This is exactly how it'll print on your generated boarding pass.</p>
           </div>
 
@@ -1576,10 +1576,11 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
           <div class="wiz-step-panel" data-step="1">
             <p class="wiz-eyebrow">02 · Stay reachable</p>
             <p class="wiz-question">What's the best number to reach you on?</p>
-            <input type="tel" id="reg-phone" class="wiz-input" placeholder="10-digit mobile number" autocomplete="tel"/>
-            <p class="wiz-error" id="err-phone">⚠ We need a phone number for the cab / room plan</p>
+            <input type="tel" id="reg-phone" class="wiz-input" placeholder="10-digit mobile number" autocomplete="tel" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required oninput="this.value = this.value.replace(/[^0-9]/g,'').slice(0,10);"/>
+            <p class="wiz-error" id="err-phone">⚠ Enter a valid 10-digit mobile number (digits only, no spaces or symbols)</p>
             <label class="wiz-hint block mt-6 mb-2 label-plain">Email (optional)</label>
-            <input type="email" id="reg-email" class="wiz-input fs-16" placeholder="you@example.com" autocomplete="email" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"/>
+            <input type="email" id="reg-email" class="wiz-input fs-16" placeholder="you@example.com" autocomplete="email" maxlength="120" pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"/>
+            <p class="wiz-error" id="err-email">⚠ That doesn't look like a valid email — fix it or leave the field blank</p>
           </div>
 
           <!-- Step 2: travelling from -->
@@ -3646,16 +3647,31 @@ function showStep(i){
   if(input) setTimeout(()=>input.focus({preventScroll:true}), 60);
 }
 
+// Matches the format rules actually enforced server-side in
+// registration.js — this client-side copy only exists to give
+// immediate feedback and isn't itself the security boundary (the
+// backend re-validates every field regardless of what this says).
+const NAME_RE = /^.{2,}$/; // length check; letter-presence checked separately below
+const PHONE_RE = /^\d{10}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 function validateStep(i){
   if(i===0){
-    const ok = !!document.getElementById('reg-name').value.trim();
+    const val = document.getElementById('reg-name').value.trim();
+    const ok = NAME_RE.test(val) && /[A-Za-z]/.test(val);
     document.getElementById('err-name').classList.toggle('show', !ok);
     return ok;
   }
   if(i===1){
-    const ok = !!document.getElementById('reg-phone').value.trim();
-    document.getElementById('err-phone').classList.toggle('show', !ok);
-    return ok;
+    const phone = document.getElementById('reg-phone').value.trim();
+    const phoneOk = PHONE_RE.test(phone);
+    document.getElementById('err-phone').classList.toggle('show', !phoneOk);
+
+    const email = document.getElementById('reg-email').value.trim();
+    const emailOk = !email || EMAIL_RE.test(email); // optional — blank is fine, garbage isn't
+    document.getElementById('err-email').classList.toggle('show', !emailOk);
+
+    return phoneOk && emailOk;
   }
   return true;
 }
@@ -3707,6 +3723,7 @@ function resetWizard(){
   wireChoiceGroup('choiceFood','reg-food');
   document.getElementById('err-name').classList.remove('show');
   document.getElementById('err-phone').classList.remove('show');
+  document.getElementById('err-email').classList.remove('show');
   currentStep = 0;
   showStep(0);
   document.getElementById('registerWizard').style.display = '';
