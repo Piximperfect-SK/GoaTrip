@@ -1227,6 +1227,14 @@ async function syncParticipantsFromRegistrations(){
     if(added){
       persistParticipants();
       populateSelects();
+      // The hidden <select>s above are what the chip pickers in the Add/Edit
+      // expense wizard were built from, but the chips themselves are only
+      // rendered once at page load (see renderPayerChips()/renderSplitChips()
+      // below) — without re-calling them here, newly-registered people never
+      // show up as selectable chips even though they're in the underlying
+      // <select>. This was the cause of the "no one to split with" bug.
+      if(typeof renderPayerChips === 'function') renderPayerChips();
+      if(typeof renderSplitChips === 'function') renderSplitChips();
       renderAll();
       showBanner('ok', 'New registrant(s) added to the participant list.');
     }
@@ -1259,6 +1267,8 @@ async function rebuildParticipantsFromRegistrations(){
     PARTICIPANTS = data.participants.map(n => String(n).trim()).filter(Boolean);
     persistParticipants();
     populateSelects();
+    if(typeof renderPayerChips === 'function') renderPayerChips();
+    if(typeof renderSplitChips === 'function') renderSplitChips();
     renderAll();
     showBanner('ok', 'Participant list rebuilt from current registrations.');
   }catch(err){
@@ -1812,6 +1822,12 @@ function openExpenseModal(){
   document.getElementById('e-payer').value = PARTICIPANTS[0];
   document.getElementById('e-paid-from-deposit').checked = false;
   document.getElementById('depositPaymentBox').style.display = 'none';
+  // Defensive: always rebuild the payer/split chips from the current
+  // PARTICIPANTS right before showing the modal, in case they were never
+  // re-rendered after a registration sync added new people (they're
+  // otherwise only rendered once at page load).
+  renderPayerChips();
+  renderSplitChips();
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
@@ -1837,9 +1853,11 @@ function startEditExpense(id){
   } else {
     document.getElementById('depositPaymentBox').style.display = 'none';
   }
-  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   document.getElementById('expenseModalTitle').textContent = 'Edit expense';
   document.getElementById('expenseFormSubmit').textContent = 'Save changes';
+  renderPayerChips();
+  renderSplitChips();
+  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
