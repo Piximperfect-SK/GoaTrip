@@ -1693,7 +1693,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
           <img src="pictures/logo-icon.png" alt="" class="w-9 h-9">
           <span class="display font-semibold text-lg text-white">Tulip<span style="color:var(--mango)">Travels</span></span>
         </div>
-        <p class="text-sm opacity-60 max-w-xs leading-relaxed">Pune → Londa → Goa · 2–5 October. Thirteen tickets, one trip — built for the crew, edited freely.</p>
+        <p id="footerHeroBlurb" class="text-sm opacity-60 max-w-xs leading-relaxed">Pune → Londa → Goa · 2–5 October. Thirteen tickets, one trip — built for the crew, edited freely.</p>
         <div class="footer-social mt-6" aria-label="Social links">
           <a id="socialGithub" class="social-icon" href="https://github.com/Piximperfect-SK" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
             <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
@@ -3495,8 +3495,33 @@ renderItinerary(DEFAULT_ITINERARY);
    for any field the trip config doesn't provide, so an incomplete
    trip config never renders a blank hero.
 =============================================================*/
+// Word-form of small counts for the hero headline ("Thirteen tickets."
+// reads better than "13 tickets."). Covers the realistic range for a
+// friend-group trip; falls back to the plain numeral beyond that.
+const COUNT_WORDS = ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+  'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen','Twenty'];
+function ticketWord(n){ return (n>=0 && n<COUNT_WORDS.length) ? COUNT_WORDS[n] : String(n); }
+
 function renderHeroFromTrip(trip){
   const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
+  // Ticket count is derived live from actual registrations
+  // (trip.participantCount, computed backend-side) — this is the ONLY
+  // place that decides this wording. It intentionally does NOT read
+  // hero.titleLine1 from site_content: that admin-editable override
+  // used to duplicate this number by hand and went stale ("Twelve
+  // tickets." lingered long after the crew grew to 13), so
+  // applyContent() below no longer touches heroLine1/the footer count
+  // either. If the count is ever missing, the hardcoded HTML default
+  // stays as-is rather than showing something misleading.
+  if(typeof trip.participantCount === 'number'){
+    const label = `${ticketWord(trip.participantCount)} ${trip.participantCount===1?'ticket':'tickets'}.`;
+    set('heroLine1', label);
+    const footerBlurb = document.getElementById('footerHeroBlurb');
+    if(footerBlurb){
+      const dest = (trip.villa || trip.destination || 'Goa');
+      footerBlurb.textContent = `Pune → Londa → ${dest} · ${trip.shortDates || '2–5 October'}. ${ticketWord(trip.participantCount)} ${trip.participantCount===1?'ticket':'tickets'}, one trip — built for the crew, edited freely.`;
+    }
+  }
   if(document.getElementById('heroStampDepart') && trip.origin) document.getElementById('heroStampDepart').innerHTML = `DEPART<br>${escapeHtml(trip.origin.toUpperCase())}`;
   if(document.getElementById('heroStampArrive') && trip.destination) document.getElementById('heroStampArrive').innerHTML = `ARRIVE<br>${escapeHtml(trip.destination.toUpperCase())}`;
   set('depFrom', trip.origin ? trip.origin.toUpperCase() : null);
@@ -3634,7 +3659,11 @@ function applyContent(content){
     el.setAttribute('rel', 'noopener noreferrer');
   };
   setText('heroEyebrow', 'hero.eyebrow');
-  setText('heroLine1', 'hero.titleLine1');   // plain text swap — skips the word-reveal animation for this line only
+  // heroLine1 is intentionally NOT set here — it's driven live from
+  // trip.participantCount in renderHeroFromTrip(), which runs before
+  // this and already owns that text. Any leftover hero.titleLine1 row
+  // in site_content is now dead data (kept out of ALLOWED_KEYS below
+  // too) so it can't silently reintroduce a stale count.
   setText('heroLine2', 'hero.titleLine2');
   setText('heroSubtext', 'hero.subtext');
   setText('heroCtaPrimary', 'hero.ctaPrimary');

@@ -17,7 +17,14 @@ const { verifySessionToken } = require('./lib/auth');
 // than writing whatever key the client sends) means a typo'd key in the
 // admin form fails loudly instead of silently creating a dead row.
 const ALLOWED_KEYS = new Set([
-  'hero.eyebrow', 'hero.titleLine1', 'hero.titleLine2', 'hero.subtext',
+  // hero.titleLine1 removed deliberately: that line is now derived live
+  // from trip.participantCount in index.html (renderHeroFromTrip), not
+  // from admin-entered text. A hand-typed count here went stale
+  // ("Twelve tickets." long after the group grew to 13) with no UI to
+  // ever catch it. Dropping the key from this allow-list means any old
+  // stored row is simply ignored, and a client that still POSTs it gets
+  // that one field silently skipped rather than reintroducing the bug.
+  'hero.eyebrow', 'hero.titleLine2', 'hero.subtext',
   'hero.ctaPrimary', 'hero.ctaSecondary',
   'hero.countdownTarget', 'hero.tripEndTarget', 'hero.countdownCaption',
   'footer.tagline', 'footer.credit',
