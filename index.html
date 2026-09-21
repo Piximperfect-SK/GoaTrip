@@ -214,7 +214,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 /* ---------- Hero (Apple-style: near-white canvas, one sunset gradient
    plane as the single color moment, huge quiet type, scroll-shift
    parallax on the gradient only — no scattered decoration). ---------- */
-.hero{min-height:100svh; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; color:var(--ink);}
+.hero{position:relative; overflow:hidden; color:var(--ink);}
 
 /* Hero no longer paints its own background — it now sits on the single
    sitewide #siteBg (see the SITE BACKGROUND block) like every other
@@ -224,32 +224,59 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 .hero-eyebrow-rule{width:34px; height:2px; background:var(--mango); display:inline-block; vertical-align:middle; margin-right:10px;}
 
-/* ---------- Hero countdown: big rainbow-gradient timer + confetti + balloons ---------- */
-.hero-countdown-wrap{ position:relative; display:inline-block; }
-.hero-countdown{
-  position:relative; z-index:2;
-  display:inline-flex; align-items:flex-start; gap:clamp(8px,1.8vw,18px);
-  padding:18px clamp(18px,3vw,32px);
-  border-radius:24px;
-  background:rgba(255,255,255,.66);
-  border:1px solid var(--line);
-  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  box-shadow:0 30px 60px -32px rgba(29,29,31,.4);
+/* ---------- Two-column hero: copy left, countdown/facts card right ---------- */
+.hero-grid{
+  display:grid; grid-template-columns:1.15fr 1fr; gap:clamp(32px,6vw,80px);
+  align-items:start;
 }
-.hero-countdown .cd-unit{ display:flex; flex-direction:column; align-items:center; min-width:2.1ch; }
-.hero-countdown .cd-num{
-  font-family:'Space Mono',monospace; font-weight:700;
-  font-size:clamp(26px,5vw,50px); line-height:1; letter-spacing:-.01em;
-  background:linear-gradient(90deg, #FF6B4A, #F5B942, #F26FA0, #2E6FF2, #2E8B57, #FF6B4A);
-  background-size:300% 100%;
-  -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
-  animation:rainbowShift 6s linear infinite;
+@media (max-width:900px){
+  .hero-grid{ grid-template-columns:1fr; }
 }
-.hero-countdown .cd-label{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); opacity:.45; margin-top:5px; }
-.hero-countdown .cd-sep{ font-size:clamp(18px,3vw,30px); color:var(--ink); opacity:.2; align-self:flex-start; margin-top:2px; }
-@keyframes rainbowShift{ to{ background-position:-300% 0; } }
+.hero-intro{ text-align:left; }
 
-.hero-confetti{ position:absolute; inset:-26px -8px auto -8px; height:1px; pointer-events:none; overflow:visible; z-index:1; }
+.hero-pill{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--teal-700); background:var(--sand-2); border:1px solid var(--line);
+  border-radius:9999px; padding:8px 16px; margin-bottom:28px;
+}
+.hero-pill-dot{ opacity:.4; }
+
+.hero-line-accent{
+  font-style:italic; color:var(--mango); font-weight:500;
+}
+
+.hero-right-col{ display:flex; flex-direction:column; }
+
+.hero-fact-card{
+  position:relative; background:white; border:1px solid var(--line); border-radius:20px;
+  padding:clamp(16px,2vw,22px); box-shadow:0 30px 60px -32px rgba(29,29,31,.35);
+}
+.hero-fact-card-head{
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--teal-700); opacity:.6; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid var(--line);
+}
+.hero-fact-card-icon{ color:var(--mango); opacity:1; }
+.hero-fact-card-units{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.hero-fact-card-units .cd-unit{
+  display:flex; flex-direction:column; align-items:center; background:var(--sand-2);
+  border-radius:14px; padding:10px 6px;
+}
+.hero-fact-card-units .cd-num{ font-family:'Space Mono',monospace; font-weight:700; font-size:clamp(19px,2.2vw,26px); color:var(--ink); }
+.hero-fact-card-units .cd-label{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); opacity:.45; margin-top:3px; }
+.hero-fact-card-caption{
+  font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink); opacity:.35; text-align:center; margin:10px 0 2px;
+}
+.hero-fact-card-rows{ margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+.hero-fact-row{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-size:12.5px; }
+.hero-fact-row span{ color:var(--teal-700); opacity:.6; }
+.hero-fact-row strong{ font-weight:600; text-align:right; }
+.hero-vibe{ color:var(--mango-2); }
+
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
 .confetti-piece{ position:absolute; top:-16px; opacity:0; animation:confettiFall linear forwards; }
 @keyframes confettiFall{
   0%{ transform:translateY(0) rotate(0deg); opacity:0; }
@@ -257,20 +284,9 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   100%{ transform:translateY(150px) rotate(340deg); opacity:0; }
 }
 
-.hero-balloon{
-  position:absolute; width:22px; height:30px; opacity:.5; pointer-events:none; z-index:0;
-  border-radius:50% 50% 45% 45% / 60% 60% 40% 40%;
-  animation:balloonFloat ease-in-out infinite;
-}
-.hero-balloon::after{ content:""; position:absolute; left:50%; top:100%; width:1px; height:22px; background:rgba(29,29,31,.18); transform:translateX(-50%); }
-.hb-1{ left:-30px; top:-22px; background:var(--mango); animation-duration:5.5s; }
-.hb-2{ right:-24px; top:-14px; background:var(--azulejo); animation-duration:6.5s; animation-delay:.4s; }
-.hb-3{ left:18%; bottom:-32px; width:16px; height:22px; background:var(--pink); animation-duration:5s; animation-delay:.8s; }
-.hb-4{ right:14%; bottom:-28px; width:18px; height:24px; background:var(--yellow); animation-duration:7s; animation-delay:.2s; }
-@keyframes balloonFloat{ 0%,100%{ transform:translateY(0) rotate(-4deg); } 50%{ transform:translateY(-14px) rotate(4deg); } }
 
 @media (max-width:480px){
-  .hero-countdown{ padding:14px 16px; gap:8px; }
+  .hero-fact-card{ padding:16px; }
 }
 
 /* ---------- Hero collage teaser ---------- */
@@ -298,7 +314,7 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 /* ---------- Departure board (hero surprise element) ---------- */
 .dep-board{
   background:rgba(255,255,255,.7); border:1px solid var(--line); border-radius:16px;
-  padding:16px 20px 18px; max-width:420px;
+  padding:14px 18px 16px; width:100%; box-sizing:border-box;
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
   box-shadow:0 20px 50px -30px rgba(29,29,31,.25);
 }
@@ -982,8 +998,6 @@ textarea:focus{border-color:var(--mango);}
   .text-reveal-word{ opacity:1 !important; transform:none !important; filter:none !important; animation:none !important; }
   .social-icon:hover{ transform:none !important; }
   #siteFooter::before{ animation:none !important; }
-  .hero-countdown .cd-num{ background-position:0 0; }
-  .hero-balloon{ display:none; }
 }
 
 @media (max-width: 900px){
@@ -1172,7 +1186,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 </head>
 <body>
 
-<svg class="gradient-goo-defs"><defs>
+<svg class="gradient-goo-defs" aria-hidden="true" focusable="false" style="position:absolute; width:0; height:0; overflow:hidden;"><defs>
   <linearGradient id="tbGradient" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="#FF6B4A"/>
     <stop offset="35%" stop-color="#F26FA0"/>
@@ -1311,72 +1325,85 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 <!-- ============ HERO — minimal, Apple-style: quiet type, one gradient moment ============ -->
 <header class="hero">
 
-  <div class="relative z-10 container-xl pt-32 pb-20">
-    <div class="hero-intro hero-intro-centered">
-      <p class="mono text-[11px] tracking-[.14em] uppercase mb-5" style="color:var(--ink); opacity:.5;">
-        <span class="hero-eyebrow-rule"></span><span id="heroEyebrow">2–5 October · Pune to Goa</span>
-      </p>
+  <div class="relative z-10 container-xl pb-20" style="padding-top:clamp(84px,7vw,104px);">
+    <div class="hero-grid">
+      <div class="hero-intro">
+        <p class="hero-pill" id="heroEyebrowPill">
+          <span id="heroEyebrow">Annual squad journey</span><span class="hero-pill-dot">•</span><span id="heroTravelerCount">13 travelers</span>
+        </p>
 
-      <h1 id="heroHeading" class="display font-semibold text-[clamp(2.75rem,9vw,8.5rem)] leading-[0.94]">
-        <span id="heroLine1">Thirteen tickets.</span><br><span id="heroLine2">One Goa.</span>
-      </h1>
+        <h1 id="heroHeading" class="display font-semibold text-[clamp(2.75rem,9vw,8.5rem)] leading-[0.94]">
+          <span id="heroLine1">Thirteen tickets.</span><br><span id="heroLine2" class="hero-line-accent">One Goa.</span>
+        </h1>
 
-      <p id="heroSubtext" class="max-w-xl mx-auto mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
-        An overnight train out of Pune, a drive through the fog of the Western Ghats,
-        and four days where the only itinerary is the tide.
-      </p>
+        <p id="heroSubtext" class="max-w-xl mt-7 text-[16px] leading-relaxed" style="color:var(--ink); opacity:.6;">
+          An overnight train out of Pune, a drive through the fog of the Western Ghats,
+          and four days where the only itinerary is the tide.
+        </p>
 
-      <div class="flex flex-wrap justify-center gap-3 mt-10">
-        <button id="heroCtaPrimary" class="btn-primary" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore the trip</button>
-        <button id="heroCtaSecondary" class="btn-ghost" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">Reserve a seat</button>
+        <div class="flex flex-wrap gap-3 mt-10">
+          <button id="heroCtaPrimary" class="btn-primary" onclick="document.querySelector('#register').scrollIntoView({behavior:'smooth'})">View the squad roster</button>
+          <button id="heroCtaSecondary" class="btn-ghost" onclick="document.querySelector('#gallery').scrollIntoView({behavior:'smooth'})">Explore route</button>
+        </div>
       </div>
 
-      <!-- Big hero countdown: rainbow-gradient digits, ambient confetti + floating balloons -->
-      <div class="hero-countdown-wrap mt-12">
-        <div class="hero-confetti" id="heroConfettiLayer" aria-hidden="true"></div>
-        <span class="hero-balloon hb-1" aria-hidden="true"></span>
-        <span class="hero-balloon hb-2" aria-hidden="true"></span>
-        <span class="hero-balloon hb-3" aria-hidden="true"></span>
-        <span class="hero-balloon hb-4" aria-hidden="true"></span>
-        <div class="hero-countdown" id="heroCountdown" role="timer" aria-label="Countdown to departure">
-          <div class="cd-unit"><span class="cd-num" id="hcDays">--</span><span class="cd-label">Days</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="hcHours">--</span><span class="cd-label">Hrs</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="hcMins">--</span><span class="cd-label">Min</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="hcSecs">--</span><span class="cd-label">Sec</span></div>
+      <!-- Right column: countdown/facts card + departure board stacked
+           together, so both live under the same "trip status" visual
+           group instead of the board spanning full-width beneath both
+           hero columns. -->
+      <div class="hero-right-col">
+        <!-- Countdown/trip-facts card. Confetti stays as the one orchestrated
+             load-time moment (see the confetti IIFE below); balloons and the
+             always-shifting rainbow digits are gone — see notes in shared.css. -->
+        <div class="hero-fact-card" id="heroCountdown" role="timer" aria-label="Countdown to departure">
+          <div class="hero-confetti" id="heroConfettiLayer" aria-hidden="true"></div>
+          <div class="hero-fact-card-head">
+            <span>Departure countdown</span>
+            <span class="hero-fact-card-icon" aria-hidden="true">⏱</span>
+          </div>
+          <div class="hero-fact-card-units">
+            <div class="cd-unit"><span class="cd-num" id="hcDays">--</span><span class="cd-label">Days</span></div>
+            <div class="cd-unit"><span class="cd-num" id="hcHours">--</span><span class="cd-label">Hours</span></div>
+            <div class="cd-unit"><span class="cd-num" id="hcMins">--</span><span class="cd-label">Mins</span></div>
+            <span class="sr-only" id="hcSecs" aria-hidden="true"></span>
+          </div>
+          <p id="heroCountdownCaption" class="hero-fact-card-caption">Until wheels-up from Pune</p>
+          <div class="hero-fact-card-rows">
+            <div class="hero-fact-row"><span>Origin</span><strong id="factOrigin">Pune Junction (PUNE)</strong></div>
+            <div class="hero-fact-row"><span>Destination</span><strong id="factDestination">Madgaon (MAO), Goa</strong></div>
+            <div class="hero-fact-row"><span>Vibe check</span><strong class="hero-vibe">100% Unfiltered Joy</strong></div>
+          </div>
         </div>
-        <p id="heroCountdownCaption" class="mono text-[11px] tracking-[.1em] uppercase mt-3" style="color:var(--ink); opacity:.4;">Until wheels-up from Pune</p>
-      </div>
 
-      <!-- Departure board: same live data as before, restyled as a quiet
-           inline ticket strip rather than a glowing split-flap panel. -->
-      <div class="dep-board mt-14 mx-auto" id="depBoard" aria-label="Trip departure board">
-        <div class="dep-board-head">
-          <span class="dep-board-title" id="heroStampDepart">DEPART · PUNE</span>
-          <span class="dep-board-title" style="opacity:.35;" id="heroDuration">4D / 3N</span>
-          <span class="dep-board-title" id="heroStampArrive">ARRIVE · GOA</span>
-        </div>
-        <div class="dep-row">
-          <span class="dep-label">FROM</span>
-          <span class="dep-value" id="depFrom" data-final="PUNE JN · PNQ">PUNE JN · PNQ</span>
-        </div>
-        <div class="dep-row">
-          <span class="dep-label">TO</span>
-          <span class="dep-value" id="depTo" data-final="LONDA JN → VILLA">LONDA JN → VILLA</span>
-        </div>
-        <div class="dep-row">
-          <span class="dep-label">DEPARTS</span>
-          <span class="dep-value" id="depDeparts" data-final="02 OCT · 01:50 HRS">02 OCT · 01:50 HRS</span>
-        </div>
-        <div class="dep-row">
-          <span class="dep-label">STATUS</span>
-          <span class="dep-value dep-status phase-upcoming" id="depStatus" data-final="BOARDING SOON">BOARDING SOON</span>
-        </div>
-        <div class="dep-row">
-          <span class="dep-label">SEATS</span>
-          <span class="dep-value" id="depSeats" data-final="12 REGISTERED">12 REGISTERED</span>
+        <!-- Departure board: same live data as before, now stacked directly
+             under the countdown card instead of spanning full-width below
+             both hero columns. -->
+        <div class="dep-board mt-5" id="depBoard" aria-label="Trip departure board">
+          <div class="dep-board-head">
+            <span class="dep-board-title" id="heroStampDepart">DEPART · PUNE</span>
+            <span class="dep-board-title" style="opacity:.35;" id="heroDuration">4D / 3N</span>
+            <span class="dep-board-title" id="heroStampArrive">ARRIVE · GOA</span>
+          </div>
+          <div class="dep-row">
+            <span class="dep-label">FROM</span>
+            <span class="dep-value" id="depFrom" data-final="PUNE JN · PNQ">PUNE JN · PNQ</span>
+          </div>
+          <div class="dep-row">
+            <span class="dep-label">TO</span>
+            <span class="dep-value" id="depTo" data-final="LONDA JN → VILLA">LONDA JN → VILLA</span>
+          </div>
+          <div class="dep-row">
+            <span class="dep-label">DEPARTS</span>
+            <span class="dep-value" id="depDeparts" data-final="02 OCT · 01:50 HRS">02 OCT · 01:50 HRS</span>
+          </div>
+          <div class="dep-row">
+            <span class="dep-label">STATUS</span>
+            <span class="dep-value dep-status phase-upcoming" id="depStatus" data-final="BOARDING SOON">BOARDING SOON</span>
+          </div>
+          <div class="dep-row">
+            <span class="dep-label">SEATS</span>
+            <span class="dep-value" id="depSeats" data-final="12 REGISTERED">12 REGISTERED</span>
+          </div>
         </div>
       </div>
     </div>
@@ -3219,7 +3246,12 @@ function updateHeroCountdown(){
 updateHeroCountdown();
 setInterval(updateHeroCountdown, 1000);
 
-/* ---------- Ambient confetti drifting around the hero countdown ---------- */
+/* ---------- One-time confetti burst on hero load ----------
+   Was a permanent generator (new pieces every 750ms, forever) — flagged
+   as constant visual noise alongside the countdown and balloons. Now
+   fires a single small burst on page load only, then stops for good,
+   so it reads as a one-off "welcome" moment rather than a permanent
+   distraction competing with the headline. */
 (function(){
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const layer = document.getElementById('heroConfettiLayer');
@@ -3238,8 +3270,7 @@ setInterval(updateHeroCountdown, 1000);
     layer.appendChild(p);
     setTimeout(()=> p.remove(), dur*1000 + 250);
   }
-  for(let i=0;i<6;i++) setTimeout(spawnConfetti, i*300);
-  setInterval(spawnConfetti, 750);
+  for(let i=0;i<6;i++) setTimeout(spawnConfetti, i*300); // one small burst, then nothing
 })();
 
 /* ============================================================
@@ -3526,6 +3557,7 @@ function applyLiveTicketCount(count){
   // headcount. There's no separate trip-capacity figure anywhere in the
   // trip config to make a real fraction meaningful, so just show the count.
   set('depSeats', `${count} REGISTERED`);
+  set('heroTravelerCount', `${count} ${count===1?'traveler':'travelers'}`);
 }
 
 async function loadTicketCount(){
@@ -3556,6 +3588,11 @@ function renderHeroFromTrip(trip){
   set('depFrom', trip.origin ? trip.origin.toUpperCase() : null);
   set('depTo', (trip.waypoint || trip.destination) ? `${(trip.waypoint||'').toUpperCase()} \u2192 ${(trip.villa||trip.destination||'').toUpperCase()}` : null);
   set('depDeparts', trip.shortDates || null);
+  // Same trip.origin/trip.destination fields as the departure-board strip
+  // above — just presented as plain sentence case in the fact card rather
+  // than the board's all-caps ticket styling.
+  set('factOrigin', trip.origin || null);
+  set('factDestination', trip.destination || null);
   // Trip start/end straight from the trip config, when the backend has
   // them — takes priority over the hardcoded defaults above, but a
   // saved hero.countdownTarget/hero.tripEndTarget override (applied
