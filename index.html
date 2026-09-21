@@ -3502,37 +3502,60 @@ const COUNT_WORDS = ['Zero','One','Two','Three','Four','Five','Six','Seven','Eig
   'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen','Twenty'];
 function ticketWord(n){ return (n>=0 && n<COUNT_WORDS.length) ? COUNT_WORDS[n] : String(n); }
 
+// Sets the hero ticket-count wording from a REAL count — the length of the
+// participants array registration.js returns, which is a genuine
+// `SELECT DISTINCT ON (lower(trim(name))) ... FROM registrations` (see
+// readParticipantNames in registration.js). Unlike trips.participant_count,
+// this can never go stale: it's recomputed from the actual rows every time
+// this function runs. If the count can't be fetched, every hardcoded HTML
+// default (heroLine1, footer blurb, depSeats) is left exactly as-is rather
+// than showing a guess.
+function applyLiveTicketCount(count){
+  if(typeof count !== 'number') return;
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
+  const label = `${ticketWord(count)} ${count===1?'ticket':'tickets'}.`;
+  set('heroLine1', label);
+  const footerBlurb = document.getElementById('footerHeroBlurb');
+  if(footerBlurb){
+    const trip = window.TRIP || {};
+    const dest = (trip.villa || trip.destination || 'Goa');
+    footerBlurb.textContent = `Pune → Londa → ${dest} · ${trip.shortDates || '2–5 October'}. ${ticketWord(count)} ${count===1?'ticket':'tickets'}, one trip — built for the crew, edited freely.`;
+  }
+  // Was `${n} / ${n} CONFIRMED` — always the same number on both sides, so
+  // it permanently displayed as "100% full" regardless of the real
+  // headcount. There's no separate trip-capacity figure anywhere in the
+  // trip config to make a real fraction meaningful, so just show the count.
+  set('depSeats', `${count} REGISTERED`);
+}
+
+async function loadTicketCount(){
+  if(!window.TRIP) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    applyLiveTicketCount(Array.isArray(data.participants) ? data.participants.length : null);
+  }catch(err){
+    console.warn('loadTicketCount failed — keeping the hardcoded hero default', err);
+  }
+}
+
 function renderHeroFromTrip(trip){
   const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
-  // Ticket count is derived live from actual registrations
-  // (trip.participantCount, computed backend-side) — this is the ONLY
-  // place that decides this wording. It intentionally does NOT read
-  // hero.titleLine1 from site_content: that admin-editable override
-  // used to duplicate this number by hand and went stale ("Twelve
-  // tickets." lingered long after the crew grew to 13), so
-  // applyContent() below no longer touches heroLine1/the footer count
-  // either. If the count is ever missing, the hardcoded HTML default
-  // stays as-is rather than showing something misleading.
-  if(typeof trip.participantCount === 'number'){
-    const label = `${ticketWord(trip.participantCount)} ${trip.participantCount===1?'ticket':'tickets'}.`;
-    set('heroLine1', label);
-    const footerBlurb = document.getElementById('footerHeroBlurb');
-    if(footerBlurb){
-      const dest = (trip.villa || trip.destination || 'Goa');
-      footerBlurb.textContent = `Pune → Londa → ${dest} · ${trip.shortDates || '2–5 October'}. ${ticketWord(trip.participantCount)} ${trip.participantCount===1?'ticket':'tickets'}, one trip — built for the crew, edited freely.`;
-    }
-  }
+  // Ticket count is intentionally NOT set from trip.participantCount here.
+  // That's just trips.participant_count — a plain integer column, hand-typed
+  // once through the admin createTrip/updateTrip form and never touched
+  // again. It is NOT computed from the registrations table, so it drifts
+  // stale exactly like the old hero.titleLine1 override did ("Twelve
+  // tickets." lingering after the crew grew to 13 — same bug, different
+  // table). The only genuinely live count is the real registrations table,
+  // fetched separately in loadTicketCount()/applyLiveTicketCount() below —
+  // that's the sole place that decides heroLine1/footer/depSeats wording.
   if(document.getElementById('heroStampDepart') && trip.origin) document.getElementById('heroStampDepart').innerHTML = `DEPART<br>${escapeHtml(trip.origin.toUpperCase())}`;
   if(document.getElementById('heroStampArrive') && trip.destination) document.getElementById('heroStampArrive').innerHTML = `ARRIVE<br>${escapeHtml(trip.destination.toUpperCase())}`;
   set('depFrom', trip.origin ? trip.origin.toUpperCase() : null);
   set('depTo', (trip.waypoint || trip.destination) ? `${(trip.waypoint||'').toUpperCase()} \u2192 ${(trip.villa||trip.destination||'').toUpperCase()}` : null);
   set('depDeparts', trip.shortDates || null);
-  // Was `${n} / ${n} CONFIRMED` — always the same number on both sides,
-  // so it permanently displayed as "100% full" regardless of the real
-  // headcount. There's no separate trip-capacity figure anywhere in the
-  // trip config to make a real fraction meaningful, so just show the
-  // actual count.
-  set('depSeats', trip.participantCount ? `${trip.participantCount} REGISTERED` : null);
   // Trip start/end straight from the trip config, when the backend has
   // them — takes priority over the hardcoded defaults above, but a
   // saved hero.countdownTarget/hero.tripEndTarget override (applied
@@ -3616,7 +3639,11 @@ async function loadRegistrationStatus(){
   await initTripContext();
   document.title = `${TRIP.name} — ${TRIP.shortDates || ''}`;
   renderHeroFromTrip(TRIP);
-  await loadPageContent();   // admin-edited hero copy, fetched+applied BEFORE the reveal animation fires (see note above heading-reveal setup)
+  // Both determine hero heading text, so both must resolve BEFORE the
+  // reveal animation fires — otherwise whichever finishes second (usually
+  // the ticket count, since it's a second round-trip) flashes in after
+  // the heading has already animated onto screen.
+  await Promise.all([loadPageContent(), loadTicketCount()]);
   setupHeadingReveal(document.getElementById('heroHeading'), {immediate:true, baseDelay:0.15});
   setupHeadingReveal(document.getElementById('heroSubtext'), {immediate:true, baseDelay:0.55});
   // None of these depend on each other or touch the hero heading, so run
@@ -3659,11 +3686,11 @@ function applyContent(content){
     el.setAttribute('rel', 'noopener noreferrer');
   };
   setText('heroEyebrow', 'hero.eyebrow');
-  // heroLine1 is intentionally NOT set here — it's driven live from
-  // trip.participantCount in renderHeroFromTrip(), which runs before
-  // this and already owns that text. Any leftover hero.titleLine1 row
-  // in site_content is now dead data (kept out of ALLOWED_KEYS below
-  // too) so it can't silently reintroduce a stale count.
+  // heroLine1 is intentionally NOT set here — it's driven live from the
+  // real registrations count in loadTicketCount()/applyLiveTicketCount(),
+  // called in boot() and awaited before the reveal. Any leftover
+  // hero.titleLine1 row in site_content is dead data (kept out of
+  // ALLOWED_KEYS below too) so it can't silently reintroduce a stale count.
   setText('heroLine2', 'hero.titleLine2');
   setText('heroSubtext', 'hero.subtext');
   setText('heroCtaPrimary', 'hero.ctaPrimary');
