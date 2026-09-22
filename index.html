@@ -112,7 +112,6 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 #topnav .navlink{color:var(--ink); opacity:.6;}
 #topnav .navlink:hover, #topnav .navlink.active{opacity:1; color:var(--ink); border-color:var(--mango);}
 #topnav .navlink-wallet{color:var(--mango-2); opacity:1;}
-#topnav .nav-countdown{background:rgba(255,107,74,.08); border-color:rgba(255,107,74,.25); color:var(--mango-2);}
 
 /* ---------- FlipDown split-flap hero countdown ----------
    github.com/PButcher/flipdown, vendored + reskinned inline (same
@@ -185,26 +184,6 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .nav-logo-word .nlw-1{color:var(--ink);}
 .nav-logo-word .nlw-2{background:linear-gradient(120deg, var(--mango), var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent;}
 #topnav.hide{transform:translateY(-100%);}
-
-/* ---------- Nav-anchored live cluster (countdown + wallet) ---------- */
-.nav-live-cluster{
-  display:flex; align-items:center; gap:8px; flex-shrink:0;
-}
-
-.nav-countdown{
-  display:flex; align-items:center; gap:5px;
-  background:rgba(255,122,69,.14); border:1px solid rgba(255,122,69,.35);
-  border-radius:9999px; padding:6px 11px;
-  font-size:10.5px; color:#FFD9C4; white-space:nowrap; letter-spacing:.02em;
-}
-.nav-countdown-icon{ font-size:11px; line-height:1; }
-
-@media (max-width:560px){
-  .nav-countdown{ padding:5px 8px; font-size:9.5px; gap:3px; }
-}
-@media (max-width:400px){
-  .nav-countdown{ display:none; } /* logo + menu already tight at this width */
-}
 
 /* ---------- Mobile bottom tab bar (Apple-style) ----------
    Replaces the old bottom-right Wallet FAB: everything that used to be
@@ -1394,15 +1373,6 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
       <span class="nlw-1">TULIP</span><span class="nlw-2">TRAVELS</span>
     </span>
   </a>
-
-  <!-- Live cluster: countdown, stuck to the navbar itself (not floating
-       separately on the page) so it travels with the fixed nav on scroll. -->
-  <div class="nav-live-cluster">
-    <div class="nav-countdown" id="navCountdown" title="Trip starts in">
-      <span class="nav-countdown-icon">🕐</span>
-      <span id="navCountdownText" class="mono">--D --H --M --S</span>
-    </div>
-  </div>
 
   <div class="navlinks-rail hidden lg:flex items-center gap-4 xl:gap-5" id="navRail">
     <span class="navlink" data-target="#gallery">Gallery</span>
@@ -3337,23 +3307,14 @@ function applyTripPhase(){
 }
 
 /* ============================================================
-   NAV COUNTDOWN — compact live timer stuck to the navbar
+   TRIP PHASE TICKER — the nav-anchored countdown pill this used to
+   drive has been removed (redundant with the big hero flip-clock),
+   but applyTripPhase() still needs a per-second heartbeat so the
+   hero caption/phase flips over automatically at departure/return
+   without a page reload.
 =============================================================*/
-function updateNavCountdown(){
-  const el = document.getElementById('navCountdownText');
-  if(!el) return;
-  const phase = applyTripPhase();
-  if(phase === 'completed'){ el.textContent = 'Trip completed ✅'; return; }
-  if(phase === 'ongoing'){ el.textContent = 'In Goa now! 🌴'; return; }
-  const remaining = Math.max(0, JOURNEY_START - Date.now());
-  const days = Math.floor(remaining / 86400000);
-  const hours = Math.floor((remaining % 86400000) / 3600000);
-  const mins = Math.floor((remaining % 3600000) / 60000);
-  const secs = Math.floor((remaining % 60000) / 1000);
-  el.textContent = `${days}D ${String(hours).padStart(2,'0')}H ${String(mins).padStart(2,'0')}M ${String(secs).padStart(2,'0')}S`;
-}
-updateNavCountdown();
-setInterval(updateNavCountdown, 1000);
+applyTripPhase();
+setInterval(applyTripPhase, 1000);
 
 /* ============================================================
    HERO COUNTDOWN — big rainbow-gradient timer in the hero.
