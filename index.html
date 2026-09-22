@@ -113,6 +113,74 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 #topnav .navlink:hover, #topnav .navlink.active{opacity:1; color:var(--ink); border-color:var(--mango);}
 #topnav .navlink-wallet{color:var(--mango-2); opacity:1;}
 #topnav .nav-countdown{background:rgba(255,107,74,.08); border-color:rgba(255,107,74,.25); color:var(--mango-2);}
+
+/* ---------- FlipDown split-flap hero countdown ----------
+   github.com/PButcher/flipdown, vendored + reskinned inline (same
+   reasoning as the Lenis CSS note in shared.css: nothing on the CSP
+   allowlist hosts it, and it's a couple hundred bytes of rules).
+   Custom "goa" theme replaces the default dark/light themes so the
+   rotors sit on the site's ink/mango palette instead of pure black. */
+#heroCountdown .flipdown{
+  width:100%; height:auto; display:flex; justify-content:center; align-items:flex-start; gap:16px;
+}
+/* Rotor sizing MUST be fixed px, not %: .rotor-group is a floated,
+   width:auto container that shrink-wraps its rotor children, and a
+   percentage width on .rotor has no real box to resolve against in
+   that setup — it collapses/overlaps instead of laying out side by
+   side (that's the bug this replaces). */
+#heroCountdown .flipdown .rotor-group{ position:relative; float:none; padding-right:0; }
+#heroCountdown .flipdown .rotor-group-heading:before{
+  display:block; height:auto; line-height:1; text-align:center; content:attr(data-before);
+  font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink); opacity:.45; margin-bottom:8px;
+}
+#heroCountdown .flipdown .rotor-group:nth-child(n+2):nth-child(-n+3):before,
+#heroCountdown .flipdown .rotor-group:nth-child(n+2):nth-child(-n+3):after{ content:none; }
+#heroCountdown .flipdown .rotor{
+  position:relative; float:left; width:34px; height:50px; margin:0 4px 0 0; border-radius:7px;
+  font-size:24px; line-height:50px; font-family:'Space Mono',monospace; font-weight:700;
+  text-align:center; perspective:200px;
+}
+#heroCountdown .flipdown .rotor:last-child{ margin-right:0; }
+#heroCountdown .flipdown .rotor-top,
+#heroCountdown .flipdown .rotor-bottom{ overflow:hidden; position:absolute; width:34px; height:25px; }
+#heroCountdown .flipdown .rotor-leaf{ z-index:1; position:absolute; width:34px; height:50px; transform-style:preserve-3d; transition:transform 0s; }
+#heroCountdown .flipdown .rotor-leaf.flipped{ transform:rotateX(-180deg); transition:all .5s ease-in-out; }
+#heroCountdown .flipdown .rotor-leaf-front,
+#heroCountdown .flipdown .rotor-leaf-rear{
+  overflow:hidden; position:absolute; width:34px; height:25px; margin:0;
+  transform:rotateX(0deg); backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+#heroCountdown .flipdown .rotor-leaf-front{ line-height:50px; border-radius:7px 7px 0 0; }
+#heroCountdown .flipdown .rotor-leaf-rear{ line-height:0; border-radius:0 0 7px 7px; transform:rotateX(-180deg); }
+#heroCountdown .flipdown .rotor-top{ line-height:50px; border-radius:7px 7px 0 0; }
+#heroCountdown .flipdown .rotor-bottom{ bottom:0; line-height:0; border-radius:0 0 7px 7px; }
+#heroCountdown .flipdown .rotor:after{
+  content:''; z-index:2; position:absolute; bottom:0; left:0; width:34px; height:25px;
+  border-radius:0 0 7px 7px; border-top:solid 1px rgba(0,0,0,.35); pointer-events:none;
+}
+#heroCountdown .flipdown.flipdown__theme-goa .rotor,
+#heroCountdown .flipdown.flipdown__theme-goa .rotor-top,
+#heroCountdown .flipdown.flipdown__theme-goa .rotor-leaf-front{ color:var(--sand); background:var(--ink); }
+#heroCountdown .flipdown.flipdown__theme-goa .rotor-bottom,
+#heroCountdown .flipdown.flipdown__theme-goa .rotor-leaf-rear{ color:var(--sand); background:var(--teal-800); }
+@media (max-width:420px){
+  #heroCountdown .flipdown{ gap:8px; }
+  #heroCountdown .flipdown .rotor{ width:24px; height:36px; margin-right:3px; font-size:17px; line-height:36px; }
+  #heroCountdown .flipdown .rotor-top,
+  #heroCountdown .flipdown .rotor-bottom,
+  #heroCountdown .flipdown .rotor-leaf,
+  #heroCountdown .flipdown .rotor-leaf-front,
+  #heroCountdown .flipdown .rotor-leaf-rear,
+  #heroCountdown .flipdown .rotor:after{ width:24px; }
+  #heroCountdown .flipdown .rotor-top,
+  #heroCountdown .flipdown .rotor-bottom,
+  #heroCountdown .flipdown .rotor-leaf-front,
+  #heroCountdown .flipdown .rotor-leaf-rear,
+  #heroCountdown .flipdown .rotor:after{ height:18px; }
+  #heroCountdown .flipdown .rotor-leaf{ height:36px; }
+  #heroCountdown .flipdown .rotor-leaf-front, #heroCountdown .flipdown .rotor-top{ line-height:36px; }
+}
 .nav-logo-word .nlw-1{color:var(--ink);}
 .nav-logo-word .nlw-2{background:linear-gradient(120deg, var(--mango), var(--pink)); -webkit-background-clip:text; background-clip:text; color:transparent;}
 #topnav.hide{transform:translateY(-100%);}
@@ -249,13 +317,18 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .hero-right-col{ display:flex; flex-direction:column; }
 
 .hero-fact-card{
-  position:relative; background:white; border:1px solid var(--line); border-radius:20px;
-  padding:clamp(16px,2vw,22px); box-shadow:0 30px 60px -32px rgba(29,29,31,.35);
+  position:relative; border-radius:20px; padding:clamp(16px,2vw,22px);
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 30%),
+    rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 30px 60px -32px rgba(29,29,31,.35), inset 0 1px 0 rgba(255,255,255,.8);
+  -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
 }
 .hero-fact-card-head{
   display:flex; align-items:center; justify-content:space-between;
   font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--teal-700); opacity:.6; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid var(--line);
+  color:var(--teal-700); opacity:.6; padding-bottom:14px; margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,.5);
 }
 .hero-fact-card-icon{ color:var(--mango); opacity:1; }
 .hero-fact-card-units{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
@@ -313,14 +386,17 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 /* ---------- Departure board (hero surprise element) ---------- */
 .dep-board{
-  background:rgba(255,255,255,.7); border:1px solid var(--line); border-radius:16px;
-  padding:14px 18px 16px; width:100%; box-sizing:border-box;
-  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
-  box-shadow:0 20px 50px -30px rgba(29,29,31,.25);
+  border-radius:16px; padding:14px 18px 16px; width:100%; box-sizing:border-box;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 30%),
+    rgba(255,255,255,.45);
+  border:1px solid rgba(255,255,255,.6);
+  -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:0 20px 50px -30px rgba(29,29,31,.25), inset 0 1px 0 rgba(255,255,255,.75);
 }
 .dep-board-head{
   display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:12px;
-  padding-bottom:11px; border-bottom:1px solid var(--line);
+  padding-bottom:11px; border-bottom:1px solid rgba(255,255,255,.5);
 }
 .dep-dot{ display:none; }
 .dep-board-title{
@@ -1361,12 +1437,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
             <span>Departure countdown</span>
             <span class="hero-fact-card-icon" aria-hidden="true">⏱</span>
           </div>
-          <div class="hero-fact-card-units">
-            <div class="cd-unit"><span class="cd-num" id="hcDays">--</span><span class="cd-label">Days</span></div>
-            <div class="cd-unit"><span class="cd-num" id="hcHours">--</span><span class="cd-label">Hours</span></div>
-            <div class="cd-unit"><span class="cd-num" id="hcMins">--</span><span class="cd-label">Mins</span></div>
-            <span class="sr-only" id="hcSecs" aria-hidden="true"></span>
-          </div>
+          <div class="flipdown flipdown__theme-goa" id="heroFlipdown" aria-hidden="true"></div>
           <p id="heroCountdownCaption" class="hero-fact-card-caption">Until wheels-up from Pune</p>
           <div class="hero-fact-card-rows">
             <div class="hero-fact-row"><span>Origin</span><strong id="factOrigin">Pune Junction (PUNE)</strong></div>
@@ -1781,6 +1852,12 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   </div>
 </footer>
 
+<script>
+/* FlipDown v0.3.2 (github.com/PButcher/flipdown, MIT) — vendored inline,
+   same rationale as the Lenis CSS: not on the script-src allowlist under
+   its own CDN, and it is ~6KB minified so inlining is cheap. */
+"use strict";function _typeof(a){return _typeof="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?function(a){return typeof a}:function(a){return a&&"function"==typeof Symbol&&a.constructor===Symbol&&a!==Symbol.prototype?"symbol":typeof a},_typeof(a)}function _classCallCheck(a,b){if(!(a instanceof b))throw new TypeError("Cannot call a class as a function")}function _defineProperties(a,b){for(var c,d=0;d<b.length;d++)c=b[d],c.enumerable=c.enumerable||!1,c.configurable=!0,"value"in c&&(c.writable=!0),Object.defineProperty(a,c.key,c)}function _createClass(a,b,c){return b&&_defineProperties(a.prototype,b),c&&_defineProperties(a,c),a}var FlipDown=function(){var b=Math.floor;function a(b){var c=1<arguments.length&&void 0!==arguments[1]?arguments[1]:"flipdown",d=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{};if(_classCallCheck(this,a),"number"!=typeof b)throw new Error("FlipDown: Constructor expected unix timestamp, got ".concat(_typeof(b)," instead."));"object"===_typeof(c)&&(d=c,c="flipdown"),this.version="0.3.2",this.initialised=!1,this.now=this._getTime(),this.epoch=b,this.countdownEnded=!1,this.hasEndedCallback=null,this.element=document.getElementById(c),this.rotors=[],this.rotorLeafFront=[],this.rotorLeafRear=[],this.rotorTops=[],this.rotorBottoms=[],this.countdown=null,this.daysRemaining=0,this.clockValues={},this.clockStrings={},this.clockValuesAsString=[],this.prevClockValuesAsString=[],this.opts=this._parseOptions(d),this._setOptions(),console.log("FlipDown ".concat(this.version," (Theme: ").concat(this.opts.theme,")"))}return _createClass(a,[{key:"start",value:function a(){return this.initialised||this._init(),this.countdown=setInterval(this._tick.bind(this),1e3),this}},{key:"ifEnded",value:function b(a){return this.hasEndedCallback=function(){a(),this.hasEndedCallback=null},this}},{key:"_getTime",value:function a(){return new Date().getTime()/1e3}},{key:"_hasCountdownEnded",value:function a(){return 0>this.epoch-this.now?(this.countdownEnded=!0,null!=this.hasEndedCallback&&(this.hasEndedCallback(),this.hasEndedCallback=null),!0):(this.countdownEnded=!1,!1)}},{key:"_parseOptions",value:function c(a){var b=["Days","Hours","Minutes","Seconds"];return a.headings&&4===a.headings.length&&(b=a.headings),{theme:a.hasOwnProperty("theme")?a.theme:"dark",headings:b}}},{key:"_setOptions",value:function a(){this.element.classList.add("flipdown__theme-".concat(this.opts.theme))}},{key:"_init",value:function h(){this.initialised=!0,this.daysremaining=this._hasCountdownEnded()?0:b((this.epoch-this.now)/86400).toString().length;for(var a=2>=this.daysremaining?2:this.daysremaining,c=0;c<a+6;c++)this.rotors.push(this._createRotor(0));for(var d=[],c=0;c<a;c++)d.push(this.rotors[c]);this.element.appendChild(this._createRotorGroup(d,0));for(var e,f=a,c=0;3>c;c++){e=[];for(var g=0;2>g;g++)e.push(this.rotors[f]),f++;this.element.appendChild(this._createRotorGroup(e,c+1))}return this.rotorLeafFront=Array.prototype.slice.call(this.element.getElementsByClassName("rotor-leaf-front")),this.rotorLeafRear=Array.prototype.slice.call(this.element.getElementsByClassName("rotor-leaf-rear")),this.rotorTop=Array.prototype.slice.call(this.element.getElementsByClassName("rotor-top")),this.rotorBottom=Array.prototype.slice.call(this.element.getElementsByClassName("rotor-bottom")),this._tick(),this._updateClockValues(!0),this}},{key:"_createRotorGroup",value:function e(a,b){var c=document.createElement("div");c.className="rotor-group";var d=document.createElement("div");return d.className="rotor-group-heading",d.setAttribute("data-before",this.opts.headings[b]),c.appendChild(d),appendChildren(c,a),c}},{key:"_createRotor",value:function h(){var a=0<arguments.length&&void 0!==arguments[0]?arguments[0]:0,b=document.createElement("div"),c=document.createElement("div"),d=document.createElement("figure"),e=document.createElement("figure"),f=document.createElement("div"),g=document.createElement("div");return b.className="rotor",c.className="rotor-leaf",d.className="rotor-leaf-rear",e.className="rotor-leaf-front",f.className="rotor-top",g.className="rotor-bottom",d.textContent=a,f.textContent=a,g.textContent=a,appendChildren(b,[c,f,g]),appendChildren(c,[d,e]),b}},{key:"_tick",value:function c(){this.now=this._getTime();var a=0>=this.epoch-this.now?0:this.epoch-this.now;this.clockValues.d=b(a/86400),a-=86400*this.clockValues.d,this.clockValues.h=b(a/3600),a-=3600*this.clockValues.h,this.clockValues.m=b(a/60),a-=60*this.clockValues.m,this.clockValues.s=b(a),this._updateClockValues(),this._hasCountdownEnded()}},{key:"_updateClockValues",value:function e(){function a(){var a=this;this.rotorTop.forEach(function(b,c){b.textContent!=a.clockValuesAsString[c]&&(b.textContent=a.clockValuesAsString[c])})}function b(){var a=this;this.rotorLeafRear.forEach(function(b,c){if(b.textContent!=a.clockValuesAsString[c]){b.textContent=a.clockValuesAsString[c],b.parentElement.classList.add("flipped");var d=setInterval(function(){b.parentElement.classList.remove("flipped"),clearInterval(d)}.bind(a),500)}})}var c=this,d=!!(0<arguments.length&&void 0!==arguments[0])&&arguments[0];this.clockStrings.d=pad(this.clockValues.d,2),this.clockStrings.h=pad(this.clockValues.h,2),this.clockStrings.m=pad(this.clockValues.m,2),this.clockStrings.s=pad(this.clockValues.s,2),this.clockValuesAsString=(this.clockStrings.d+this.clockStrings.h+this.clockStrings.m+this.clockStrings.s).split(""),this.rotorLeafFront.forEach(function(a,b){a.textContent=c.prevClockValuesAsString[b]}),this.rotorBottom.forEach(function(a,b){a.textContent=c.prevClockValuesAsString[b]}),d?(a.call(this),b.call(this)):(setTimeout(a.bind(this),500),setTimeout(b.bind(this),500)),this.prevClockValuesAsString=this.clockValuesAsString}}]),a}();function pad(a,b){return a=a.toString(),a.length<b?pad("0"+a,b):a}function appendChildren(a,b){b.forEach(function(b){a.appendChild(b)})}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="shared.js"></script>
@@ -2965,9 +3042,9 @@ window.addEventListener('resize', sizeTracingBeam);
   const ctx = canvas.getContext('2d');
   if(!ctx) return;
 
-  const COLOR = '29,29,31';   // var(--ink) as r,g,b — matches the site's near-black text colour
   const SIZE = 12, HOVER_SIZE = 40, BORDER_WIDTH = 2;
   const SPRING = .15, FRICTION = .5, TRAIL_DURATION = 200, TRANSITION_SPEED = .15;
+  const HUE_SPEED = .05; // degrees/ms — how fast the rainbow cycles
 
   let dpr = Math.max(1, window.devicePixelRatio || 1);
   let ball = { x: window.innerWidth/2, y: window.innerHeight/2 };
@@ -2975,6 +3052,7 @@ window.addEventListener('resize', sizeTracingBeam);
   let velocity = { x: 0, y: 0 };
   let points = [];
   let radius = SIZE/2, fillOpacity = 1, strokeOpacity = 0;
+  let hue = 0;
   let hasMoved = false;
   let rafId = null, lastTime = 0;
 
@@ -3012,9 +3090,10 @@ window.addEventListener('resize', sizeTracingBeam);
       velocity.x *= FRICTION; velocity.y *= FRICTION;
       ball.x += velocity.x; ball.y += velocity.y;
 
-      points.push({ x: ball.x, y: ball.y, age: 0 });
+      points.push({ x: ball.x, y: ball.y, age: 0, hue });
       points.forEach(p => p.age += dt);
       points = points.filter(p => p.age < TRAIL_DURATION);
+      hue = (hue + dt * HUE_SPEED) % 360;
 
       if(points.length > 1){
         ctx.beginPath();
@@ -3023,8 +3102,16 @@ window.addEventListener('resize', sizeTracingBeam);
         const oldest = points[0], newest = points[points.length-1];
         const oldestOpacity = 1 - oldest.age / TRAIL_DURATION;
         const gradient = ctx.createLinearGradient(oldest.x, oldest.y, newest.x, newest.y);
-        gradient.addColorStop(0, `rgba(${COLOR},${Math.max(0, oldestOpacity*.3)})`);
-        gradient.addColorStop(1, `rgba(${COLOR},1)`);
+        // Each point carries the hue it was born with, so the gradient
+        // walks through whatever slice of the rainbow the cursor moved
+        // through in the last TRAIL_DURATION ms — a moving streak rather
+        // than a single flat (and previously fixed-black) colour.
+        const n = points.length;
+        for(let i=0; i<n; i++){
+          const t = i / (n - 1);
+          const alpha = i === 0 ? Math.max(0, oldestOpacity*.3) : (i === n-1 ? 1 : .6);
+          gradient.addColorStop(t, `hsla(${points[i].hue},85%,60%,${alpha})`);
+        }
         ctx.strokeStyle = gradient;
         ctx.lineWidth = Math.max(2, SIZE/4);
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -3040,8 +3127,8 @@ window.addEventListener('resize', sizeTracingBeam);
 
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, radius, 0, Math.PI*2);
-      if(strokeOpacity > .01){ ctx.strokeStyle = `rgba(${COLOR},${strokeOpacity})`; ctx.lineWidth = BORDER_WIDTH; ctx.stroke(); }
-      if(fillOpacity > .01){ ctx.fillStyle = `rgba(${COLOR},${fillOpacity})`; ctx.fill(); }
+      if(strokeOpacity > .01){ ctx.strokeStyle = `hsla(${hue},85%,55%,${strokeOpacity})`; ctx.lineWidth = BORDER_WIDTH; ctx.stroke(); }
+      if(fillOpacity > .01){ ctx.fillStyle = `hsla(${hue},85%,55%,${fillOpacity})`; ctx.fill(); }
     }
 
     rafId = requestAnimationFrame(animate);
@@ -3227,24 +3314,29 @@ setInterval(updateNavCountdown, 1000);
    it stays useful rather than sitting at zero for four days.
    Completed: holds at 00:00:00:00.
 =============================================================*/
-function updateHeroCountdown(){
-  const dEl = document.getElementById('hcDays');
-  if(!dEl) return;
-  const hEl = document.getElementById('hcHours'), mEl = document.getElementById('hcMins'), sEl = document.getElementById('hcSecs');
+let heroFlipdown = null;
+let heroFlipdownTarget = null;
+function initHeroFlipdown(){
+  const el = document.getElementById('heroFlipdown');
+  if(!el || typeof FlipDown === 'undefined') return;
   const phase = getTripPhase();
   const target = phase === 'upcoming' ? JOURNEY_START : TRIP_END;
-  const remaining = Math.max(0, target - Date.now());
-  const days = Math.floor(remaining / 86400000);
-  const hours = Math.floor((remaining % 86400000) / 3600000);
-  const mins = Math.floor((remaining % 3600000) / 60000);
-  const secs = Math.floor((remaining % 60000) / 1000);
-  dEl.textContent = String(days).padStart(2,'0');
-  hEl.textContent = String(hours).padStart(2,'0');
-  mEl.textContent = String(mins).padStart(2,'0');
-  sEl.textContent = String(secs).padStart(2,'0');
+  // JOURNEY_START/TRIP_END can move (trip config load, admin override) —
+  // only tear down and rebuild the rotors when the target actually
+  // changes, since FlipDown has no public "retarget" API and rebuilding
+  // every tick would restart the flip animation constantly.
+  if(heroFlipdownTarget === target) return;
+  heroFlipdownTarget = target;
+  el.innerHTML = '';
+  heroFlipdown = new FlipDown(Math.floor(target / 1000), 'heroFlipdown', {
+    theme: 'goa',
+    headings: ['Days', 'Hours', 'Mins', 'Secs']
+  }).start();
 }
-updateHeroCountdown();
-setInterval(updateHeroCountdown, 1000);
+initHeroFlipdown();
+// Cheap poll for target/phase changes rather than a 1s rebuild loop —
+// FlipDown drives its own 1s tick internally once started.
+setInterval(initHeroFlipdown, 15000);
 
 /* ---------- One-time confetti burst on hero load ----------
    Was a permanent generator (new pieces every 750ms, forever) — flagged
@@ -3600,6 +3692,7 @@ function renderHeroFromTrip(trip){
   // order as every other hero field.
   if(trip.departureAt){ const t = new Date(trip.departureAt).getTime(); if(!isNaN(t)) JOURNEY_START = t; }
   if(trip.returnAt){ const t = new Date(trip.returnAt).getTime(); if(!isNaN(t)) TRIP_END = t; }
+  if(typeof initHeroFlipdown === 'function') initHeroFlipdown();
   set('journeyDatesNote', trip.shortDates ? `Trip dates: ${trip.shortDates}` : null);
   set('leg1Title', (trip.origin && trip.waypoint) ? `${trip.origin} \u2192 ${trip.waypoint}` : null);
   set('leg2Title', (trip.waypoint && trip.villa) ? `${trip.waypoint} \u2192 ${trip.villa}` : null);
@@ -3749,6 +3842,7 @@ function applyContent(content){
     const t = new Date(content['hero.tripEndTarget']).getTime();
     if(!isNaN(t)) TRIP_END = t;
   }
+  if(typeof initHeroFlipdown === 'function') initHeroFlipdown();
   setLink('socialGithub', 'social.github');
   setLink('socialInstagram', 'social.instagram');
   setLink('socialTwitter', 'social.twitter');
