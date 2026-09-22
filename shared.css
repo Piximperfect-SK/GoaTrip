@@ -192,12 +192,12 @@ input:focus, textarea:focus, select:focus{
    renderTeam() simply skips any crew member with no photo rather than
    rendering a card for them. */
 .crew-card{
-  position:relative; height:340px; border-radius:20px; overflow:hidden; cursor:default;
+  position:relative; aspect-ratio:4/5; border-radius:16px; overflow:hidden; cursor:default;
   background:var(--teal-900); box-shadow:0 1px 2px rgba(29,29,31,.06);
 }
 .crew-card.has-note{ cursor:pointer; }
 .crew-card-photo{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center top;
+  position:absolute; inset:0; width:100%; height:100%; background-repeat:no-repeat;
   transform:scale(1.04); transition:transform .6s cubic-bezier(.2,.7,.2,1);
 }
 .crew-card:hover .crew-card-photo,
@@ -217,27 +217,27 @@ input:focus, textarea:focus, select:focus{
 .crew-card.is-active .crew-card-scrim-hover{ opacity:1; }
 
 .crew-card-body{
-  position:absolute; left:0; right:0; bottom:0; padding:20px 20px 18px; color:var(--sand);
+  position:absolute; left:0; right:0; bottom:0; padding:14px 14px 13px; color:var(--sand);
   transform:translateY(0); transition:transform .4s cubic-bezier(.2,.7,.2,1);
 }
-.crew-card-name{ font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; line-height:1.2; margin:0; }
+.crew-card-name{ font-family:'Fraunces',serif; font-size:0.95rem; font-weight:600; line-height:1.2; margin:0; }
 .crew-card-role{
-  font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
-  color:var(--mango); opacity:.95; margin:5px 0 0;
+  font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--mango); opacity:.95; margin:4px 0 0;
 }
 .crew-card-note{
-  font-size:13px; line-height:1.55; color:var(--sand); opacity:0; max-height:0; margin-top:0;
+  font-size:11.5px; line-height:1.5; color:var(--sand); opacity:0; max-height:0; margin-top:0;
   transition:opacity .3s ease .05s, max-height .4s ease, margin-top .3s ease;
 }
 .crew-card.has-note:hover .crew-card-note,
-.crew-card.has-note.is-active .crew-card-note{ opacity:.88; max-height:120px; margin-top:9px; }
+.crew-card.has-note.is-active .crew-card-note{ opacity:.88; max-height:120px; margin-top:7px; }
 .crew-card.has-note:hover .crew-card-body,
 .crew-card.has-note.is-active .crew-card-body{ transform:translateY(-2px); }
 
 .crew-flip-hint{
-  position:absolute; top:14px; right:14px; width:26px; height:26px; border-radius:9999px;
+  position:absolute; top:10px; right:10px; width:22px; height:22px; border-radius:9999px;
   background:rgba(251,251,253,.16); border:1px solid rgba(251,251,253,.3);
-  display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--sand);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--sand);
   opacity:0; transition:opacity .25s ease;
 }
 .crew-card.has-note:hover .crew-flip-hint,
@@ -247,9 +247,6 @@ input:focus, textarea:focus, select:focus{
   .crew-card-photo, .crew-card-scrim-hover, .crew-card-body, .crew-card-note, .crew-flip-hint{ transition:opacity .15s linear; }
   .crew-card:hover .crew-card-photo, .crew-card.is-active .crew-card-photo{ transform:none; }
   .crew-card-body, .crew-card:hover .crew-card-body, .crew-card.is-active .crew-card-body{ transform:none; }
-}
-@media (max-width:640px){
-  .crew-card{ height:300px; }
 }
 
 /* ---------- Top bar (sticky/fixed header used on itinerary & boarding-pass) ---------- */

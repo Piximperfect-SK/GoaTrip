@@ -1797,7 +1797,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div class="section-num mb-4"><span>06</span><span class="rule"></span><span id="teamEyebrow">Who's running this</span></div>
     <h2 id="teamHeading" class="display text-4xl md:text-5xl font-semibold mt-2 mb-4 section-heading-anim">The crew.</h2>
     <p id="teamSubtext" class="text-sm opacity-60 max-w-md mb-10" style="display:none"></p>
-    <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <div id="teamGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   </div>
 </section>
 
@@ -4106,7 +4106,7 @@ function renderTeam(members){
   const grid = document.getElementById('teamGrid');
   if(!grid) return;
   // Photos are mandatory going forward (see admin.html's crew editor),
-  // but a legacy row can still exist with no photo_key yet — skip it
+  // but a legacy row can still exist with no photo_file yet — skip it
   // here rather than falling back to an initials avatar, so the public
   // site never shows a placeholder card. It still appears in the admin
   // list with a "Photo required" badge until someone uploads one.
@@ -4114,6 +4114,17 @@ function renderTeam(members){
   if(!withPhotos.length){
     grid.innerHTML = `<p class="text-sm opacity-50 col-span-full text-center py-6">Crew details coming soon.</p>`;
     return;
+  }
+  // Reproduces whatever crop was picked in the admin panel exactly, via
+  // a plain CSS background-size/position pair — no image processing on
+  // this end. No crop on file just falls back to a centered cover.
+  function cropStyle(url, crop){
+    if(!crop) return `background-image:url('${url}'); background-size:cover; background-position:center 22%;`;
+    const w = Math.max(crop.w, 0.0001), h = Math.max(crop.h, 0.0001);
+    const sizeW = 100 / w, sizeH = 100 / h;
+    const posX = (1 - w) > 0.0001 ? (crop.x / (1 - w)) * 100 : 0;
+    const posY = (1 - h) > 0.0001 ? (crop.y / (1 - h)) * 100 : 0;
+    return `background-image:url('${url}'); background-size:${sizeW}% ${sizeH}%; background-position:${posX}% ${posY}%;`;
   }
   // Photo fills the card; name/role sit on a permanent bottom gradient
   // so they're legible over any photo, and the note rises into view on
@@ -4123,7 +4134,7 @@ function renderTeam(members){
     const hasNote = !!(t.note && t.note.trim());
     return `
     <div class="crew-card${hasNote ? ' has-note' : ''}" data-idx="${i}" ${hasNote ? 'tabindex="0" role="button" aria-label="Show more about ' + escapeHtml(t.name) + '"' : ''}>
-      <img class="crew-card-photo" src="${escapeHtml(t.photoUrl)}" alt="${escapeHtml(t.name || '')}" loading="lazy"/>
+      <div class="crew-card-photo" style="${cropStyle(t.photoUrl, t.crop)}" role="img" aria-label="${escapeHtml(t.name || '')}"></div>
       <div class="crew-card-scrim"></div>
       <div class="crew-card-scrim-hover"></div>
       ${hasNote ? '<span class="crew-flip-hint" aria-hidden="true">＋</span>' : ''}

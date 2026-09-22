@@ -330,6 +330,7 @@
     justify-content:center; font-size:10.5px; color:var(--teal-700); opacity:.6; text-align:center; padding:4px;
   }
   .crew-photo-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .crew-photo-preview-img{ width:100%; height:100%; background-repeat:no-repeat; }
   .crew-photo-preview.has-image{ border-style:solid; opacity:1; }
   .crew-photo-status{ font-size:12px; color:var(--teal-700); opacity:.75; min-height:16px; }
   .crew-photo-status.bad{ color:var(--mango-2); opacity:1; }
@@ -348,6 +349,22 @@
     display:inline-block; margin-top:3px; font-size:10.5px; font-weight:700; letter-spacing:.03em;
     text-transform:uppercase; color:var(--mango-2); background:rgba(232,93,42,.1);
     border-radius:6px; padding:2px 7px;
+  }
+
+  /* ============ Crop / position picker ============ */
+  .crop-stage{
+    position:relative; width:100%; max-width:360px; aspect-ratio:1/1; margin:0 auto; background:var(--teal-900);
+    border-radius:12px; overflow:hidden; user-select:none; touch-action:none;
+  }
+  .crop-stage img{ position:absolute; left:0; top:0; display:block; max-width:none; pointer-events:none; }
+  .crop-box{
+    position:absolute; border:2px solid var(--mango); box-shadow:0 0 0 9999px rgba(11,15,15,.55); cursor:grab;
+    box-sizing:border-box;
+  }
+  .crop-box.is-dragging{ cursor:grabbing; }
+  .crop-box-handle{
+    position:absolute; right:-8px; bottom:-8px; width:18px; height:18px; border-radius:9999px;
+    background:var(--mango); border:2px solid white; cursor:nwse-resize; box-shadow:0 2px 6px rgba(0,0,0,.3);
   }
 
   /* ============ Themed loading spinner (auth actions) ============ */
@@ -749,6 +766,7 @@
             <div class="crew-photo-preview" id="crewPhotoPreview"><span id="crewPhotoPlaceholder">No filename yet</span></div>
             <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:0;">
               <input type="text" id="crewf-photofile" maxlength="120" placeholder="e.g. shubham.jpg"/>
+              <button type="button" class="btn-ghost" id="crewAdjustCropBtn" style="padding:8px 14px; font-size:12.5px; display:none;">Adjust crop / position</button>
               <div class="crew-photo-status" id="crewPhotoStatus"></div>
             </div>
           </div>
@@ -760,6 +778,31 @@
           <div style="display:flex; gap:10px; margin-top:6px;">
             <button type="button" class="btn-ghost" id="crewModalCancelBtn" style="flex:1;">Cancel</button>
             <button type="button" class="btn-primary" id="crewModalSaveBtn" style="flex:1;">Save crew member</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Crop / position picker for the crew photo ----
+           A free-form crop, not just a focal point: drag the box to pan,
+           drag the corner handle to zoom (resize keeps the card's aspect
+           ratio locked so whatever's inside the box is exactly what the
+           public card will show — no separate image processing needed,
+           the public site reproduces this with a plain CSS
+           background-size/position pair computed from the same numbers
+           stored here). -->
+      <div class="modal-overlay hidden" id="cropModalOverlay">
+        <div class="modal-card" style="max-width:420px; text-align:left;">
+          <h3>Adjust crop / position</h3>
+          <p class="modal-sub">Drag to pan, drag the corner handle to zoom. This matches exactly what the crew card will show.</p>
+          <div class="crop-stage" id="cropStage">
+            <img id="cropStageImg" alt="" draggable="false"/>
+            <div class="crop-box" id="cropBox">
+              <div class="crop-box-handle" id="cropBoxHandle"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn-ghost" id="cropCancelBtn" style="flex:1;">Cancel</button>
+            <button type="button" class="btn-primary" id="cropConfirmBtn" style="flex:1;">Confirm crop</button>
           </div>
         </div>
       </div>
@@ -1398,7 +1441,7 @@ function renderCrew(){
   box.innerHTML = currentCrew.map((m,i)=>{
     const hasPhoto = !!m.photoUrl;
     const thumb = hasPhoto
-      ? `<div class="crew-row-thumb"><img src="${escapeHtml(m.photoUrl)}" alt=""/></div>`
+      ? `<div class="crew-row-thumb"><div style="width:100%;height:100%;background-repeat:no-repeat;${crewCropStyle(m.photoUrl, m.crop)}"></div></div>`
       : `<div class="crew-row-thumb missing" title="No photo uploaded yet">🖼️</div>`;
     return `<div class="flag-row" data-id="${Number(m.id)}"><div style="display:flex; gap:12px; align-items:center; min-width:0;">${thumb}<div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}${!hasPhoto?'<div class="crew-photo-required-badge">Photo required — hidden on site</div>':''}</div></div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`;
   }).join('');
@@ -1418,15 +1461,42 @@ function renderCrew(){
    deployed file is obvious before saving rather than after. */
 const SAFE_FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(jpg|jpeg|png|webp|gif|avif)$/i;
 
+// Locked to the public crew card's own aspect ratio (see .crew-card in
+// shared.css) so whatever's inside the crop box here is pixel-for-pixel
+// what the card shows — no separate resize/export step needed.
+const CREW_CARD_ASPECT = 4 / 5; // width / height
+
+// Builds the background-image CSS that reproduces a given crop exactly.
+// With no crop, falls back to a plain centered cover — same look the
+// site had before crop existed, so uncropped legacy entries still
+// render sensibly.
+function crewCropStyle(url, crop){
+  if(!url) return '';
+  if(!crop){
+    return `background-image:url('${url}'); background-size:cover; background-position:center 22%;`;
+  }
+  const w = Math.max(crop.w, 0.0001), h = Math.max(crop.h, 0.0001);
+  const sizeW = 100 / w, sizeH = 100 / h;
+  const posX = (1 - w) > 0.0001 ? (crop.x / (1 - w)) * 100 : 0;
+  const posY = (1 - h) > 0.0001 ? (crop.y / (1 - h)) * 100 : 0;
+  return `background-image:url('${url}'); background-size:${sizeW}% ${sizeH}%; background-position:${posX}% ${posY}%;`;
+}
+
 function updateCrewPhotoPreview(){
   const raw = el('crewf-photofile').value.trim();
   const preview = el('crewPhotoPreview');
   const status = el('crewPhotoStatus');
+  const adjustBtn = el('crewAdjustCropBtn');
+  // Typing a new filename invalidates any crop picked for the old one —
+  // it was chosen against a different photo and won't line up.
+  if(crewModalPhotoFile !== raw) crewModalCrop = null;
+  crewModalPhotoFile = raw;
   if(!raw){
     preview.innerHTML = '<span id="crewPhotoPlaceholder">No filename yet</span>';
     preview.classList.remove('has-image');
     status.className = 'crew-photo-status';
     status.textContent = '';
+    adjustBtn.style.display = 'none';
     return;
   }
   if(!SAFE_FILENAME_RE.test(raw)){
@@ -1434,40 +1504,166 @@ function updateCrewPhotoPreview(){
     preview.classList.remove('has-image');
     status.className = 'crew-photo-status bad';
     status.textContent = 'Use a plain filename like shubham.jpg — no folders or URLs.';
+    adjustBtn.style.display = 'none';
     return;
   }
   const url = 'pictures/crew/' + encodeURIComponent(raw);
   status.className = 'crew-photo-status';
   status.textContent = 'Checking…';
+  adjustBtn.style.display = 'none';
   const img = new Image();
   img.onload = ()=>{
-    preview.innerHTML = `<img src="${url}" alt=""/>`;
+    preview.innerHTML = `<div class="crew-photo-preview-img" style="${crewCropStyle(url, crewModalCrop)}"></div>`;
     preview.classList.add('has-image');
     status.className = 'crew-photo-status ok';
     status.textContent = 'Found in pictures/crew/.';
+    adjustBtn.style.display = 'inline-block';
   };
   img.onerror = ()=>{
     preview.innerHTML = '<span>Not found</span>';
     preview.classList.remove('has-image');
     status.className = 'crew-photo-status bad';
     status.textContent = 'No file at pictures/crew/' + raw + ' yet — add it to the repo and redeploy, or check the spelling.';
+    adjustBtn.style.display = 'none';
   };
   img.src = url;
 }
 el('crewf-photofile')?.addEventListener('input', updateCrewPhotoPreview);
 
+/* ---------- crop / position picker ----------
+   A free-form crop: drag the box to pan, drag the corner handle to
+   zoom (resize is aspect-locked to CREW_CARD_ASPECT so the box always
+   represents exactly what the card will show). Coordinates are tracked
+   in on-screen stage pixels while dragging, then converted to 0..1
+   fractions of the image's natural size on confirm — those fractions
+   are what gets sent to crew.js and stored. */
+let cropStageState = null; // {dispW, dispH, offX, offY, stageSize}
+let cropBoxRect = null;    // {x,y,w,h} in stage px, x/y relative to stage origin (includes offX/offY)
+let cropDrag = null;       // {mode:'move'|'resize', startX, startY, orig:{...}}
+
+function cropDefaultBox(state){
+  const { dispW, dispH, offX, offY } = state;
+  let w, h;
+  if(dispW / dispH > CREW_CARD_ASPECT){ h = dispH; w = h * CREW_CARD_ASPECT; }
+  else { w = dispW; h = w / CREW_CARD_ASPECT; }
+  return { x: offX + (dispW - w) / 2, y: offY + (dispH - h) / 2, w, h };
+}
+
+function cropRectFromFraction(state, crop){
+  const { dispW, dispH, offX, offY } = state;
+  return { x: offX + crop.x * dispW, y: offY + crop.y * dispH, w: crop.w * dispW, h: crop.h * dispH };
+}
+
+function renderCropBox(){
+  const boxEl = el('cropBox');
+  boxEl.style.left = cropBoxRect.x + 'px';
+  boxEl.style.top = cropBoxRect.y + 'px';
+  boxEl.style.width = cropBoxRect.w + 'px';
+  boxEl.style.height = cropBoxRect.h + 'px';
+}
+
+function openCropModal(){
+  const raw = crewModalPhotoFile;
+  if(!raw || !SAFE_FILENAME_RE.test(raw)) return;
+  const url = 'pictures/crew/' + encodeURIComponent(raw);
+  const stageImg = el('cropStageImg');
+  const stage = el('cropStage');
+
+  stageImg.onload = ()=>{
+    const stageSize = stage.clientWidth; // square stage (see CSS aspect-ratio:1/1)
+    const scale = Math.min(stageSize / stageImg.naturalWidth, stageSize / stageImg.naturalHeight);
+    const dispW = stageImg.naturalWidth * scale, dispH = stageImg.naturalHeight * scale;
+    const offX = (stageSize - dispW) / 2, offY = (stageSize - dispH) / 2;
+    stageImg.style.width = dispW + 'px';
+    stageImg.style.height = dispH + 'px';
+    stageImg.style.left = offX + 'px';
+    stageImg.style.top = offY + 'px';
+    cropStageState = { dispW, dispH, offX, offY, stageSize };
+    cropBoxRect = crewModalCrop ? cropRectFromFraction(cropStageState, crewModalCrop) : cropDefaultBox(cropStageState);
+    renderCropBox();
+  };
+  stageImg.src = url;
+  el('cropModalOverlay').classList.remove('hidden');
+}
+function closeCropModal(){ el('cropModalOverlay').classList.add('hidden'); }
+el('crewAdjustCropBtn')?.addEventListener('click', openCropModal);
+el('cropCancelBtn')?.addEventListener('click', closeCropModal);
+
+el('cropConfirmBtn')?.addEventListener('click', ()=>{
+  if(!cropStageState || !cropBoxRect) { closeCropModal(); return; }
+  const { dispW, dispH, offX, offY } = cropStageState;
+  crewModalCrop = {
+    x: Math.min(Math.max((cropBoxRect.x - offX) / dispW, 0), 1),
+    y: Math.min(Math.max((cropBoxRect.y - offY) / dispH, 0), 1),
+    w: Math.min(Math.max(cropBoxRect.w / dispW, 0.02), 1),
+    h: Math.min(Math.max(cropBoxRect.h / dispH, 0.02), 1),
+  };
+  closeCropModal();
+  updateCrewPhotoPreview();
+});
+
+(function setupCropPointerHandling(){
+  const boxEl = el('cropBox');
+  const handleEl = el('cropBoxHandle');
+  if(!boxEl || !handleEl) return;
+
+  function clampMove(x, y){
+    const { dispW, dispH, offX, offY } = cropStageState;
+    return {
+      x: Math.min(Math.max(x, offX), offX + dispW - cropBoxRect.w),
+      y: Math.min(Math.max(y, offY), offY + dispH - cropBoxRect.h),
+    };
+  }
+  function clampResize(w){
+    const { dispW, dispH, offX, offY } = cropStageState;
+    const minW = 30;
+    const maxWByWidth = offX + dispW - cropBoxRect.x;
+    const maxWByHeight = (offY + dispH - cropBoxRect.y) * CREW_CARD_ASPECT;
+    return Math.min(Math.max(w, minW), maxWByWidth, maxWByHeight);
+  }
+
+  boxEl.addEventListener('pointerdown', e=>{
+    if(e.target === handleEl) return;
+    boxEl.classList.add('is-dragging');
+    boxEl.setPointerCapture(e.pointerId);
+    cropDrag = { mode:'move', startX:e.clientX, startY:e.clientY, orig:{...cropBoxRect} };
+  });
+  handleEl.addEventListener('pointerdown', e=>{
+    e.stopPropagation();
+    handleEl.setPointerCapture(e.pointerId);
+    cropDrag = { mode:'resize', startX:e.clientX, startY:e.clientY, orig:{...cropBoxRect} };
+  });
+  window.addEventListener('pointermove', e=>{
+    if(!cropDrag || !cropStageState) return;
+    const dx = e.clientX - cropDrag.startX, dy = e.clientY - cropDrag.startY;
+    if(cropDrag.mode === 'move'){
+      const pos = clampMove(cropDrag.orig.x + dx, cropDrag.orig.y + dy);
+      cropBoxRect.x = pos.x; cropBoxRect.y = pos.y;
+    }else{
+      const newW = clampResize(cropDrag.orig.w + dx);
+      cropBoxRect.w = newW; cropBoxRect.h = newW / CREW_CARD_ASPECT;
+    }
+    renderCropBox();
+  });
+  window.addEventListener('pointerup', ()=>{ cropDrag = null; boxEl.classList.remove('is-dragging'); });
+})();
+
 let crewModalMode = 'add'; // 'add' | 'edit'
 let crewModalEditingId = null;
+let crewModalPhotoFile = '';
+let crewModalCrop = null; // {x,y,w,h} fractions of the natural image, or null for default cover
 
 function openCrewModal(member){
   crewModalMode = member ? 'edit' : 'add';
   crewModalEditingId = member ? member.id : null;
+  crewModalPhotoFile = member ? (member.photoFile || '') : '';
+  crewModalCrop = member && member.crop ? member.crop : null;
 
   el('crewModalTitle').textContent = member ? 'Edit crew member' : 'Add a crew member';
   el('crewf-name').value = member ? (member.name||'') : '';
   el('crewf-role').value = member ? (member.role||'') : '';
   el('crewf-note').value = member ? (member.note||'') : '';
-  el('crewf-photofile').value = member ? (member.photoFile||'') : '';
+  el('crewf-photofile').value = crewModalPhotoFile;
   updateCrewPhotoPreview();
 
   el('crewModalBanner').className = 'gate-banner';
@@ -1503,6 +1699,10 @@ el('crewModalSaveBtn')?.addEventListener('click', async ()=>{
     // actually has a value — crew.js treats an omitted key as "keep the
     // existing photo" so clearing name/role doesn't accidentally wipe it.
     if(crewModalMode === 'add' || photoFile) payload.photoFile = photoFile;
+    // Same logic for crop: only send it when one's actually been picked
+    // this session, so an edit that never opened the crop tool doesn't
+    // clobber a crop chosen earlier.
+    if(crewModalCrop) payload.crop = crewModalCrop;
     const body = crewModalMode === 'edit'
       ? { action:'update', token:getToken(), tripId:currentTripId, id:crewModalEditingId, payload }
       : { action:'add', token:getToken(), tripId:currentTripId, payload };
