@@ -91,6 +91,14 @@
   }
   .gate-field input::placeholder{ color:var(--teal-700); opacity:.45; font-weight:500; }
   .gate-field input:focus{ outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,107,74,.14); }
+  .gate-field.has-toggle input{ padding-right:46px; }
+  .gate-pin-toggle{
+    position:absolute; right:4px; top:50%; transform:translateY(-50%); width:38px; height:38px;
+    border:none; background:transparent; border-radius:9999px; display:flex; align-items:center; justify-content:center;
+    color:var(--teal-700); opacity:.55; cursor:pointer; transition:.2s;
+  }
+  .gate-pin-toggle:hover{ opacity:1; background:var(--sand-2); }
+  .gate-pin-toggle svg{ width:18px; height:18px; }
   /* plain top label, used only where a field wants one (e.g. the PIN-change modal) */
   .gate-field .flabel{
     display:block; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
@@ -470,8 +478,11 @@
           <div class="gate-field">
             <input id="l-name" placeholder="Name" required autocomplete="off"/>
           </div>
-          <div class="gate-field">
-            <input id="l-code" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+          <div class="gate-field has-toggle">
+            <input id="l-code" type="password" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+            <button type="button" class="gate-pin-toggle" id="lCodeToggle" onclick="togglePinVisibility()" aria-label="Show PIN">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
           <button type="submit" class="gate-submit" id="loginSubmitBtn">
             <span class="btn-label">Log in</span>
@@ -998,6 +1009,15 @@ async function populateTripPicker(){
 }
 
 /* ---------- gate mode switch ---------- */
+function togglePinVisibility(){
+  const input = el('l-code'), btn = el('lCodeToggle');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.setAttribute('aria-label', showing ? 'Show PIN' : 'Hide PIN');
+  btn.innerHTML = showing
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.4 20.4 0 0 1 4.22-5.94M9.9 4.24A10.6 10.6 0 0 1 12 4c7 0 11 8 11 8a20.5 20.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+}
 function setMode(mode){
   const isReq = mode === 'request';
   el('switchRequest').classList.toggle('active', isReq);
