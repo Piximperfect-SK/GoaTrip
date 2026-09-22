@@ -206,33 +206,41 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   .nav-countdown{ display:none; } /* logo + menu already tight at this width */
 }
 
-/* ---------- Trip Wallet FAB (fixed bottom-right) ---------- */
-#walletFab{
-  position:fixed; z-index:90;
-  bottom:calc(22px + var(--sab)); right:calc(20px + var(--sar));
-  display:flex; align-items:center; gap:9px;
-  background:linear-gradient(135deg, #FF7A45 0%, #E85D2A 100%);
-  color:white; text-decoration:none; font-weight:700; font-size:15px;
-  padding:14px 24px; border-radius:9999px;
-  box-shadow:0 14px 30px -10px rgba(255,122,69,.65);
-  transition:transform .18s ease, box-shadow .18s ease;
-  touch-action:manipulation;
+/* ---------- Mobile bottom tab bar (Apple-style) ----------
+   Replaces the old bottom-right Wallet FAB: everything that used to be
+   one tap-then-reach away (Menu top-right, Wallet bottom-right, corner
+   to corner) now lives in one thumb-reach row anchored to the bottom
+   edge, matching the iOS tab bar pattern. */
+#mobileTabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:45;
+  display:flex; align-items:stretch;
+  padding:6px calc(6px + var(--sar)) calc(6px + var(--sab)) calc(6px + var(--sal));
+  background:rgba(29,29,31,.86);
+  -webkit-backdrop-filter:blur(18px) saturate(180%); backdrop-filter:blur(18px) saturate(180%);
+  border-top:1px solid rgba(255,255,255,.08);
+  box-shadow:0 -10px 30px -14px rgba(0,0,0,.45);
 }
-#walletFab:hover{ transform:translateY(-2px); box-shadow:0 18px 36px -10px rgba(255,122,69,.75); }
-#walletFab:active{ transform:translateY(0) scale(.95); }
-#walletFab .fab-icon{ font-size:19px; line-height:1; }
-
-@media (max-width:480px){
-  #walletFab{ padding:12px 18px; font-size:13.5px; }
-  #walletFab .fab-icon{ font-size:17px; }
+#mobileTabbar .tabbar-item{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:3px; padding:6px 2px; border:none; border-bottom:none !important;
+  color:#B8BCC4; text-decoration:none; font-family:'Space Grotesk',sans-serif;
+  font-size:10.5px; font-weight:600; letter-spacing:.01em; text-transform:none; opacity:1;
+  -webkit-tap-highlight-color:transparent; transition:color .15s ease, transform .15s ease;
 }
+#mobileTabbar .tabbar-item .tabbar-icon{ font-size:19px; line-height:1; }
+#mobileTabbar .tabbar-item.active,
+#mobileTabbar .tabbar-item:active{ color:var(--mango); }
+#mobileTabbar .tabbar-item.active{ transform:translateY(-1px); }
+#mobileTabbar .tabbar-item.tabbar-wallet.active,
+#mobileTabbar .tabbar-item.tabbar-wallet{ color:var(--mango); }
 @media (min-width:768px){
-  /* Desktop already has Wallet in the nav rail — the floating FAB is mobile-only.
-     This has to be an ID-selector rule (not the Tailwind md:hidden class) because
-     #walletFab{display:flex} above is also an ID selector and would otherwise win
-     on specificity regardless of source order. */
-  #walletFab{ display:none !important; }
+  #mobileTabbar{ display:none !important; }
 }
+/* Keep page content (esp. the footer) from sitting under the fixed bar. */
+@media (max-width:767px){
+  body{ padding-bottom:calc(58px + var(--sab)); }
+}
+
 
 .navlink{color:#DCE9E4; opacity:.75; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent; transition:.2s; white-space:nowrap;}
 @media (min-width:1024px) and (max-width:1279px){
@@ -276,9 +284,29 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 #menuBackdrop{position:fixed; inset:0; z-index:49; background:rgba(15,38,34,.6); opacity:0; pointer-events:none; transition:opacity .25s ease;}
 #menuBackdrop.show{opacity:1; pointer-events:auto;}
-#mobilemenu{position:fixed; left:0; right:0; top:0; z-index:50; background:var(--teal-900); padding:calc(64px + var(--sat)) calc(20px + var(--sar)) 24px calc(20px + var(--sal)); transform:translateY(-100%); transition:transform .35s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column; gap:2px;}
+#mobilemenu{
+  position:fixed; left:0; right:0; bottom:0; top:auto; z-index:50; background:var(--teal-900);
+  border-radius:20px 20px 0 0; max-height:min(78vh,560px); overflow-y:auto;
+  padding:10px calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal));
+  transform:translateY(100%); transition:transform .35s cubic-bezier(.22,1,.36,1);
+  display:flex; flex-direction:column; gap:2px;
+  box-shadow:0 -20px 50px -20px rgba(0,0,0,.5);
+}
 #mobilemenu.open{transform:translateY(0);}
 #mobilemenu .navlink{padding:14px 4px; font-size:14px; border-bottom:1px solid rgba(255,255,255,.08);}
+/* Thumb-reach close affordance: the old top-anchored panel put both the
+   opener and the only way to close it in the far top-right corner, which
+   forces a second hand on a one-handed phone grip. Anchoring the sheet
+   to the bottom puts the whole list in thumb range, and this handle bar
+   sits at the sheet's *top* edge — the part nearest the thumb once the
+   sheet is open — so closing never needs a reach back to the corner. */
+#mobilemenu-handle{
+  display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 4px 16px;
+  color:#DCE9E4; opacity:.75; font-size:12.5px; font-weight:600; letter-spacing:.04em;
+  text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+#mobilemenu-handle .bar{width:36px; height:4px; border-radius:9999px; background:rgba(255,255,255,.3);}
+#mobilemenu-handle:active{ opacity:1; }
 
 /* ---------- Hero (Apple-style: near-white canvas, one sunset gradient
    plane as the single color moment, huge quiet type, scroll-shift
@@ -1381,6 +1409,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 </nav>
 <div id="menuBackdrop" onclick="closeMobileMenu()"></div>
 <div id="mobilemenu" class="md:hidden">
+  <div id="mobilemenu-handle" onclick="closeMobileMenu()"><span class="bar" aria-hidden="true"></span>Close</div>
   <span class="navlink" data-target="#gallery">Gallery</span>
   <span class="navlink" data-target="#places">Places</span>
   <span class="navlink" data-target="#journey">Journey</span>
@@ -1394,10 +1423,13 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
   <a class="navlink" href="admin.html">⚙️ Admin</a>
 </div>
 
-<a id="walletFab" class="md:hidden" href="goa-wallet.html" title="Trip Wallet">
-  <span class="fab-icon">💰</span>
-  <span>Trip Wallet</span>
-</a>
+<nav id="mobileTabbar" class="md:hidden" aria-label="Primary">
+  <span class="tabbar-item navlink" data-target="#gallery"><span class="tabbar-icon" aria-hidden="true">🖼️</span>Gallery</span>
+  <span class="tabbar-item navlink" data-target="#places"><span class="tabbar-icon" aria-hidden="true">📍</span>Places</span>
+  <span class="tabbar-item navlink" data-target="#itinerary"><span class="tabbar-icon" aria-hidden="true">🗓️</span>Itinerary</span>
+  <a class="tabbar-item tabbar-wallet" href="goa-wallet.html"><span class="tabbar-icon" aria-hidden="true">💰</span>Wallet</a>
+  <span class="tabbar-item" onclick="toggleMobileMenu()"><span class="tabbar-icon" aria-hidden="true">☰</span>Menu</span>
+</nav>
 
 <!-- ============ HERO — minimal, Apple-style: quiet type, one gradient moment ============ -->
 <header class="hero">
