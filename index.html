@@ -238,6 +238,13 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 @media (min-width:768px){
   #mobileTabbar{ display:none !important; }
 }
+@media (max-width:767px){
+  /* The bottom tab bar's own Menu tab replaces this top-right trigger
+     below 768px — keeping both just duplicates the same action in two
+     places. It stays visible from 768–1023px (tablet), where the bottom
+     bar is hidden and this is still the only way to open the drawer. */
+  #topnavMenuTrigger{ display:none !important; }
+}
 /* Keep page content (esp. the footer) from sitting under the fixed bar. */
 @media (max-width:767px){
   body{ padding-bottom:calc(58px + var(--sab)); }
@@ -1413,7 +1420,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div class="rail-track" aria-hidden="true"></div>
     <div class="rail-signal" id="railSignal" aria-hidden="true"></div>
   </div>
-  <span class="navlink lg:hidden" onclick="toggleMobileMenu()">Menu</span>
+  <span class="navlink lg:hidden" id="topnavMenuTrigger" onclick="toggleMobileMenu()">Menu</span>
 </nav>
 <div id="menuBackdrop" onclick="closeMobileMenu()"></div>
 <div id="mobilemenu" class="md:hidden">
