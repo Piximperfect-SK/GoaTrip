@@ -27,6 +27,7 @@ const ALLOWED_KEYS = new Set([
   'hero.eyebrow', 'hero.titleLine2', 'hero.subtext',
   'hero.ctaPrimary', 'hero.ctaSecondary',
   'hero.countdownTarget', 'hero.tripEndTarget', 'hero.countdownCaption',
+  'team.eyebrow', 'team.heading', 'team.subtext',
   'footer.tagline', 'footer.credit',
   'social.github', 'social.instagram', 'social.twitter', 'social.linkedin',
   'social.whatsapp', 'social.youtube', 'social.facebook', 'social.email',

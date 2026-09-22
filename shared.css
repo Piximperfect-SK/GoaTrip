@@ -181,6 +181,47 @@ input:focus, textarea:focus, select:focus{
   .seal-spin{ animation:seal-spin-pulse 1.8s ease-in-out infinite; }
 }
 
+/* ---------- Crew flip cards (index.html "The crew." section) ----------
+   Vanilla CSS 3D flip, no external component/runtime. Hover flips on
+   pointer devices; a click/tap toggles .is-flipped so touch devices
+   (which have no hover) can reach the back face the same way. Cards
+   with no note never get .has-note, so their front IS the only face —
+   consistent with the site's build-your-own-component approach rather
+   than pulling in a third-party (React/Framer) widget under a CSP that
+   deliberately keeps this site self-contained. */
+.crew-card{
+  perspective:1200px; height:220px; cursor:default;
+}
+.crew-card.has-note{ cursor:pointer; }
+.crew-card-inner{
+  position:relative; width:100%; height:100%; text-align:left;
+  transform-style:preserve-3d; transition:transform .55s cubic-bezier(.4,.15,.2,1);
+}
+.crew-card.has-note:hover .crew-card-inner,
+.crew-card.has-note.is-flipped .crew-card-inner{ transform:rotateY(180deg); }
+.crew-card-face{
+  position:absolute; inset:0; -webkit-backface-visibility:hidden; backface-visibility:hidden;
+  border-radius:16px; padding:22px 20px; background:var(--paper);
+  border:1px solid var(--line); box-shadow:0 1px 2px rgba(29,29,31,.04);
+  display:flex; flex-direction:column;
+}
+.crew-card-back{
+  transform:rotateY(180deg); justify-content:center;
+}
+.crew-avatar{
+  width:44px; height:44px; border-radius:9999px; display:flex; align-items:center;
+  justify-content:center; font-family:'Space Mono',monospace; font-size:14px; font-weight:700;
+  margin-bottom:14px; background:var(--mango); color:white; flex-shrink:0;
+}
+.crew-flip-hint{
+  margin-top:auto; padding-top:10px; font-family:'Space Mono',monospace; font-size:10.5px;
+  letter-spacing:.04em; color:var(--ink); opacity:.35; transition:opacity .2s;
+}
+.crew-card.has-note:hover .crew-flip-hint{ opacity:.6; }
+@media (prefers-reduced-motion:reduce){
+  .crew-card-inner{ transition:none; }
+}
+
 /* ---------- Top bar (sticky/fixed header used on itinerary & boarding-pass) ---------- */
 #topbar{
   position:sticky; top:0; z-index:30; background:rgba(11,61,58,.94);

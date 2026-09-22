@@ -726,6 +726,7 @@
           <div class="content-tabs" id="contentTabs">
             <div class="content-tab active" data-section="hero">🏖️ Hero</div>
             <div class="content-tab" data-section="countdown">⏱️ Countdown</div>
+            <div class="content-tab" data-section="crew">🧑‍🤝‍🧑 Crew section</div>
             <div class="content-tab" data-section="footer">📌 Footer</div>
             <div class="content-tab" data-section="social">🔗 Social links</div>
           </div>
@@ -765,6 +766,18 @@
                 <h4>🏁 Trip end / return</h4>
                 <p>Once departure passes, the site automatically switches into "ongoing" mode — the countdown flips to counting down to this instead, and the departure board's status pill switches from "Boarding soon" to "Ongoing". After this time passes too, everything switches to "Completed" on its own. Leave blank to use the built-in default (end of day, 5 Oct).</p>
                 <div class="field-row"><label>Trip ends / return leg (local date &amp; time)</label><input type="datetime-local" data-key="hero.tripEndTarget" /></div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="crew">
+              <div class="content-card">
+                <h4>🧑‍🤝‍🧑 Crew section heading</h4>
+                <p>The label and headline above the crew cards. Add the crew members themselves from the "Team / Crew" tab — this only edits the section's copy.</p>
+                <div class="row">
+                  <div class="field-row"><label>Eyebrow label</label><input data-key="team.eyebrow" maxlength="60" placeholder="Who's running this"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Headline</label><input data-key="team.heading" maxlength="60" placeholder="The crew."/><span class="char-count"></span></div>
+                </div>
+                <div class="field-row"><label>Subtext (optional)</label><textarea data-key="team.subtext" maxlength="200" rows="2" placeholder="Leave blank to hide this line entirely."></textarea><span class="char-count"></span></div>
               </div>
             </div>
 

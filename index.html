@@ -1794,8 +1794,9 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     </video>
   </div>
   <div class="max-w-[1200px] mx-auto z-index-1">
-    <div class="section-num mb-4"><span>06</span><span class="rule"></span><span>Who's running this</span></div>
-    <h2 class="display text-4xl md:text-5xl font-semibold mt-2 mb-12 section-heading-anim">The crew.</h2>
+    <div class="section-num mb-4"><span>06</span><span class="rule"></span><span id="teamEyebrow">Who's running this</span></div>
+    <h2 id="teamHeading" class="display text-4xl md:text-5xl font-semibold mt-2 mb-4 section-heading-anim">The crew.</h2>
+    <p id="teamSubtext" class="text-sm opacity-60 max-w-md mb-10" style="display:none"></p>
     <div id="teamGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
   </div>
 </section>
@@ -3841,6 +3842,12 @@ function applyContent(content){
     const capEl = document.getElementById('heroCountdownCaption');
     if(capEl) capEl.dataset.adminOverride = '1';
   }
+  setText('teamEyebrow', 'team.eyebrow');
+  setText('teamHeading', 'team.heading');
+  if(content['team.subtext']){
+    const el = document.getElementById('teamSubtext');
+    if(el){ el.textContent = content['team.subtext']; el.style.display = ''; }
+  }
   setText('footerTagline', 'footer.tagline');
   setText('footerCreditName', 'footer.credit');
   if(content['hero.countdownTarget']){
@@ -4102,15 +4109,38 @@ function renderTeam(members){
     grid.innerHTML = `<p class="text-sm opacity-50 col-span-full text-center py-6">Crew details coming soon.</p>`;
     return;
   }
-  grid.innerHTML = members.map(t=>`
-    <div class="person-card p-6 rounded-2xl" style="background:var(--paper); border:1px solid var(--line); box-shadow:0 1px 2px rgba(29,29,31,.04);">
-      <div class="w-11 h-11 rounded-full flex items-center justify-center mono text-sm font-bold mb-4" style="background:var(--mango); color:white">
-        ${escapeHtml((t.name||'?').trim()[0] || '?')}
+  // Flip cards: front shows avatar/name/role, back shows the note.
+  // Hover-flips on devices with a mouse; a plain click/tap toggles
+  // the same .is-flipped class on touch, so nothing behind a hover
+  // state is ever unreachable on mobile. Cards with no note just
+  // don't get a click handler — there's nothing to reveal.
+  grid.innerHTML = members.map((t,i)=>{
+    const initial = escapeHtml((t.name||'?').trim()[0] || '?');
+    const hasNote = !!(t.note && t.note.trim());
+    return `
+    <div class="crew-card${hasNote ? ' has-note' : ''}" data-idx="${i}" ${hasNote ? 'tabindex="0" role="button" aria-label="Show more about ' + escapeHtml(t.name) + '"' : ''}>
+      <div class="crew-card-inner">
+        <div class="crew-card-face crew-card-front">
+          <div class="crew-avatar">${initial}</div>
+          <h3 class="display text-lg font-semibold mb-1" style="color:var(--ink)">${escapeHtml(t.name)}</h3>
+          <p class="mono text-[11px] tracking-wide" style="color:var(--mango-2)">${escapeHtml((t.role||'').toUpperCase())}</p>
+          ${hasNote ? '<span class="crew-flip-hint">Tap for more →</span>' : ''}
+        </div>
+        <div class="crew-card-face crew-card-back">
+          <p class="mono text-[11px] tracking-wide mb-2" style="color:var(--mango-2)">${escapeHtml((t.role||'').toUpperCase())}</p>
+          <p class="text-sm leading-relaxed" style="color:var(--ink); opacity:.8">${escapeHtml(t.note || '')}</p>
+        </div>
       </div>
-      <h3 class="display text-lg font-semibold mb-1" style="color:var(--ink)">${escapeHtml(t.name)}</h3>
-      <p class="mono text-[11px] tracking-wide mb-3" style="color:var(--mango-2)">${escapeHtml((t.role||'').toUpperCase())}</p>
-      ${t.note ? `<p class="text-sm" style="color:var(--ink); opacity:.65">${escapeHtml(t.note)}</p>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.crew-card.has-note').forEach(card=>{
+    const toggle = ()=> card.classList.toggle('is-flipped');
+    card.addEventListener('click', toggle);
+    card.addEventListener('keydown', e=>{
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+    });
+  });
 }
 
 async function loadTeam(){
