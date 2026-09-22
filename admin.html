@@ -15,118 +15,103 @@
   h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
   .mono{ font-family:'Space Mono', monospace; }
 
-  /* ============ Split-screen gate — redesigned after the "Login V1"
-     reference (colivas/Codepen-style split card: photo/illustration
-     panel + tilt-on-hover, pill inputs with an inline icon, a glow
-     pulse on focus, diagonal gradient page backdrop, pill gradient
-     submit button). Re-themed into GoaTrip's own teal/mango/sand
-     palette and fonts rather than the reference's purple/green, so it
-     still reads as this site — same structure and motion, own colors. */
+  /* ============ Split-screen gate — redesigned after a "Create
+     account" split-card reference (flat solid-color illustration
+     panel on the left, plain white card on the right: small logo
+     lockup, big left-aligned serif heading, bordered rounded-rect
+     inputs with no inline icon, one solid full-width pill button,
+     small text links instead of a segmented switch). Re-themed into
+     GoaTrip's own mango/ink/paper palette and a bespoke Goa-trip
+     illustration rather than the reference's character/palette — same
+     structure and card mechanics, own colors and own artwork. */
   body{
     margin:0; min-height:100vh; color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased;
   }
   body.gate-mode{
     display:flex; align-items:center; justify-content:center; padding:24px 16px; position:relative; overflow-x:hidden;
-    background:#8a5a3f;
-    background:linear-gradient(-135deg, var(--mango) 0%, var(--azulejo) 52%, var(--teal-900) 100%);
-    background-attachment:fixed;
-  }
-  body.gate-mode::before{
-    content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.4;
-    background-image:radial-gradient(rgba(255,255,255,.4) 1.5px, transparent 1.5px);
-    background-size:26px 26px;
+    background:radial-gradient(120% 100% at 15% 0%, rgba(255,107,74,.10), transparent 55%), var(--sand-2);
   }
   body.dash-mode{ background:#F3F6F5; }
 
   /* ---------- Split card ---------- */
-  .gate-wrap{ width:100%; max-width:900px; position:relative; z-index:1; }
+  .gate-wrap{ width:100%; max-width:880px; position:relative; z-index:1; }
   .gate-split{
-    background:var(--paper); border-radius:24px; overflow:hidden;
+    background:var(--paper); border-radius:28px; overflow:hidden;
     display:flex; align-items:stretch; flex-wrap:wrap;
-    box-shadow:0 40px 90px -28px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.4) inset;
-    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 40px 90px -32px rgba(29,29,31,.35);
+    border:1px solid var(--line);
   }
 
-  /* left panel: illustration, tilts toward the cursor */
+  /* left panel: flat solid-color illustration, tilts toward the cursor */
   .gate-illustration{
     flex:1 1 300px; min-width:260px; display:flex; align-items:center; justify-content:center;
-    padding:40px; position:relative; perspective:900px;
-    background:radial-gradient(120% 100% at 25% 15%, rgba(255,122,69,.12), transparent 60%), linear-gradient(175deg, var(--sand), var(--sand-2));
+    padding:40px; position:relative; perspective:900px; overflow:hidden;
+    background:var(--mango);
   }
-  .gate-illustration .tilt-card{ width:100%; max-width:230px; transform-style:preserve-3d; transition:transform .2s ease-out; will-change:transform; }
-  .gate-illustration svg{ width:100%; height:auto; display:block; filter:drop-shadow(0 18px 30px rgba(15,38,34,.18)); }
+  .gate-illustration .tilt-card{ width:100%; max-width:250px; transform-style:preserve-3d; transition:transform .2s ease-out; will-change:transform; }
+  .gate-illustration svg{ width:100%; height:auto; display:block; }
   .gate-deco{ position:absolute; pointer-events:none; }
-  .gate-deco.d1{ top:13%; left:13%; width:9px; height:9px; border:2px solid var(--azulejo-2); border-radius:50%; }
-  .gate-deco.d2{ bottom:15%; right:13%; width:8px; height:8px; background:var(--mango); border-radius:50%; }
-  .gate-deco.d3{ top:10%; right:18%; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:9px solid var(--palm); opacity:.8; }
-  .gate-deco.d4{ bottom:12%; left:9%; width:9px; height:9px; border:2px solid var(--palm); transform:rotate(20deg); }
+  .gate-deco.d1{ top:13%; left:13%; width:9px; height:9px; border:2px solid rgba(255,255,255,.6); border-radius:50%; }
+  .gate-deco.d2{ bottom:16%; right:12%; width:8px; height:8px; background:var(--yellow); border-radius:50%; }
+  .gate-deco.d3{ top:11%; right:20%; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:9px solid rgba(255,255,255,.5); }
+  .gate-deco.d4{ bottom:13%; left:9%; width:9px; height:9px; border:2px solid var(--yellow); transform:rotate(20deg); }
 
-  /* right panel: the form */
-  .gate-card{ flex:1 1 320px; min-width:280px; padding:44px 40px 30px; display:flex; align-items:center; }
-  .gate-card-inner{ width:100%; max-width:290px; margin:0 auto; }
+  /* right panel: the form, left-aligned like the reference rather than centered */
+  .gate-card{ flex:1 1 340px; min-width:280px; padding:44px 44px 32px; display:flex; align-items:center; }
+  .gate-card-inner{ width:100%; max-width:320px; }
+  .gate-logo{ display:flex; align-items:center; gap:9px; margin:0 0 34px; }
   .gate-badge{
-    width:52px; height:52px; border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(155deg, var(--teal-800), var(--teal-900));
-    box-shadow:0 10px 22px -8px rgba(11,61,58,.55);
-    transition:transform .25s ease;
+    width:32px; height:32px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:var(--ink); transition:transform .25s ease;
   }
-  .gate-badge svg{ width:22px; height:22px; color:var(--sand); }
-  .gate-card h1{ font-size:1.5rem; margin:0 0 4px; color:var(--ink); text-align:center; }
-  .gate-sub{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--mango-2); margin:0 0 26px; text-align:center; }
+  .gate-badge svg{ width:16px; height:16px; color:var(--sand); }
+  .gate-logo-word{ font-family:'Space Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.02em; color:var(--ink); }
+  .gate-card h1{ font-size:2rem; line-height:1.08; margin:0 0 8px; color:var(--ink); }
+  .gate-sub{ font-size:13px; color:var(--teal-700); opacity:.75; margin:0 0 26px; line-height:1.5; }
 
-  .gate-switch{ display:flex; gap:4px; background:rgba(15,38,34,.06); border-radius:9999px; padding:4px; margin:0 0 24px; }
-  .gate-switch button{
-    flex:1; border:none; background:transparent; padding:9px 0; border-radius:9999px; font-size:12.5px; font-weight:600;
-    letter-spacing:.02em; color:var(--teal-700); cursor:pointer; transition:.2s;
-  }
-  .gate-switch button.active{ background:var(--ink); color:var(--paper); box-shadow:0 4px 10px -3px rgba(15,38,34,.35); }
+  /* small text-link toggle, in place of a segmented switch — the
+     switchRequest/switchLogin buttons still exist (setMode() toggles
+     their .active class) but stay visually hidden; these links call
+     the same setMode() and sit under each form like the reference's
+     "Have an account? Log in" line. */
+  .gate-switch{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .gate-toggle-line{ font-size:13px; color:var(--teal-700); opacity:.8; margin:16px 0 0; text-align:center; }
+  .gate-toggle-line a{ color:var(--mango-2); font-weight:600; cursor:pointer; text-decoration:none; }
+  .gate-toggle-line a:hover{ text-decoration:underline; }
 
-  /* pill inputs with an inline icon + a soft glow ring that pulses out
-     on focus — the two signature details from the reference form */
+  /* plain bordered rounded-rect inputs, no inline icon — matches the
+     reference's clean unornamented field style */
   .gate-field{ position:relative; width:100%; z-index:1; margin-bottom:12px; }
   .gate-row2{ display:flex; gap:10px; }
   .gate-row2 .gate-field{ flex:1; }
   .gate-field input{
-    font-family:inherit; font-size:14px; font-weight:600; line-height:1.4; color:var(--ink);
-    display:block; width:100%; background:var(--sand-2); border:1.5px solid transparent; height:48px; border-radius:9999px;
-    padding:0 18px; transition:background .25s ease, border-color .25s ease;
+    font-family:inherit; font-size:14px; font-weight:500; line-height:1.4; color:var(--ink);
+    display:block; width:100%; background:var(--paper); border:1.5px solid var(--line); height:50px; border-radius:14px;
+    padding:0 18px; transition:border-color .2s ease, box-shadow .2s ease;
   }
-  .gate-field.has-icon input{ padding-left:48px; }
-  .gate-field input::placeholder{ color:var(--teal-700); opacity:.5; font-weight:500; }
-  .gate-field input:focus{ outline:none; background:white; border-color:var(--mango); }
-  .gate-field .fglow{
-    display:block; position:absolute; border-radius:9999px; bottom:0; left:0; z-index:-1;
-    width:100%; height:100%; box-shadow:0 0 0 0; color:rgba(255,122,69,.6);
-  }
-  .gate-field input:focus + .fglow{ animation:gt-input-glow .5s ease-in-out forwards; }
-  @keyframes gt-input-glow{ to{ box-shadow:0 0 44px 16px; opacity:0; } }
-  .gate-field .ficon{
-    font-size:15px; display:flex; align-items:center; position:absolute; bottom:0; left:0; height:100%;
-    width:48px; justify-content:center; pointer-events:none; color:var(--teal-700); opacity:.6; transition:.25s;
-  }
-  .gate-field .ficon svg{ width:16px; height:16px; }
-  .gate-field input:focus ~ .ficon{ color:var(--mango-2); opacity:1; }
-  /* plain top label, used only where a field has no icon (e.g. the PIN-change modal) */
+  .gate-field input::placeholder{ color:var(--teal-700); opacity:.45; font-weight:500; }
+  .gate-field input:focus{ outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,107,74,.14); }
+  /* plain top label, used only where a field wants one (e.g. the PIN-change modal) */
   .gate-field .flabel{
     display:block; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
     text-transform:uppercase; color:var(--azulejo); font-weight:700; margin-bottom:7px;
   }
 
   .gate-submit{
-    width:100%; border:none; border-radius:9999px; padding:14px 0; margin-top:6px;
-    background:linear-gradient(120deg, var(--mango), var(--mango-2)); color:white;
-    text-transform:uppercase; font-weight:700; font-size:12.5px; letter-spacing:.06em; cursor:pointer;
+    width:100%; border:none; border-radius:9999px; padding:15px 0; margin-top:6px;
+    background:var(--mango); color:white;
+    font-weight:700; font-size:14px; letter-spacing:.01em; cursor:pointer;
     display:flex; align-items:center; justify-content:center; gap:8px;
-    box-shadow:0 14px 26px -10px rgba(232,93,42,.55); transition:background .3s ease, transform .18s ease, box-shadow .3s ease;
+    box-shadow:0 14px 26px -10px rgba(255,107,74,.55); transition:background .2s ease, transform .18s ease, box-shadow .2s ease;
   }
-  .gate-submit:hover{ background:var(--ink); transform:translateY(-1px); box-shadow:0 16px 28px -10px rgba(15,38,34,.5); }
+  .gate-submit:hover{ background:var(--mango-2); transform:translateY(-1px); box-shadow:0 16px 28px -10px rgba(232,84,54,.5); }
   .gate-submit svg{ width:15px; height:15px; }
   .gate-submit:disabled{ opacity:.6; cursor:default; transform:none; }
 
   .gate-status{
     display:inline-flex; align-items:center; gap:7px; margin:18px auto 0; padding:8px 16px; border-radius:9999px;
-    background:rgba(251,246,236,.9); font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
-    text-transform:uppercase; color:var(--teal-800); box-shadow:0 4px 14px -6px rgba(0,0,0,.25);
+    background:rgba(255,255,255,.85); font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--teal-800); box-shadow:0 4px 14px -6px rgba(0,0,0,.12);
   }
   .gate-status .dot{ width:7px; height:7px; border-radius:50%; background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.25); }
 
@@ -135,7 +120,7 @@
   .gate-banner.ok{ background:rgba(62,124,89,.12); color:#2C5940; border:1px solid rgba(62,124,89,.25); }
   .gate-banner.bad{ background:rgba(232,93,42,.12); color:var(--mango-2); border:1px solid rgba(232,93,42,.25); }
 
-  .gate-back{ display:block; text-align:center; margin-top:18px; font-size:12px; color:var(--teal-700); opacity:.75; text-decoration:none; }
+  .gate-back{ display:block; text-align:left; margin-top:22px; font-size:12px; color:var(--teal-700); opacity:.75; text-decoration:none; }
   .gate-back:hover{ opacity:1; color:var(--mango-2); }
 
   @media (max-width:760px){
@@ -421,26 +406,39 @@
       <span class="gate-deco d3"></span>
       <span class="gate-deco d4"></span>
       <div class="tilt-card" id="gateTilt">
-        <svg viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="160" cy="146" r="132" fill="var(--sand)"/>
-          <rect x="88" y="86" width="152" height="104" rx="10" fill="var(--teal-800)"/>
-          <rect x="99" y="97" width="130" height="82" rx="4" fill="var(--teal-900)"/>
-          <circle cx="164" cy="126" r="17" stroke="var(--sand)" stroke-width="3" fill="none"/>
-          <path d="M139 165c0-15 11-24 25-24s25 9 25 24" stroke="var(--sand)" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <rect x="73" y="190" width="182" height="13" rx="6.5" fill="var(--sand-2)"/>
-          <rect x="143" y="203" width="42" height="6" rx="3" fill="var(--sand-2)"/>
+        <!-- Original flat illustration — someone planning the Goa run:
+             palm tree, sun, a laptop on a low table, a packed bag.
+             One held motif (mango-flat + sand/ink linework) rather
+             than a busy scene, matching the rest of the site. -->
+        <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="196" cy="56" r="30" fill="var(--yellow)" opacity=".9"/>
+          <path d="M92 150c0-38 4-70 8-92" stroke="var(--teal-900)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M100 62c-16-8-34-6-44 4 14 8 30 8 44-4Z" fill="var(--palm)"/>
+          <path d="M100 62c-10-16-26-22-40-18 8 14 22 22 40 18Z" fill="var(--palm)"/>
+          <path d="M100 62c16-10 34-10 46-2-12 10-30 12-46 2Z" fill="var(--palm)"/>
+          <path d="M100 62c6-16 20-26 36-26-4 16-18 28-36 26Z" fill="var(--palm)"/>
+          <rect x="30" y="176" width="200" height="8" rx="4" fill="rgba(29,29,31,.18)"/>
+          <rect x="118" y="120" width="70" height="46" rx="6" fill="var(--sand)"/>
+          <rect x="126" y="128" width="54" height="30" rx="3" fill="var(--teal-900)"/>
+          <rect x="108" y="166" width="90" height="8" rx="4" fill="var(--sand)"/>
+          <rect x="46" y="150" width="46" height="34" rx="6" fill="var(--sand)" stroke="var(--teal-900)" stroke-width="2.5"/>
+          <rect x="58" y="140" width="22" height="14" rx="4" fill="var(--sand)" stroke="var(--teal-900)" stroke-width="2.5"/>
+          <circle cx="69" cy="167" r="3" fill="var(--mango-2)"/>
         </svg>
       </div>
     </div>
 
     <div class="gate-card">
       <div class="gate-card-inner">
-        <div class="gate-badge" id="gateBadge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="gate-logo">
+          <div class="gate-badge" id="gateBadge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="gate-logo-word">GoaTrip Admin</span>
         </div>
-        <h1>Admin Gate</h1>
-        <p class="gate-sub" id="gateSub">GoaTrip · Authorized crew only</p>
 
+        <!-- switchRequest/switchLogin kept (setMode() toggles their
+             .active class) but visually hidden — see .gate-switch -->
         <div class="gate-switch">
           <button type="button" class="active" id="switchRequest" onclick="setMode('request')">Request access</button>
           <button type="button" id="switchLogin" onclick="setMode('login')">Log in</button>
@@ -450,40 +448,36 @@
 
         <!-- ---- Request access form ---- -->
         <form id="requestForm">
-          <div class="gate-field has-icon">
+          <h1>Request<br/>access.</h1>
+          <p class="gate-sub" id="gateSub">GoaTrip · authorized crew only. Ask an admin for a PIN once approved.</p>
+          <div class="gate-field">
             <input id="r-name" placeholder="Full name" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           </div>
-          <div class="gate-field has-icon">
+          <div class="gate-field">
             <input id="r-email" type="email" placeholder="Email" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg></span>
           </div>
           <button type="submit" class="gate-submit" id="requestSubmitBtn">
             <span class="btn-label">Request access</span>
             <span class="btn-spinner"></span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
+          <p class="gate-toggle-line">Already approved? <a onclick="setMode('login')">Log in</a></p>
         </form>
 
         <!-- ---- Login form ---- -->
         <form id="loginForm" class="hidden">
-          <div class="gate-field has-icon">
+          <h1>Welcome<br/>back.</h1>
+          <p class="gate-sub">Log in with your name and the 6-digit PIN you were given.</p>
+          <div class="gate-field">
             <input id="l-name" placeholder="Name" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           </div>
-          <div class="gate-field has-icon">
+          <div class="gate-field">
             <input id="l-code" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
           </div>
           <button type="submit" class="gate-submit" id="loginSubmitBtn">
             <span class="btn-label">Log in</span>
             <span class="btn-spinner"></span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
           </button>
+          <p class="gate-toggle-line">New crew member? <a onclick="setMode('request')">Request access</a></p>
         </form>
 
         <a href="index.html" class="gate-back">← Back to trip site</a>
