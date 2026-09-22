@@ -1797,7 +1797,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
     <div class="section-num mb-4"><span>06</span><span class="rule"></span><span id="teamEyebrow">Who's running this</span></div>
     <h2 id="teamHeading" class="display text-4xl md:text-5xl font-semibold mt-2 mb-4 section-heading-anim">The crew.</h2>
     <p id="teamSubtext" class="text-sm opacity-60 max-w-md mb-10" style="display:none"></p>
-    <div id="teamGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    <div id="teamGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
   </div>
 </section>
 
@@ -4147,13 +4147,28 @@ function renderTeam(members){
   }).join('');
 
   grid.querySelectorAll('.crew-card.has-note').forEach(card=>{
-    const toggle = ()=> card.classList.toggle('is-active');
+    const toggle = (e)=>{
+      if(e) e.stopPropagation(); // don't let this bubble to the document-level "tap outside" closer below
+      const willOpen = !card.classList.contains('is-active');
+      grid.querySelectorAll('.crew-card.is-active').forEach(other=>{
+        if(other !== card) other.classList.remove('is-active');
+      });
+      card.classList.toggle('is-active', willOpen);
+    };
     card.addEventListener('click', toggle);
     card.addEventListener('keydown', e=>{
-      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(e); }
     });
   });
 }
+
+// Tap/click anywhere outside an open crew card closes it — otherwise on
+// touch devices (no real hover) a card that was tapped open has no other
+// way to close besides tapping that exact card again.
+document.addEventListener('click', (e)=>{
+  if(e.target.closest('.crew-card')) return;
+  document.querySelectorAll('.crew-card.is-active').forEach(card=> card.classList.remove('is-active'));
+});
 
 async function loadTeam(){
   if(!window.TRIP){ renderTeam([]); return; }
