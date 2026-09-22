@@ -215,24 +215,26 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
   position:fixed; left:0; right:0; bottom:0; z-index:45;
   display:flex; align-items:stretch;
   padding:6px calc(6px + var(--sar)) calc(6px + var(--sab)) calc(6px + var(--sal));
-  background:rgba(29,29,31,.86);
+  background:
+    linear-gradient(0deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 60%),
+    rgba(251,251,253,.82);
   -webkit-backdrop-filter:blur(18px) saturate(180%); backdrop-filter:blur(18px) saturate(180%);
-  border-top:1px solid rgba(255,255,255,.08);
-  box-shadow:0 -10px 30px -14px rgba(0,0,0,.45);
+  border-top:1px solid rgba(255,255,255,.7);
+  box-shadow:0 -10px 30px -14px rgba(29,29,31,.18);
 }
 #mobileTabbar .tabbar-item{
   flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:3px; padding:6px 2px; border:none; border-bottom:none !important;
-  color:#B8BCC4; text-decoration:none; font-family:'Space Grotesk',sans-serif;
-  font-size:10.5px; font-weight:600; letter-spacing:.01em; text-transform:none; opacity:1;
-  -webkit-tap-highlight-color:transparent; transition:color .15s ease, transform .15s ease;
+  color:var(--teal-700); text-decoration:none; font-family:'Space Grotesk',sans-serif;
+  font-size:10.5px; font-weight:600; letter-spacing:.01em; text-transform:none; opacity:.65;
+  -webkit-tap-highlight-color:transparent; transition:color .15s ease, opacity .15s ease, transform .15s ease;
 }
 #mobileTabbar .tabbar-item .tabbar-icon{ font-size:19px; line-height:1; }
 #mobileTabbar .tabbar-item.active,
-#mobileTabbar .tabbar-item:active{ color:var(--mango); }
+#mobileTabbar .tabbar-item:active{ color:var(--mango); opacity:1; }
 #mobileTabbar .tabbar-item.active{ transform:translateY(-1px); }
 #mobileTabbar .tabbar-item.tabbar-wallet.active,
-#mobileTabbar .tabbar-item.tabbar-wallet{ color:var(--mango); }
+#mobileTabbar .tabbar-item.tabbar-wallet{ color:var(--mango-2); opacity:1; }
 @media (min-width:768px){
   #mobileTabbar{ display:none !important; }
 }
@@ -282,18 +284,24 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 .nav-dropdown-menu a{display:block; padding:9px 10px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:#DCE9E4; border-radius:8px; font-family:'Space Grotesk',sans-serif; transition:.15s;}
 .nav-dropdown-menu a:hover{background:rgba(255,255,255,.08); color:white;}
 
-#menuBackdrop{position:fixed; inset:0; z-index:49; background:rgba(15,38,34,.6); opacity:0; pointer-events:none; transition:opacity .25s ease;}
+#menuBackdrop{position:fixed; inset:0; z-index:49; background:rgba(29,29,31,.45); opacity:0; pointer-events:none; transition:opacity .25s ease;}
 #menuBackdrop.show{opacity:1; pointer-events:auto;}
 #mobilemenu{
-  position:fixed; left:0; right:0; bottom:0; top:auto; z-index:50; background:var(--teal-900);
+  position:fixed; left:0; right:0; bottom:0; top:auto; z-index:50;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,0) 30%),
+    rgba(251,251,253,.92);
+  border-top:1px solid rgba(255,255,255,.7);
   border-radius:20px 20px 0 0; max-height:min(78vh,560px); overflow-y:auto;
   padding:10px calc(20px + var(--sar)) calc(20px + var(--sab)) calc(20px + var(--sal));
   transform:translateY(100%); transition:transform .35s cubic-bezier(.22,1,.36,1);
   display:flex; flex-direction:column; gap:2px;
-  box-shadow:0 -20px 50px -20px rgba(0,0,0,.5);
+  -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%);
+  box-shadow:0 -20px 50px -20px rgba(29,29,31,.35);
 }
 #mobilemenu.open{transform:translateY(0);}
-#mobilemenu .navlink{padding:14px 4px; font-size:14px; border-bottom:1px solid rgba(255,255,255,.08);}
+#mobilemenu .navlink{color:var(--ink); opacity:.75; padding:14px 4px; font-size:14px; border-bottom:1px solid var(--line);}
+#mobilemenu .navlink:hover, #mobilemenu .navlink.active{ opacity:1; color:var(--mango-2); border-color:var(--line); }
 /* Thumb-reach close affordance: the old top-anchored panel put both the
    opener and the only way to close it in the far top-right corner, which
    forces a second hand on a one-handed phone grip. Anchoring the sheet
@@ -302,10 +310,10 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
    sheet is open — so closing never needs a reach back to the corner. */
 #mobilemenu-handle{
   display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 4px 16px;
-  color:#DCE9E4; opacity:.75; font-size:12.5px; font-weight:600; letter-spacing:.04em;
+  color:var(--teal-700); opacity:.65; font-size:12.5px; font-weight:600; letter-spacing:.04em;
   text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent;
 }
-#mobilemenu-handle .bar{width:36px; height:4px; border-radius:9999px; background:rgba(255,255,255,.3);}
+#mobilemenu-handle .bar{width:36px; height:4px; border-radius:9999px; background:var(--line);}
 #mobilemenu-handle:active{ opacity:1; }
 
 /* ---------- Hero (Apple-style: near-white canvas, one sunset gradient
