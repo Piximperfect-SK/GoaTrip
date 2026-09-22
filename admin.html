@@ -740,15 +740,15 @@
       <div class="modal-overlay hidden" id="crewModalOverlay">
         <div class="modal-card" style="max-width:460px; text-align:left;">
           <h3 id="crewModalTitle">Add a crew member</h3>
-          <p class="modal-sub">Photos are stored in Netlify Blobs, resized and compressed to WebP in your browser before upload.</p>
+          <p class="modal-sub">Photos live in <code>pictures/crew/</code> in the repo, not uploaded here — type the filename of an image already deployed there.</p>
           <div class="gate-banner" id="crewModalBanner"></div>
 
           <label>Photo *</label>
+          <p class="cardsub" style="margin-top:-6px; margin-bottom:10px;">Upload the image to <code>pictures/crew/</code> in the repo first (via git/deploy), then type its filename here — e.g. <code>shubham.jpg</code>. This field does not upload anything itself.</p>
           <div class="crew-photo-picker" id="crewPhotoPicker">
-            <div class="crew-photo-preview" id="crewPhotoPreview"><span id="crewPhotoPlaceholder">No photo selected</span></div>
+            <div class="crew-photo-preview" id="crewPhotoPreview"><span id="crewPhotoPlaceholder">No filename yet</span></div>
             <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:0;">
-              <input type="file" id="crewPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;"/>
-              <button type="button" class="btn-ghost" id="crewPhotoChooseBtn" style="padding:9px 16px; font-size:13px;">Choose photo</button>
+              <input type="text" id="crewf-photofile" maxlength="120" placeholder="e.g. shubham.jpg"/>
               <div class="crew-photo-status" id="crewPhotoStatus"></div>
             </div>
           </div>
@@ -1410,69 +1410,65 @@ function renderCrew(){
   }));
 }
 
-/* ---------- crew photo picker: resize/compress in-browser, then upload ---------- */
-// Downscales to fit within MAX_DIM on the long edge and re-encodes as
-// WebP at MAX_QUALITY — keeps uploads small without a server round-trip
-// just to find out a 12MP phone photo was too big.
-const CREW_PHOTO_MAX_DIM = 800;
-const CREW_PHOTO_QUALITY = 0.82;
-function resizeImageFile(file){
-  return new Promise((resolve, reject)=>{
-    if(!/^image\/(jpeg|png|webp)$/.test(file.type)){
-      reject(new Error('Please choose a JPEG, PNG or WebP image.')); return;
-    }
-    const img = new Image();
-    const reader = new FileReader();
-    reader.onerror = ()=> reject(new Error('Could not read that file.'));
-    reader.onload = ()=>{
-      img.onerror = ()=> reject(new Error('That file doesn\u2019t look like a valid image.'));
-      img.onload = ()=>{
-        const scale = Math.min(1, CREW_PHOTO_MAX_DIM / Math.max(img.width, img.height));
-        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/webp', CREW_PHOTO_QUALITY);
-        // Safari <14 silently ignores unsupported toDataURL types and
-        // falls back to PNG — detect that and just accept the PNG rather
-        // than pretending we got WebP.
-        resolve(dataUrl);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
+/* ---------- crew photo field: a typed filename resolved under pictures/crew/ ----------
+   No upload here — the image itself has to be added to the repo (via
+   git/deploy) under pictures/crew/ first, same as the existing
+   pictures/seal.png asset. This just records the filename and shows a
+   live preview by pointing an <img> at it, so a typo or a not-yet-
+   deployed file is obvious before saving rather than after. */
+const SAFE_FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(jpg|jpeg|png|webp|gif|avif)$/i;
+
+function updateCrewPhotoPreview(){
+  const raw = el('crewf-photofile').value.trim();
+  const preview = el('crewPhotoPreview');
+  const status = el('crewPhotoStatus');
+  if(!raw){
+    preview.innerHTML = '<span id="crewPhotoPlaceholder">No filename yet</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status';
+    status.textContent = '';
+    return;
+  }
+  if(!SAFE_FILENAME_RE.test(raw)){
+    preview.innerHTML = '<span>Invalid filename</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status bad';
+    status.textContent = 'Use a plain filename like shubham.jpg — no folders or URLs.';
+    return;
+  }
+  const url = 'pictures/crew/' + encodeURIComponent(raw);
+  status.className = 'crew-photo-status';
+  status.textContent = 'Checking…';
+  const img = new Image();
+  img.onload = ()=>{
+    preview.innerHTML = `<img src="${url}" alt=""/>`;
+    preview.classList.add('has-image');
+    status.className = 'crew-photo-status ok';
+    status.textContent = 'Found in pictures/crew/.';
+  };
+  img.onerror = ()=>{
+    preview.innerHTML = '<span>Not found</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status bad';
+    status.textContent = 'No file at pictures/crew/' + raw + ' yet — add it to the repo and redeploy, or check the spelling.';
+  };
+  img.src = url;
 }
+el('crewf-photofile')?.addEventListener('input', updateCrewPhotoPreview);
 
 let crewModalMode = 'add'; // 'add' | 'edit'
 let crewModalEditingId = null;
-let crewModalPhotoKey = null;   // key already stored on the member being edited
-let crewModalNewPhotoKey = null; // key returned by a fresh upload this session
-let crewModalUploading = false;
 
 function openCrewModal(member){
   crewModalMode = member ? 'edit' : 'add';
   crewModalEditingId = member ? member.id : null;
-  crewModalPhotoKey = member ? member.photoKey : null;
-  crewModalNewPhotoKey = null;
-  crewModalUploading = false;
 
   el('crewModalTitle').textContent = member ? 'Edit crew member' : 'Add a crew member';
   el('crewf-name').value = member ? (member.name||'') : '';
   el('crewf-role').value = member ? (member.role||'') : '';
   el('crewf-note').value = member ? (member.note||'') : '';
-  el('crewPhotoInput').value = '';
-  el('crewPhotoStatus').textContent = '';
-  el('crewPhotoStatus').className = 'crew-photo-status';
-
-  const preview = el('crewPhotoPreview');
-  if(member && member.photoUrl){
-    preview.innerHTML = `<img src="${escapeHtml(member.photoUrl)}" alt=""/>`;
-    preview.classList.add('has-image');
-  }else{
-    preview.innerHTML = '<span id="crewPhotoPlaceholder">No photo selected</span>';
-    preview.classList.remove('has-image');
-  }
+  el('crewf-photofile').value = member ? (member.photoFile||'') : '';
+  updateCrewPhotoPreview();
 
   el('crewModalBanner').className = 'gate-banner';
   el('crewModalBanner').textContent = '';
@@ -1484,61 +1480,29 @@ el('openAddCrewBtn')?.addEventListener('click', ()=>{
   openCrewModal(null);
 });
 el('crewModalCancelBtn')?.addEventListener('click', closeCrewModal);
-el('crewPhotoChooseBtn')?.addEventListener('click', ()=> el('crewPhotoInput').click());
-
-el('crewPhotoInput')?.addEventListener('change', async ()=>{
-  const file = el('crewPhotoInput').files && el('crewPhotoInput').files[0];
-  if(!file) return;
-  const status = el('crewPhotoStatus');
-  const preview = el('crewPhotoPreview');
-  status.className = 'crew-photo-status';
-  status.textContent = 'Resizing and compressing…';
-  crewModalUploading = true;
-  try{
-    const dataUrl = await resizeImageFile(file);
-    preview.innerHTML = `<img src="${dataUrl}" alt=""/>`;
-    preview.classList.add('has-image');
-    status.textContent = 'Uploading…';
-    const res = await fetch(FUNCTIONS_BASE + '/crew-photo', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action:'upload', token:getToken(), tripId:currentTripId,
-        imageDataUrl: dataUrl, oldKey: crewModalNewPhotoKey || crewModalPhotoKey || undefined,
-      }),
-    });
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    crewModalNewPhotoKey = data.photoKey;
-    status.className = 'crew-photo-status ok';
-    status.textContent = 'Photo ready.';
-  }catch(err){
-    status.className = 'crew-photo-status bad';
-    status.textContent = err.message || 'Upload failed — try a different photo.';
-  }finally{
-    crewModalUploading = false;
-  }
-});
 
 el('crewModalSaveBtn')?.addEventListener('click', async ()=>{
   if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
-  if(crewModalUploading){ showDashBanner('bad','Still uploading the photo — one moment.'); return; }
   const name = el('crewf-name').value.trim();
   const role = el('crewf-role').value.trim();
   const note = el('crewf-note').value.trim();
+  const photoFile = el('crewf-photofile').value.trim();
   const banner = el('crewModalBanner');
   if(!name || !role){ banner.className='gate-banner bad'; banner.textContent='Name and role are required.'; return; }
-  const effectivePhotoKey = crewModalNewPhotoKey || crewModalPhotoKey;
-  if(crewModalMode === 'add' && !effectivePhotoKey){
-    banner.className='gate-banner bad'; banner.textContent='A photo is required to add a crew member.'; return;
+  if(photoFile && !SAFE_FILENAME_RE.test(photoFile)){
+    banner.className='gate-banner bad'; banner.textContent='Photo filename must be a plain image filename (e.g. shubham.jpg).'; return;
+  }
+  if(crewModalMode === 'add' && !photoFile){
+    banner.className='gate-banner bad'; banner.textContent='A photo filename is required to add a crew member.'; return;
   }
   const btn = el('crewModalSaveBtn');
   btn.disabled = true;
   try{
     const payload = { name, role, note };
-    // Only send photoKey when there's actually a new upload or this is a
-    // brand-new member — an edit that didn't touch the photo omits the
-    // field entirely so crew.js knows to leave the existing one alone.
-    if(crewModalMode === 'add' || crewModalNewPhotoKey) payload.photoKey = effectivePhotoKey;
+    // Always send photoFile on add. On edit, only send it if the field
+    // actually has a value — crew.js treats an omitted key as "keep the
+    // existing photo" so clearing name/role doesn't accidentally wipe it.
+    if(crewModalMode === 'add' || photoFile) payload.photoFile = photoFile;
     const body = crewModalMode === 'edit'
       ? { action:'update', token:getToken(), tripId:currentTripId, id:crewModalEditingId, payload }
       : { action:'add', token:getToken(), tripId:currentTripId, payload };

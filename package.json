@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@netlify/blobs": "^8.2.0",
     "resend": "^4.0.1"
   }
 }

@@ -3,16 +3,13 @@
 // index.html only ever renders whatever this endpoint returns.
 // Mirrors the board_members pattern in cancellation.js.
 //
-// Photos: stored out-of-band in Netlify Blobs (see crew-photo.js). This
-// file only ever stores/returns the resulting `photo_key` string, never
-// image bytes — matching content.js's own "don't put big blobs in
-// Postgres" convention. A member with no photo_key is a legacy row
-// (added before photos existed) or one mid-upload; it's still returned
-// to the admin panel (so it can show a "Photo Required" badge) but
-// photoUrl comes back null, and index.html's public renderer skips any
-// member with no photoUrl rather than falling back to an initials
-// avatar — see the implementation note in admin.html's crew editor.
-const { getStore } = require('@netlify/blobs');
+// Photos: NOT uploaded through this API. They're static files checked
+// into the repo under pictures/crew/ (same convention as the existing
+// pictures/seal.png asset) and deployed with everything else. This
+// table only stores the filename an admin typed in — `photo_file` —
+// and photoUrl is just that filename resolved under pictures/crew/.
+// Someone has to actually put the image file in the repo first; this
+// endpoint has no way to write files itself.
 const { query } = require('./lib/db');
 const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText } = require('./lib/validate');
@@ -32,15 +29,20 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
-  // Added for the photo feature. Nullable on purpose — existing rows
-  // predate photos and stay nullable until an admin uploads one; see
-  // the module comment above for how a null key is handled downstream.
-  await query('ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS photo_key TEXT');
+  // Added for the photo feature. Nullable — a legacy row can exist with
+  // no filename yet; see the module comment above for how that's
+  // handled downstream (admin panel flags it, public site skips it).
+  await query('ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS photo_file TEXT');
   ensured = true;
 }
 
-function photoUrl(photoKey) {
-  return photoKey ? `/.netlify/functions/crew-photo?key=${encodeURIComponent(photoKey)}` : null;
+// Only a bare filename — no path segments, no traversal. Someone typing
+// "../../etc/passwd" or an absolute URL into this field should get
+// rejected, not silently used to build an <img src>.
+const SAFE_FILENAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(jpg|jpeg|png|webp|gif|avif)$/i;
+
+function photoUrl(photoFile) {
+  return photoFile ? `pictures/crew/${encodeURIComponent(photoFile)}` : null;
 }
 
 function serializeRow(r) {
@@ -50,8 +52,8 @@ function serializeRow(r) {
     role: r.role,
     note: r.note || '',
     sortOrder: r.sort_order,
-    photoKey: r.photo_key || null,
-    photoUrl: photoUrl(r.photo_key),
+    photoFile: r.photo_file || null,
+    photoUrl: photoUrl(r.photo_file),
   };
 }
 
@@ -69,14 +71,6 @@ async function nextSortOrder(tripId) {
     [tripId]
   );
   return rows[0].next;
-}
-
-// Best-effort blob cleanup — a failed delete here should never block the
-// Postgres write that already succeeded (an orphaned blob costs storage,
-// a stuck row costs the admin their edit).
-async function deletePhotoBlob(photoKey) {
-  if (!photoKey) return;
-  try { await getStore('crew-photos').delete(photoKey); } catch (_) { /* best-effort */ }
 }
 
 exports.handler = async (event) => {
@@ -108,15 +102,16 @@ exports.handler = async (event) => {
       const memberName = sanitizeText(p.name || '', 120);
       const role = sanitizeText(p.role || '', 120);
       const note = sanitizeText(p.note || '', 300);
-      const photoKey = sanitizeText(p.photoKey || '', 300);
+      const photoFile = sanitizeText(p.photoFile || '', 120).trim();
       if (!memberName || !role) return badRequest('Name and role/position are required.');
-      // Photos are mandatory for new members — no initials-avatar
-      // fallback, per the crew redesign spec.
-      if (!photoKey) return badRequest('A photo is required to add a crew member.');
+      if (!photoFile) return badRequest('A photo filename is required to add a crew member.');
+      if (!SAFE_FILENAME.test(photoFile)) {
+        return badRequest('Photo filename must be a plain image filename (e.g. shubham.jpg) — no folders or URLs.');
+      }
       const sortOrder = await nextSortOrder(tripId);
       const { rows } = await query(
-        'INSERT INTO crew_members (trip_id, name, role, note, sort_order, photo_key) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-        [tripId, memberName, role, note, sortOrder, photoKey]
+        'INSERT INTO crew_members (trip_id, name, role, note, sort_order, photo_file) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+        [tripId, memberName, role, note, sortOrder, photoFile]
       );
       return ok({ ok: true, member: serializeRow(rows[0]), crew: await listCrew(tripId) });
     }
@@ -131,41 +126,33 @@ exports.handler = async (event) => {
       if (!memberName || !role) return badRequest('Name and role/position are required.');
 
       const { rows: existingRows } = await query(
-        'SELECT photo_key FROM crew_members WHERE id=$1 AND trip_id=$2', [id, tripId]
+        'SELECT photo_file FROM crew_members WHERE id=$1 AND trip_id=$2', [id, tripId]
       );
       if (!existingRows.length) return badRequest('Crew member not found.');
-      const existingPhotoKey = existingRows[0].photo_key;
 
-      // photoKey present in the payload means "replace with this new
-      // upload" (admin.html always sends the freshly-uploaded key when
-      // the admin picks a new file). Omitted means "keep whatever's
-      // there" — a legacy member without a photo yet can still have
-      // their name/role/note edited without being forced to add a photo
-      // in the same save; the public site just keeps hiding them until
-      // one is added (see the module comment above).
-      const photoKey = Object.prototype.hasOwnProperty.call(p, 'photoKey')
-        ? sanitizeText(p.photoKey || '', 300)
-        : existingPhotoKey;
+      // photoFile present in the payload means "use this filename
+      // instead". Omitted means "keep whatever's there" — editing
+      // name/role/note doesn't force re-entering the photo every time.
+      let photoFile = existingRows[0].photo_file;
+      if (Object.prototype.hasOwnProperty.call(p, 'photoFile')) {
+        photoFile = sanitizeText(p.photoFile || '', 120).trim();
+        if (photoFile && !SAFE_FILENAME.test(photoFile)) {
+          return badRequest('Photo filename must be a plain image filename (e.g. shubham.jpg) — no folders or URLs.');
+        }
+      }
 
       const { rows } = await query(
-        'UPDATE crew_members SET name=$3, role=$4, note=$5, photo_key=$6 WHERE id=$1 AND trip_id=$2 RETURNING *',
-        [id, tripId, memberName, role, note, photoKey || null]
+        'UPDATE crew_members SET name=$3, role=$4, note=$5, photo_file=$6 WHERE id=$1 AND trip_id=$2 RETURNING *',
+        [id, tripId, memberName, role, note, photoFile || null]
       );
       if (!rows.length) return badRequest('Crew member not found.');
-
-      if (photoKey && existingPhotoKey && photoKey !== existingPhotoKey) {
-        await deletePhotoBlob(existingPhotoKey);
-      }
       return ok({ ok: true, member: serializeRow(rows[0]), crew: await listCrew(tripId) });
     }
 
     if (action === 'remove') {
       const id = Number(body.id);
       if (!id) return badRequest('id is required.');
-      const { rows } = await query(
-        'DELETE FROM crew_members WHERE id = $1 AND trip_id = $2 RETURNING photo_key', [id, tripId]
-      );
-      if (rows.length) await deletePhotoBlob(rows[0].photo_key);
+      await query('DELETE FROM crew_members WHERE id = $1 AND trip_id = $2', [id, tripId]);
       return ok({ ok: true, crew: await listCrew(tripId) });
     }
 
