@@ -4105,37 +4105,38 @@ registerForm?.addEventListener('submit', async (e)=>{
 function renderTeam(members){
   const grid = document.getElementById('teamGrid');
   if(!grid) return;
-  if(!members || !members.length){
+  // Photos are mandatory going forward (see admin.html's crew editor),
+  // but a legacy row can still exist with no photo_key yet — skip it
+  // here rather than falling back to an initials avatar, so the public
+  // site never shows a placeholder card. It still appears in the admin
+  // list with a "Photo required" badge until someone uploads one.
+  const withPhotos = (members || []).filter(t => t && t.photoUrl);
+  if(!withPhotos.length){
     grid.innerHTML = `<p class="text-sm opacity-50 col-span-full text-center py-6">Crew details coming soon.</p>`;
     return;
   }
-  // Flip cards: front shows avatar/name/role, back shows the note.
-  // Hover-flips on devices with a mouse; a plain click/tap toggles
-  // the same .is-flipped class on touch, so nothing behind a hover
-  // state is ever unreachable on mobile. Cards with no note just
-  // don't get a click handler — there's nothing to reveal.
-  grid.innerHTML = members.map((t,i)=>{
-    const initial = escapeHtml((t.name||'?').trim()[0] || '?');
+  // Photo fills the card; name/role sit on a permanent bottom gradient
+  // so they're legible over any photo, and the note rises into view on
+  // hover. A click/tap toggles the same .is-active class on touch
+  // devices (which have no hover), so the note is always reachable.
+  grid.innerHTML = withPhotos.map((t,i)=>{
     const hasNote = !!(t.note && t.note.trim());
     return `
     <div class="crew-card${hasNote ? ' has-note' : ''}" data-idx="${i}" ${hasNote ? 'tabindex="0" role="button" aria-label="Show more about ' + escapeHtml(t.name) + '"' : ''}>
-      <div class="crew-card-inner">
-        <div class="crew-card-face crew-card-front">
-          <div class="crew-avatar">${initial}</div>
-          <h3 class="display text-lg font-semibold mb-1" style="color:var(--ink)">${escapeHtml(t.name)}</h3>
-          <p class="mono text-[11px] tracking-wide" style="color:var(--mango-2)">${escapeHtml((t.role||'').toUpperCase())}</p>
-          ${hasNote ? '<span class="crew-flip-hint">Tap for more →</span>' : ''}
-        </div>
-        <div class="crew-card-face crew-card-back">
-          <p class="mono text-[11px] tracking-wide mb-2" style="color:var(--mango-2)">${escapeHtml((t.role||'').toUpperCase())}</p>
-          <p class="text-sm leading-relaxed" style="color:var(--ink); opacity:.8">${escapeHtml(t.note || '')}</p>
-        </div>
+      <img class="crew-card-photo" src="${escapeHtml(t.photoUrl)}" alt="${escapeHtml(t.name || '')}" loading="lazy"/>
+      <div class="crew-card-scrim"></div>
+      <div class="crew-card-scrim-hover"></div>
+      ${hasNote ? '<span class="crew-flip-hint" aria-hidden="true">＋</span>' : ''}
+      <div class="crew-card-body">
+        <h3 class="crew-card-name">${escapeHtml(t.name || '')}</h3>
+        <p class="crew-card-role">${escapeHtml((t.role||'').toUpperCase())}</p>
+        ${hasNote ? `<p class="crew-card-note">${escapeHtml(t.note)}</p>` : ''}
       </div>
     </div>`;
   }).join('');
 
   grid.querySelectorAll('.crew-card.has-note').forEach(card=>{
-    const toggle = ()=> card.classList.toggle('is-flipped');
+    const toggle = ()=> card.classList.toggle('is-active');
     card.addEventListener('click', toggle);
     card.addEventListener('keydown', e=>{
       if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }

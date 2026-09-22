@@ -320,6 +320,35 @@
   .modal-card h3{ font-family:'Fraunces',serif; font-size:1.3rem; margin:0 0 6px; color:var(--ink); }
   .modal-card p.modal-sub{ font-size:12.5px; color:var(--teal-700); opacity:.8; margin:0 0 22px; line-height:1.5; }
   .modal-card .gate-field{ margin-bottom:14px; }
+  .modal-card label{ font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px; }
+
+  /* ============ Crew photo picker (add/edit crew modal) ============ */
+  .crew-photo-picker{ display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+  .crew-photo-preview{
+    width:84px; height:84px; border-radius:14px; flex-shrink:0; overflow:hidden;
+    background:var(--sand-2); border:1.5px dashed var(--line); display:flex; align-items:center;
+    justify-content:center; font-size:10.5px; color:var(--teal-700); opacity:.6; text-align:center; padding:4px;
+  }
+  .crew-photo-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .crew-photo-preview.has-image{ border-style:solid; opacity:1; }
+  .crew-photo-status{ font-size:12px; color:var(--teal-700); opacity:.75; min-height:16px; }
+  .crew-photo-status.bad{ color:var(--mango-2); opacity:1; }
+  .crew-photo-status.ok{ color:var(--palm); opacity:1; }
+
+  /* Crew list rows in the admin dashboard get a small thumbnail; legacy
+     rows with no photo yet show a dashed placeholder + a "Photo required"
+     badge so it's obvious at a glance which ones still need one. */
+  .crew-row-thumb{
+    width:40px; height:40px; border-radius:10px; flex-shrink:0; overflow:hidden; background:var(--sand-2);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  }
+  .crew-row-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .crew-row-thumb.missing{ border-style:dashed; }
+  .crew-photo-required-badge{
+    display:inline-block; margin-top:3px; font-size:10.5px; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--mango-2); background:rgba(232,93,42,.1);
+    border-radius:6px; padding:2px 7px;
+  }
 
   /* ============ Themed loading spinner (auth actions) ============ */
   @keyframes gt-spin{ to{ transform:rotate(360deg); } }
@@ -701,12 +730,36 @@
           <div id="crewList"></div>
           <div class="subhead">
             <h4>Add a crew member</h4>
-            <form id="addCrewForm" class="row">
-              <div class="field-row"><label>Name</label><input id="cm-name" placeholder="e.g. Shubham Kumar" required maxlength="120"/></div>
-              <div class="field-row"><label>Position / Role</label><input id="cm-role" placeholder="e.g. Website Developer and Advisor" required maxlength="120"/></div>
-              <div class="field-row" style="flex:2 1 220px;"><label>Note (optional)</label><input id="cm-note" placeholder="Short line shown under the role" maxlength="300"/></div>
-              <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
-            </form>
+            <p class="cardsub" style="margin-top:-4px;">A photo is required — the new crew cards show the real photo, not initials.</p>
+            <button type="button" class="btn-ghost" id="openAddCrewBtn">+ Add crew member</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Crew member editor (add + edit share this modal) ---- -->
+      <div class="modal-overlay hidden" id="crewModalOverlay">
+        <div class="modal-card" style="max-width:460px; text-align:left;">
+          <h3 id="crewModalTitle">Add a crew member</h3>
+          <p class="modal-sub">Photos are stored in Netlify Blobs, resized and compressed to WebP in your browser before upload.</p>
+          <div class="gate-banner" id="crewModalBanner"></div>
+
+          <label>Photo *</label>
+          <div class="crew-photo-picker" id="crewPhotoPicker">
+            <div class="crew-photo-preview" id="crewPhotoPreview"><span id="crewPhotoPlaceholder">No photo selected</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:0;">
+              <input type="file" id="crewPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;"/>
+              <button type="button" class="btn-ghost" id="crewPhotoChooseBtn" style="padding:9px 16px; font-size:13px;">Choose photo</button>
+              <div class="crew-photo-status" id="crewPhotoStatus"></div>
+            </div>
+          </div>
+
+          <div class="gate-field"><label>Name *</label><input id="crewf-name" maxlength="120" placeholder="e.g. Shubham Kumar"/></div>
+          <div class="gate-field"><label>Position / Role *</label><input id="crewf-role" maxlength="120" placeholder="e.g. Website Developer and Advisor"/></div>
+          <div class="gate-field"><label>Note</label><input id="crewf-note" maxlength="300" placeholder="Short line shown when the card is hovered / tapped"/></div>
+
+          <div style="display:flex; gap:10px; margin-top:6px;">
+            <button type="button" class="btn-ghost" id="crewModalCancelBtn" style="flex:1;">Cancel</button>
+            <button type="button" class="btn-primary" id="crewModalSaveBtn" style="flex:1;">Save crew member</button>
           </div>
         </div>
       </div>
@@ -1342,15 +1395,165 @@ async function loadCrew(){
 function renderCrew(){
   const box = el('crewList'); if(!box) return;
   if(!currentCrew.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No crew members added yet — the Crew section on the site will show empty until you add some.</p>'; return; }
-  box.innerHTML = currentCrew.map((m,i)=>`<div class="flag-row" data-id="${Number(m.id)}"><div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}</div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`).join('');
+  box.innerHTML = currentCrew.map((m,i)=>{
+    const hasPhoto = !!m.photoUrl;
+    const thumb = hasPhoto
+      ? `<div class="crew-row-thumb"><img src="${escapeHtml(m.photoUrl)}" alt=""/></div>`
+      : `<div class="crew-row-thumb missing" title="No photo uploaded yet">🖼️</div>`;
+    return `<div class="flag-row" data-id="${Number(m.id)}"><div style="display:flex; gap:12px; align-items:center; min-width:0;">${thumb}<div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}${!hasPhoto?'<div class="crew-photo-required-badge">Photo required — hidden on site</div>':''}</div></div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`;
+  }).join('');
   box.querySelectorAll('[data-act]').forEach(btn=>btn.addEventListener('click',async()=>{
     const row=btn.closest('[data-id]'), id=Number(row.dataset.id), act=btn.dataset.act, idx=currentCrew.findIndex(m=>Number(m.id)===id); if(idx<0)return;
     if(act==='remove'){ if(!confirm('Remove this crew member from the site?'))return; btn.disabled=true; const res=await callCrewPost({action:'remove',token:getToken(),tripId:currentTripId,id}); if(res.error){showDashBanner('bad',res.error);btn.disabled=false;return;} currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member removed.');return; }
-    if(act==='edit'){ const m=currentCrew[idx]; const name=prompt('Name',m.name||'');if(name===null)return;const role=prompt('Position / Role',m.role||'');if(role===null)return;const note=prompt('Note (optional)',m.note||'');if(note===null)return;if(!name.trim()||!role.trim()){showDashBanner('bad','Name and role are required.');return;}const res=await callCrewPost({action:'update',token:getToken(),tripId:currentTripId,id,payload:{name:name.trim(),role:role.trim(),note:note.trim()}});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member updated.');return; }
+    if(act==='edit'){ openCrewModal(currentCrew[idx]); return; }
     const swap=act==='up'?idx-1:idx+1;if(swap<0||swap>=currentCrew.length)return;const order=currentCrew.map(m=>Number(m.id));[order[idx],order[swap]]=[order[swap],order[idx]];const res=await callCrewPost({action:'reorder',token:getToken(),tripId:currentTripId,order});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew order updated.');
   }));
 }
-el('addCrewForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentTripId){showDashBanner('bad','Select a trip first.');return;}try{const res=await callCrewPost({action:'add',token:getToken(),tripId:currentTripId,payload:{name:el('cm-name').value.trim(),role:el('cm-role').value.trim(),note:el('cm-note').value.trim()}});if(res.error)throw new Error(res.error);currentCrew=res.crew||[];renderCrew();el('addCrewForm').reset();showDashBanner('ok','Crew member added.');}catch(err){showDashBanner('bad',err.message);}});
+
+/* ---------- crew photo picker: resize/compress in-browser, then upload ---------- */
+// Downscales to fit within MAX_DIM on the long edge and re-encodes as
+// WebP at MAX_QUALITY — keeps uploads small without a server round-trip
+// just to find out a 12MP phone photo was too big.
+const CREW_PHOTO_MAX_DIM = 800;
+const CREW_PHOTO_QUALITY = 0.82;
+function resizeImageFile(file){
+  return new Promise((resolve, reject)=>{
+    if(!/^image\/(jpeg|png|webp)$/.test(file.type)){
+      reject(new Error('Please choose a JPEG, PNG or WebP image.')); return;
+    }
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('Could not read that file.'));
+    reader.onload = ()=>{
+      img.onerror = ()=> reject(new Error('That file doesn\u2019t look like a valid image.'));
+      img.onload = ()=>{
+        const scale = Math.min(1, CREW_PHOTO_MAX_DIM / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/webp', CREW_PHOTO_QUALITY);
+        // Safari <14 silently ignores unsupported toDataURL types and
+        // falls back to PNG — detect that and just accept the PNG rather
+        // than pretending we got WebP.
+        resolve(dataUrl);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+let crewModalMode = 'add'; // 'add' | 'edit'
+let crewModalEditingId = null;
+let crewModalPhotoKey = null;   // key already stored on the member being edited
+let crewModalNewPhotoKey = null; // key returned by a fresh upload this session
+let crewModalUploading = false;
+
+function openCrewModal(member){
+  crewModalMode = member ? 'edit' : 'add';
+  crewModalEditingId = member ? member.id : null;
+  crewModalPhotoKey = member ? member.photoKey : null;
+  crewModalNewPhotoKey = null;
+  crewModalUploading = false;
+
+  el('crewModalTitle').textContent = member ? 'Edit crew member' : 'Add a crew member';
+  el('crewf-name').value = member ? (member.name||'') : '';
+  el('crewf-role').value = member ? (member.role||'') : '';
+  el('crewf-note').value = member ? (member.note||'') : '';
+  el('crewPhotoInput').value = '';
+  el('crewPhotoStatus').textContent = '';
+  el('crewPhotoStatus').className = 'crew-photo-status';
+
+  const preview = el('crewPhotoPreview');
+  if(member && member.photoUrl){
+    preview.innerHTML = `<img src="${escapeHtml(member.photoUrl)}" alt=""/>`;
+    preview.classList.add('has-image');
+  }else{
+    preview.innerHTML = '<span id="crewPhotoPlaceholder">No photo selected</span>';
+    preview.classList.remove('has-image');
+  }
+
+  el('crewModalBanner').className = 'gate-banner';
+  el('crewModalBanner').textContent = '';
+  el('crewModalOverlay').classList.remove('hidden');
+}
+function closeCrewModal(){ el('crewModalOverlay').classList.add('hidden'); }
+el('openAddCrewBtn')?.addEventListener('click', ()=>{
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  openCrewModal(null);
+});
+el('crewModalCancelBtn')?.addEventListener('click', closeCrewModal);
+el('crewPhotoChooseBtn')?.addEventListener('click', ()=> el('crewPhotoInput').click());
+
+el('crewPhotoInput')?.addEventListener('change', async ()=>{
+  const file = el('crewPhotoInput').files && el('crewPhotoInput').files[0];
+  if(!file) return;
+  const status = el('crewPhotoStatus');
+  const preview = el('crewPhotoPreview');
+  status.className = 'crew-photo-status';
+  status.textContent = 'Resizing and compressing…';
+  crewModalUploading = true;
+  try{
+    const dataUrl = await resizeImageFile(file);
+    preview.innerHTML = `<img src="${dataUrl}" alt=""/>`;
+    preview.classList.add('has-image');
+    status.textContent = 'Uploading…';
+    const res = await fetch(FUNCTIONS_BASE + '/crew-photo', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'upload', token:getToken(), tripId:currentTripId,
+        imageDataUrl: dataUrl, oldKey: crewModalNewPhotoKey || crewModalPhotoKey || undefined,
+      }),
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    crewModalNewPhotoKey = data.photoKey;
+    status.className = 'crew-photo-status ok';
+    status.textContent = 'Photo ready.';
+  }catch(err){
+    status.className = 'crew-photo-status bad';
+    status.textContent = err.message || 'Upload failed — try a different photo.';
+  }finally{
+    crewModalUploading = false;
+  }
+});
+
+el('crewModalSaveBtn')?.addEventListener('click', async ()=>{
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  if(crewModalUploading){ showDashBanner('bad','Still uploading the photo — one moment.'); return; }
+  const name = el('crewf-name').value.trim();
+  const role = el('crewf-role').value.trim();
+  const note = el('crewf-note').value.trim();
+  const banner = el('crewModalBanner');
+  if(!name || !role){ banner.className='gate-banner bad'; banner.textContent='Name and role are required.'; return; }
+  const effectivePhotoKey = crewModalNewPhotoKey || crewModalPhotoKey;
+  if(crewModalMode === 'add' && !effectivePhotoKey){
+    banner.className='gate-banner bad'; banner.textContent='A photo is required to add a crew member.'; return;
+  }
+  const btn = el('crewModalSaveBtn');
+  btn.disabled = true;
+  try{
+    const payload = { name, role, note };
+    // Only send photoKey when there's actually a new upload or this is a
+    // brand-new member — an edit that didn't touch the photo omits the
+    // field entirely so crew.js knows to leave the existing one alone.
+    if(crewModalMode === 'add' || crewModalNewPhotoKey) payload.photoKey = effectivePhotoKey;
+    const body = crewModalMode === 'edit'
+      ? { action:'update', token:getToken(), tripId:currentTripId, id:crewModalEditingId, payload }
+      : { action:'add', token:getToken(), tripId:currentTripId, payload };
+    const res = await callCrewPost(body);
+    if(res.error) throw new Error(res.error);
+    currentCrew = res.crew || [];
+    renderCrew();
+    closeCrewModal();
+    showDashBanner('ok', crewModalMode==='edit' ? 'Crew member updated.' : 'Crew member added.');
+  }catch(err){
+    banner.className='gate-banner bad'; banner.textContent = err.message || 'Could not save — try again.';
+  }finally{
+    btn.disabled = false;
+  }
+});
 
 /* ---------- page content (index.html hero/footer/socials) ---------- */
 async function callContentGet(params){
