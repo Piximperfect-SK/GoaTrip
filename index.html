@@ -107,8 +107,56 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 }
 
 /* ---------- Nav ---------- */
-#topnav{position:fixed; top:0; left:0; right:0; z-index:100; background:transparent; transition:transform .4s ease, background .3s ease, border-color .3s ease; padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar); border-bottom:1px solid transparent;}
+#topnav{position:sticky; top:0; z-index:100; background:transparent; transition:transform .4s ease, background .3s ease, border-color .3s ease; padding-top:var(--sat); padding-left:var(--sal); padding-right:var(--sar); border-bottom:1px solid transparent;}
 #topnav.scrolled{background:rgba(251,251,253,.96); border-bottom:1px solid var(--line);}
+
+/* ---------- Announcement banner (sits above the sticky nav, in normal
+   document flow, so dismissing it collapses cleanly with no offset math
+   needed anywhere else on the page). ---------- */
+.announce-bar{
+  position:relative; z-index:101; background:linear-gradient(90deg, var(--mango), var(--mango-2));
+  color:white; padding-top:var(--sat);
+}
+.announce-viewport{ overflow:hidden; max-width:1100px; margin:0 auto; padding:10px 44px 10px 16px; font-size:12.5px; line-height:1.4; }
+@media (min-width:640px){ .announce-viewport{ padding:11px 50px 11px 20px; font-size:13.5px; } }
+.announce-viewport.vertical{ height:2.6em; }
+/* static (non-marquee) mode: no overflow clipping needed, just center it */
+.announce-viewport.is-static{ display:flex; justify-content:center; }
+
+.announce-track{
+  display:flex; align-items:center; gap:10px; width:max-content;
+  animation-timing-function:linear; animation-iteration-count:infinite;
+}
+.announce-track.dir-up, .announce-track.dir-down{ flex-direction:column; align-items:flex-start; width:auto; }
+.announce-track.static{ animation:none !important; transform:none !important; }
+.announce-track.static .announce-dup{ display:none; }
+
+.announce-track.speed-slow{ animation-duration:32s; }
+.announce-track.speed-medium{ animation-duration:16s; }
+.announce-track.speed-fast{ animation-duration:8s; }
+.announce-track.dir-left{ animation-name:announceMarqueeLeft; }
+.announce-track.dir-right{ animation-name:announceMarqueeRight; }
+.announce-track.dir-up{ animation-name:announceMarqueeUp; }
+.announce-track.dir-down{ animation-name:announceMarqueeDown; }
+@keyframes announceMarqueeLeft{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+@keyframes announceMarqueeRight{ from{ transform:translateX(-50%); } to{ transform:translateX(0); } }
+@keyframes announceMarqueeUp{ from{ transform:translateY(0); } to{ transform:translateY(-50%); } }
+@keyframes announceMarqueeDown{ from{ transform:translateY(-50%); } to{ transform:translateY(0); } }
+.announce-bar.pause-on-hover:hover .announce-track{ animation-play-state:paused; }
+@media (prefers-reduced-motion:reduce){ .announce-track{ animation:none !important; transform:none !important; } .announce-track .announce-dup{ display:none; } }
+
+.announce-sentence{ margin:0; white-space:nowrap; flex-shrink:0; }
+.announce-track.dir-up .announce-sentence, .announce-track.dir-down .announce-sentence{ white-space:normal; padding:2px 0; }
+.announce-sentence strong{ font-weight:700; }
+.announce-link{ color:white; text-decoration:underline; text-underline-offset:2px; font-weight:600; }
+.announce-link:hover{ opacity:.85; }
+.announce-close{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:9999px; border:none; background:rgba(255,255,255,.18);
+  color:white; font-size:13px; line-height:1; cursor:pointer; transition:.15s; flex-shrink:0;
+}
+.announce-close:hover{ background:rgba(255,255,255,.3); }
+.announce-bar.is-hidden{ display:none; }
 #topnav .navlink{color:var(--ink); opacity:.6;}
 #topnav .navlink:hover, #topnav .navlink.active{opacity:1; color:var(--ink); border-color:var(--mango);}
 #topnav .navlink-wallet{color:var(--mango-2); opacity:1;}
@@ -1284,6 +1332,29 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 </head>
 <body>
+
+<div id="announceBar" class="announce-bar pause-on-hover">
+  <div class="announce-viewport" id="announceViewport">
+    <div class="announce-track dir-left speed-medium" id="announceTrack">
+      <p class="announce-sentence" id="announceSentence1"><span class="announce-icon" aria-hidden="true">🚆</span> <strong>Train reservation chart</strong> has been prepared and shared on the WhatsApp group — please check it there, or <a href="#team" class="announce-link">contact the management</a> if you have questions.</p>
+      <p class="announce-sentence announce-dup" id="announceSentence2" aria-hidden="true"><span class="announce-icon" aria-hidden="true">🚆</span> <strong>Train reservation chart</strong> has been prepared and shared on the WhatsApp group — please check it there, or <a href="#team" class="announce-link">contact the management</a> if you have questions.</p>
+    </div>
+  </div>
+  <button type="button" class="announce-close" id="announceClose" aria-label="Dismiss announcement">✕</button>
+</div>
+<script>
+(function(){
+  var KEY = 'goatrip:announceDismissed:chart-v1';
+  var bar = document.getElementById('announceBar');
+  if(!bar) return;
+  if(localStorage.getItem(KEY)){ bar.classList.add('is-hidden'); return; }
+  var btn = document.getElementById('announceClose');
+  if(btn) btn.addEventListener('click', function(){
+    bar.classList.add('is-hidden');
+    try{ localStorage.setItem(KEY, '1'); }catch(e){}
+  });
+})();
+</script>
 
 <svg class="gradient-goo-defs" aria-hidden="true" focusable="false" style="position:absolute; width:0; height:0; overflow:hidden;"><defs>
   <linearGradient id="tbGradient" x1="0" y1="0" x2="0" y2="1">
@@ -3867,6 +3938,54 @@ function applyContent(content){
   setLink('socialYoutube', 'social.youtube');
   setLink('socialFacebook', 'social.facebook');
   setLink('socialEmail', 'social.email');
+  applyBannerContent(content);
+}
+
+/* ------------------------------------------------------------
+   Announcement banner — text + marquee behaviour, both editable
+   from Admin → Page content → Banner. banner.enabled controls the
+   whole banner (independent of whether the visitor already
+   dismissed it with the ✕ — an admin re-enabling it, or changing
+   the text, doesn't un-dismiss it for someone who already closed
+   it; see the dismiss key note below). Everything else only
+   applies if the banner isn't already hidden.
+------------------------------------------------------------ */
+function applyBannerContent(content){
+  const bar = document.getElementById('announceBar');
+  if(!bar) return;
+  const boolVal = (key, dflt) => (content[key] === 'true' || content[key] === 'false') ? content[key] === 'true' : dflt;
+
+  const enabled = boolVal('banner.enabled', true);
+  if(!enabled){ bar.classList.add('is-hidden'); return; }
+  // Respect a visitor's earlier manual dismissal (see the inline script
+  // right after the banner markup) — don't fight that here.
+  if(bar.classList.contains('is-hidden')) return;
+
+  const text = content['banner.text'] || '';
+  const linkText = content['banner.linkText'] || '';
+  const linkUrl = content['banner.linkUrl'] || '';
+  if(text){
+    document.querySelectorAll('.announce-sentence').forEach(el=>{
+      el.innerHTML = `<span class="announce-icon" aria-hidden="true">🚆</span> ${escapeHtml(text)}` +
+        (linkText ? ` <a href="${escapeHtml(linkUrl || '#team')}" class="announce-link">${escapeHtml(linkText)}</a>` : '');
+    });
+  }
+
+  const marqueeOn = boolVal('banner.marqueeEnabled', true);
+  const direction = ['left','right','up','down'].includes(content['banner.direction']) ? content['banner.direction'] : 'left';
+  const speed = ['slow','medium','fast'].includes(content['banner.speed']) ? content['banner.speed'] : 'medium';
+  const pauseOnHover = boolVal('banner.pauseOnHover', true);
+
+  const viewport = document.getElementById('announceViewport');
+  const track = document.getElementById('announceTrack');
+  if(viewport) viewport.classList.toggle('vertical', marqueeOn && (direction === 'up' || direction === 'down'));
+  if(viewport) viewport.classList.toggle('is-static', !marqueeOn);
+  bar.classList.toggle('pause-on-hover', marqueeOn && pauseOnHover);
+  if(track){
+    track.classList.remove('dir-left','dir-right','dir-up','dir-down','speed-slow','speed-medium','speed-fast','static');
+    if(marqueeOn){ track.classList.add('dir-'+direction, 'speed-'+speed); }
+    else { track.classList.add('static'); }
+  }
 }
 
 /* ============================================================

@@ -406,8 +406,23 @@
   .content-tab.active{ border-color:var(--ink); background:var(--ink); color:white; box-shadow:0 10px 22px -12px rgba(15,38,34,.5); }
   .content-tab .ct-count{ font-family:'Space Mono',monospace; font-size:10px; opacity:.55; }
 
-  .content-section{ display:none; }
-  .content-section.active{ display:block; animation:dpIn .25s ease; }
+  .content-section{ display:none; }
+  .content-section.active{ display:block; animation:dpIn .25s ease; }
+
+  /* ---------- Banner tab: checkbox rows + pill-style radio groups ---------- */
+  .check-row{ display:flex; align-items:center; gap:9px; padding:10px 0; }
+  .check-row input[type="checkbox"]{ width:17px; height:17px; accent-color:var(--mango); cursor:pointer; flex-shrink:0; }
+  .check-row label{ font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; margin:0; }
+  .check-row .check-hint{ display:block; font-size:11.5px; font-weight:400; opacity:.55; margin-top:2px; }
+  .pill-radio-group{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .pill-radio-group input[type="radio"]{ position:absolute; opacity:0; width:0; height:0; }
+  .pill-radio-group .pill-radio-opt{
+    display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); border-radius:9999px;
+    padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; background:white; color:var(--ink);
+  }
+  .pill-radio-group .pill-radio-opt:hover{ border-color:rgba(15,38,34,.3); }
+  .pill-radio-group input[type="radio"]:checked + .pill-radio-opt{ border-color:var(--mango); background:var(--mango); color:white; }
+  .pill-radio-group input[type="radio"]:focus-visible + .pill-radio-opt{ outline:2px solid var(--mango); outline-offset:2px; }
   .content-card{
     background:var(--sand-2); border:1px solid var(--line); border-radius:14px;
     padding:18px 18px 16px; margin-bottom:16px;
@@ -830,6 +845,7 @@
             <div class="content-tab" data-section="crew">🧑‍🤝‍🧑 Crew section</div>
             <div class="content-tab" data-section="footer">📌 Footer</div>
             <div class="content-tab" data-section="social">🔗 Social links</div>
+            <div class="content-tab" data-section="banner">📣 Banner</div>
           </div>
 
           <form id="contentForm">
@@ -910,6 +926,54 @@
                 <div class="row">
                   <div class="field-row"><label>Facebook</label><input data-key="social.facebook" maxlength="300" placeholder="https://facebook.com/…"/></div>
                   <div class="field-row"><label>Email</label><input data-key="social.email" maxlength="300" placeholder="mailto:you@example.com"/></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="banner">
+              <div class="content-card">
+                <h4>📣 Announcement banner</h4>
+                <p>The strip shown above the nav on the homepage (e.g. "Train reservation chart has been prepared…"). Leave text blank to use the built-in default wording.</p>
+                <div class="check-row">
+                  <input type="checkbox" id="bannerEnabled" data-key="banner.enabled"/>
+                  <label for="bannerEnabled">Show the announcement banner<span class="check-hint">Uncheck to hide it site-wide, without losing the saved text/settings below.</span></label>
+                </div>
+                <div class="field-row"><label>Message text</label><textarea data-key="banner.text" maxlength="300" rows="2" placeholder="Train reservation chart has been prepared and shared on the WhatsApp group — please check it there, or"></textarea><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Link label</label><input data-key="banner.linkText" maxlength="60" placeholder="contact the management"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Link target</label><input data-key="banner.linkUrl" maxlength="300" placeholder="#team"/><span class="char-count"></span></div>
+                </div>
+              </div>
+              <div class="content-card">
+                <h4>🎞️ Marquee (scrolling) effect</h4>
+                <p>Controls whether the banner text scrolls, and how.</p>
+                <div class="check-row">
+                  <input type="checkbox" id="bannerMarqueeEnabled" data-key="banner.marqueeEnabled"/>
+                  <label for="bannerMarqueeEnabled">Enable scrolling (marquee)<span class="check-hint">Unchecked = the text stays still, centered in the banner.</span></label>
+                </div>
+
+                <div class="field-row">
+                  <label>Direction</label>
+                  <div class="pill-radio-group" id="bannerDirectionGroup">
+                    <input type="radio" name="banner.direction" id="bdirLeft" value="left"/><label class="pill-radio-opt" for="bdirLeft">⬅️ Left</label>
+                    <input type="radio" name="banner.direction" id="bdirRight" value="right"/><label class="pill-radio-opt" for="bdirRight">➡️ Right</label>
+                    <input type="radio" name="banner.direction" id="bdirUp" value="up"/><label class="pill-radio-opt" for="bdirUp">⬆️ Up</label>
+                    <input type="radio" name="banner.direction" id="bdirDown" value="down"/><label class="pill-radio-opt" for="bdirDown">⬇️ Down</label>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <label>Speed</label>
+                  <div class="pill-radio-group" id="bannerSpeedGroup">
+                    <input type="radio" name="banner.speed" id="bspeedSlow" value="slow"/><label class="pill-radio-opt" for="bspeedSlow">🐢 Slow</label>
+                    <input type="radio" name="banner.speed" id="bspeedMedium" value="medium"/><label class="pill-radio-opt" for="bspeedMedium">🚶 Medium</label>
+                    <input type="radio" name="banner.speed" id="bspeedFast" value="fast"/><label class="pill-radio-opt" for="bspeedFast">🐇 Fast</label>
+                  </div>
+                </div>
+
+                <div class="check-row">
+                  <input type="checkbox" id="bannerPauseOnHover" data-key="banner.pauseOnHover"/>
+                  <label for="bannerPauseOnHover">Stop at mouse collision<span class="check-hint">Checked = scrolling pauses while the cursor is over the banner. Unchecked = it never stops.</span></label>
                 </div>
               </div>
             </div>
@@ -1746,6 +1810,13 @@ function localInputToIso(val){
 // <input type="datetime-local">, which needs the "no seconds/timezone"
 // local format — isoToLocalInput/localInputToIso convert at the edges.
 const DATETIME_KEYS = new Set(['hero.countdownTarget', 'hero.tripEndTarget']);
+// 'true'/'false' string values edited via a checkbox instead of a text field.
+const BOOLEAN_KEYS = new Set(['banner.enabled', 'banner.marqueeEnabled', 'banner.pauseOnHover']);
+// Content keys backed by a same-name radio group ([data-key] doesn't apply
+// to these — the group of <input type="radio" name="banner.direction">
+// is looked up by `name` instead) rather than a single field.
+const RADIO_GROUP_KEYS = ['banner.direction', 'banner.speed'];
+const RADIO_GROUP_DEFAULTS = { 'banner.direction': 'left', 'banner.speed': 'medium' };
 
 async function loadContent(){
   if(!currentTripId) return;
@@ -1756,7 +1827,17 @@ async function loadContent(){
     document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
       const key = field.dataset.key;
       const value = content[key] || '';
-      field.value = DATETIME_KEYS.has(key) ? isoToLocalInput(value) : value;
+      if(BOOLEAN_KEYS.has(key)){
+        field.checked = value ? value === 'true' : true; // unset = on by default (banner shown, marquee on, pause-on-hover on)
+      } else {
+        field.value = DATETIME_KEYS.has(key) ? isoToLocalInput(value) : value;
+      }
+    });
+    RADIO_GROUP_KEYS.forEach(key=>{
+      const chosen = content[key] || RADIO_GROUP_DEFAULTS[key];
+      document.querySelectorAll(`#contentForm input[type="radio"][name="${key}"]`).forEach(radio=>{
+        radio.checked = radio.value === chosen;
+      });
     });
   }catch(err){ console.warn('loadContent failed', err); }
 }
@@ -1769,7 +1850,15 @@ el('contentForm')?.addEventListener('submit', async e=>{
   const fields = {};
   document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
     const key = field.dataset.key;
-    fields[key] = DATETIME_KEYS.has(key) ? localInputToIso(field.value.trim()) : field.value.trim();
+    if(BOOLEAN_KEYS.has(key)){
+      fields[key] = field.checked ? 'true' : 'false';
+    } else {
+      fields[key] = DATETIME_KEYS.has(key) ? localInputToIso(field.value.trim()) : field.value.trim();
+    }
+  });
+  RADIO_GROUP_KEYS.forEach(key=>{
+    const checked = document.querySelector(`#contentForm input[type="radio"][name="${key}"]:checked`);
+    fields[key] = checked ? checked.value : RADIO_GROUP_DEFAULTS[key];
   });
   if(status) status.textContent = 'Saving…';
   try{

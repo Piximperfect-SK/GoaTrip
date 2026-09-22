@@ -31,6 +31,19 @@ const ALLOWED_KEYS = new Set([
   'footer.tagline', 'footer.credit',
   'social.github', 'social.instagram', 'social.twitter', 'social.linkedin',
   'social.whatsapp', 'social.youtube', 'social.facebook', 'social.email',
+
+  // Announcement banner (index.html's #announceBar) — content and the
+  // marquee behaviour are separate concerns on purpose: an admin can
+  // change the wording without touching the animation, or flip the
+  // animation off/on without retyping the message.
+  'banner.enabled',          // 'true' | 'false' — show/hide the banner entirely
+  'banner.text',             // plain text, no HTML — escaped client-side before rendering
+  'banner.linkText',         // plain text label for the trailing link (e.g. "contact the management")
+  'banner.linkUrl',          // href for that link, e.g. "#team" or a full URL
+  'banner.marqueeEnabled',   // 'true' | 'false' — scrolling effect on/off; 'false' = static, centered text
+  'banner.direction',        // 'left' | 'right' | 'up' | 'down'
+  'banner.speed',            // 'slow' | 'medium' | 'fast'
+  'banner.pauseOnHover',     // 'true' | 'false' — "stop at mouse collision" vs "don't stop"
 ]);
 const MAX_VALUE_LEN = 2000; // generous — the longest field is hero.subtext
 
