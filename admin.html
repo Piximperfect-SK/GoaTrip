@@ -1203,6 +1203,9 @@ function renderPendingAdmins(pending){
 
 /* ---------- admins & security ---------- */
 let currentAdmins = [];
+// The one account that can never be revoked or deleted — by anyone,
+// including itself. Matched case-insensitively like isSelf already is.
+const MASTER_ADMIN_NAME = 'Shubham Kumar';
 async function loadAdminList(){
   try{
     const res = await callPost({ action:'listAdmins', token:getToken() });
@@ -1218,6 +1221,7 @@ function renderAdminList(){
   if(!currentAdmins.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No admins yet.</p>'; return; }
   box.innerHTML = currentAdmins.map(a => {
     const isSelf = myName && a.name.toLowerCase() === myName.toLowerCase();
+    const isMaster = a.name.trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase();
     const flags = [];
     if(a.isLocked) flags.push('🔒 locked');
     else if(a.failedAttempts > 0) flags.push(`⚠ ${a.failedAttempts} failed attempt${a.failedAttempts===1?'':'s'}`);
@@ -1225,19 +1229,26 @@ function renderAdminList(){
     return `
     <div class="data-row">
       <div class="data-meta">
-        <div class="label">${escapeHtml(a.name)} <span class="status-pill ${a.status}">${a.status}</span></div>
+        <div class="label">${escapeHtml(a.name)} <span class="status-pill ${a.status}">${a.status}</span>${isMaster ? ' <span class="status-pill" style="background:rgba(29,29,31,.08); color:var(--ink);">★ Master admin</span>' : ''}</div>
         <div class="sub">${escapeHtml(a.email)}${flags.length ? ' · ' + flags.join(' · ') : ''}</div>
       </div>
       <div class="row-actions">
-        ${a.status === 'Approved' && !isSelf ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
+        ${a.status === 'Approved' && !isSelf && !isMaster ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
         ${(a.status === 'Revoked' || a.status === 'Rejected') ? `<button class="btn-ghost" data-action="reinstate" data-name="${escapeHtml(a.name)}">Restore</button>` : ''}
         ${(a.isLocked || a.failedAttempts > 0) ? `<button class="btn-ghost" data-action="unlock" data-name="${escapeHtml(a.name)}">Unlock</button>` : ''}
-        ${!isSelf ? `<button class="btn-danger" data-action="delete" data-name="${escapeHtml(a.name)}">Delete</button>` : ''}
+        ${!isSelf && !isMaster ? `<button class="btn-danger" data-action="delete" data-name="${escapeHtml(a.name)}">Delete</button>` : ''}
       </div>
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-action]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
+      // Belt-and-braces: the buttons are already hidden for the master
+      // admin above, but never trust rendering alone — refuse here too.
+      if((btn.dataset.action === 'delete' || btn.dataset.action === 'revoke')
+        && btn.dataset.name.trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase()){
+        showDashBanner('bad', `${MASTER_ADMIN_NAME} is the master admin and can't be revoked or deleted.`);
+        return;
+      }
       if(btn.dataset.action === 'delete'){
         const sure = confirm(`Permanently delete admin "${btn.dataset.name}"? This removes their account entirely and can't be undone — they'd need to request access again from scratch.`);
         if(!sure) return;
