@@ -95,9 +95,14 @@ async function bootCircuitMap(){
   const map = L.map('map', { zoomControl:false }).setView([defaultLat, defaultLng], 11);
   L.control.zoom({ position:'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  // CARTO's free "Voyager" raster tiles now require an API key (their
+  // no-key tier changed after this was first written — tiles started
+  // rendering with a diagonal "API KEY REQUIRED" watermark). Plain
+  // OpenStreetMap tiles need no key and were already CSP-allowed
+  // (netlify.toml's img-src covers *.tile.openstreetmap.org).
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom:19,
-    attribution:'© OpenStreetMap © CARTO'
+    attribution:'© OpenStreetMap contributors'
   }).addTo(map);
 
   if(!trip.villaLat || !trip.villaLng){
