@@ -2,7 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://upload.wikimedia.org; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src https://maps.google.com https://www.google.com; upgrade-insecure-requests" />
+<!-- CSP is set via the [[headers]] block in netlify.toml (site-wide,
+     covers every page including this one) — deliberately not
+     duplicated here as a meta tag. A meta CSP and a header CSP on the
+     same page combine as the intersection of both (browser enforces
+     whichever is stricter per directive), so a narrower/stale meta
+     copy silently overrides the maintained one instead of falling
+     back to it. This exact tag had drifted out of sync — missing
+     Google Maps domains that netlify.toml's version already allowed —
+     which is the failure mode this comment exists to prevent
+     recurring. If this page ever needs to work with no headers
+     available (e.g. opened from disk with file://), that's a reason
+     to fix the deployment, not to re-add a second CSP source here. -->
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />

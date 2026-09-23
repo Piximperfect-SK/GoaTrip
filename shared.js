@@ -411,3 +411,41 @@ function renderQrSafely(el, text){
     el.appendChild(img);
   }
 }
+
+/**
+ * Sequences a set of places into a driving circuit starting and ending
+ * at `villa`, using nearest-neighbor greedy ordering on top of the
+ * haversineKm() above. Not a true TSP solve (that's overkill for the
+ * ~5-10 stops a day trip realistically has) — nearest-neighbor gets a
+ * reasonable loop cheaply and deterministically.
+ * @param {{lat: number, lng: number}} villa
+ * @param {Array<{name: string, lat: number, lng: number}>} places
+ * @returns {Array<{name: string, lat: number, lng: number, legDistanceKm: number}>}
+ */
+function calculateCircuitRoute(villa, places){
+  if(!villa || villa.lat == null || villa.lng == null) return [];
+
+  const unvisited = [...places.filter(p => p && p.lat != null && p.lng != null)];
+  const circuit = [];
+  let currentLoc = { lat: villa.lat, lng: villa.lng };
+
+  while(unvisited.length > 0){
+    let nearestIdx = -1;
+    let minDistance = Infinity;
+
+    for(let i = 0; i < unvisited.length; i++){
+      const dist = haversineKm(currentLoc, unvisited[i]);
+      if(dist < minDistance){
+        minDistance = dist;
+        nearestIdx = i;
+      }
+    }
+
+    const nextStop = unvisited.splice(nearestIdx, 1)[0];
+    nextStop.legDistanceKm = Math.round(minDistance * 10) / 10;
+    circuit.push(nextStop);
+    currentLoc = nextStop;
+  }
+
+  return circuit;
+}
