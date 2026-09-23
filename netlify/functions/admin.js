@@ -23,6 +23,13 @@ const { sendEmail } = require('./lib/mailer');
 const LOGIN_MAX_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 10 * 60 * 1000;
 const TEMP_PIN_TTL_MS = 24 * 60 * 60 * 1000; // 24h — an unused temp PIN stops working after this
+// The one admin account that can never be revoked or deleted, by anyone —
+// including itself. Matched case-insensitively, same as every other
+// admin-by-name lookup in this file. admin.html already hides the
+// Revoke/Delete buttons for this row, but that's UI only; this is the
+// actual boundary, since either action can be reached with a direct
+// POST to this function regardless of what the dashboard renders.
+const MASTER_ADMIN_NAME = 'Shubham Kumar';
 
 // Session tokens are stateless (HMAC-signed, not stored server-side), so
 // by themselves they stay valid for their full 12h TTL even after the
@@ -220,6 +227,9 @@ async function revokeAdmin(actorName, targetName) {
   if (String(targetName).toLowerCase() === String(actorName).toLowerCase()) {
     throw new Error('You cannot revoke your own access.');
   }
+  if (String(targetName).trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase()) {
+    throw new Error(`${MASTER_ADMIN_NAME} is the master admin and can't be revoked.`);
+  }
   const { rows } = await query("UPDATE admins SET status='Revoked' WHERE lower(name)=lower($1) AND status='Approved' RETURNING name", [targetName]);
   if (!rows.length) throw new Error('Admin not found or not currently approved.');
   return { ok: true, message: `Revoked access for ${rows[0].name}.` };
@@ -277,6 +287,9 @@ async function reinstateAdmin(targetName) {
 async function deleteAdmin(actorName, targetName) {
   if (String(targetName).toLowerCase() === String(actorName).toLowerCase()) {
     throw new Error('You cannot delete your own account.');
+  }
+  if (String(targetName).trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase()) {
+    throw new Error(`${MASTER_ADMIN_NAME} is the master admin and can't be deleted.`);
   }
   const { rows } = await query('DELETE FROM admins WHERE lower(name)=lower($1) RETURNING name', [targetName]);
   if (!rows.length) throw new Error('Admin not found.');

@@ -191,8 +191,8 @@
   </div>
 
   <div class="cx-switch">
-    <button type="button" class="active" id="switchSubmit" onclick="setCxMode('submit')">Submit Cancellation Request</button>
-    <button type="button" id="switchStatus" onclick="setCxMode('status')">Check Cancellation Status</button>
+    <button type="button" class="active" id="switchSubmit" data-feature="cancellation.submitRequest" onclick="setCxMode('submit')">Submit Cancellation Request</button>
+    <button type="button" id="switchStatus" data-feature="cancellation.checkStatus" onclick="setCxMode('status')">Check Cancellation Status</button>
   </div>
 
   <!-- ============ SUBMIT PANEL ============ -->
@@ -202,7 +202,7 @@
       <p class="cardsub">Please fill in your details accurately — your Cancellation ID will be generated automatically once submitted.</p>
       <div class="gate-banner" id="submitBanner"></div>
 
-      <form id="submitForm">
+      <form id="submitForm" data-feature="cancellation.submitRequest">
         <div class="field-grid">
           <div class="field-row full"><label>Full Name *</label><input id="f-name" required maxlength="120"/></div>
           <div class="field-row"><label>Email *</label><input id="f-email" type="email" required maxlength="120"/></div>
@@ -228,7 +228,7 @@
       <h3>Check your cancellation status</h3>
       <p class="cardsub">Enter your Cancellation ID and full name exactly as submitted.</p>
       <div class="gate-banner" id="statusBanner"></div>
-      <form id="statusForm">
+      <form id="statusForm" data-feature="cancellation.checkStatus">
         <div class="field-grid">
           <div class="field-row full"><label>Cancellation ID *</label><input id="s-id" placeholder="TTPL/CNL/0001" required maxlength="40"/></div>
           <div class="field-row full"><label>Full Name *</label><input id="s-name" required maxlength="120"/></div>
@@ -722,6 +722,7 @@ el('f-name').addEventListener('blur', autofillBookingRef);
     if(window.TRIP){
       if(window.TRIP.name) el('f-trip').value = window.TRIP.name;
       if(window.TRIP.destination) el('f-dest').value = window.TRIP.destination;
+      applyFeatureFlags(window.TRIP.id);
     }
   }catch(e){ console.warn('No trip context', e); }
 })();

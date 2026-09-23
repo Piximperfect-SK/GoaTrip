@@ -1,1 +1,18 @@
+# ============================================================
+# Normalize line endings for text files — added after finding
+# boarding-pass.html with stray \r\r\n (CRLF+CR) line endings while
+# cancellation.html and others used plain \n. Without this, whichever
+# OS/editor touches a file next can silently flip its line endings,
+# which then shows up as a full-file diff (every line "changed") even
+# when nothing meaningful did. * text=auto lets Git decide text vs
+# binary per file; eol=lf means every text file is stored in the repo
+# with LF endings and checked out with LF too (no CRLF conversion on
+# Windows), so the working tree matches the repo exactly.
+* text=auto eol=lf
+
+# ============================================================
+# Existing rule — trip videos go through Git LFS rather than being
+# stored as regular blobs. -text marks them binary so the line-ending
+# rule above never touches them.
+# ============================================================
 videos/*.mp4 filter=lfs diff=lfs merge=lfs -text

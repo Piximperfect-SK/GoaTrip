@@ -279,6 +279,30 @@
   .flag-meta .page::before{ content:'▸ '; }
   .flag-meta .key{ font-family:'Space Mono',monospace; font-size:10px; opacity:.4; margin-top:2px; }
 
+  /* Grid card layout for the Feature toggles panel specifically — kept
+     separate from .flag-row above, which board members / crew rows still
+     use for their own plain list layout. */
+  #flagList{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+  .flag-card{
+    display:flex; flex-direction:column; gap:10px; padding:16px; border-radius:14px;
+    border:1.5px solid var(--line); background:var(--paper); transition:border-color .2s ease;
+  }
+  .flag-card.is-on{ border-color:rgba(62,124,89,.35); background:rgba(62,124,89,.04); }
+  .flag-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .flag-card .flag-meta .label{ font-weight:600; font-size:14px; line-height:1.3; }
+  .flag-card .flag-meta .page{ font-size:11px; color:var(--teal-700); opacity:.7; margin-top:4px; }
+  .flag-card .flag-meta .key{ font-family:'Space Mono',monospace; font-size:10px; opacity:.4; margin-top:4px; word-break:break-all; }
+  .flag-enforced{
+    display:inline-block; margin-top:6px; font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.04em;
+    padding:2px 7px; border-radius:6px;
+  }
+  .flag-enforced.server{ background:rgba(62,124,89,.12); color:var(--palm); }
+  .flag-enforced.client{ background:rgba(232,93,42,.1); color:var(--mango-2); }
+
+  .missing-flags{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; margin-bottom:18px; }
+  .flag-card.is-missing{ border-style:dashed; border-color:rgba(232,93,42,.4); background:rgba(232,93,42,.05); }
+  .flag-card.is-missing .flag-meta .label::before{ content:'⚠ '; }
+
   .toggle{ position:relative; width:46px; height:26px; border-radius:9999px; background:var(--sand-2); cursor:pointer; flex-shrink:0; transition:.2s; border:none; padding:0; }
   .toggle.on{ background:var(--palm); }
   .toggle::after{ content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:white; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
@@ -682,6 +706,7 @@
         <div class="sec-card">
           <h3>Feature toggles</h3>
           <p class="cardsub">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
+          <div id="missingFlagsWrap"></div>
           <div id="flagList"></div>
 
           <div class="subhead">
@@ -1302,15 +1327,50 @@ el('pinChangeForm').addEventListener('submit', async e=>{
 });
 
 /* ---------- flags dashboard ---------- */
+// Every data-feature="…" key actually present in the site's HTML,
+// kept in sync by hand whenever a new one gets tagged in code. `server`
+// marks the handful with real backend enforcement (registration.js /
+// itinerary.js / wallet.js all call isFeatureEnabled()-equivalent
+// checks, or in wallet.locked's case a dedicated column) — the rest
+// (wallet.viewParticipants etc., boardingPass.*, cancellation.*) are
+// front-end-only: turning them off hides the control, but nothing
+// stops a direct API call, since those endpoints don't check the flag
+// themselves. Both kinds are worth having a toggle for, but an admin
+// should know which kind they're flipping.
+const KNOWN_FEATURE_KEYS = [
+  { featureKey:'index.registration',        label:'Registration form',           page:'index.html',        server:true },
+  { featureKey:'itinerary.editing',         label:'Itinerary editing',           page:'itinerary.html',    server:true },
+  { featureKey:'wallet.locked',             label:'Lock wallet (final submission)', page:'goa-wallet.html', server:true },
+  { featureKey:'wallet.viewParticipants',   label:'Participants & Balances',     page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.activityLog',        label:'Activity Log',                page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.refresh',            label:'Refresh',                     page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.addExpense',         label:'Add expense',                 page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.settlements',        label:'Record a settlement',         page:'goa-wallet.html',   server:false },
+  { featureKey:'boardingPass.lookup',       label:'Boarding pass lookup',        page:'boarding-pass.html', server:false },
+  { featureKey:'boardingPass.download',     label:'Boarding pass download',      page:'boarding-pass.html', server:false },
+  { featureKey:'cancellation.submitRequest',label:'Submit cancellation request', page:'cancellation.html', server:false },
+  { featureKey:'cancellation.checkStatus',  label:'Check cancellation status',   page:'cancellation.html', server:false },
+];
+function enforcementBadge(featureKey){
+  const known = KNOWN_FEATURE_KEYS.find(k => k.featureKey === featureKey);
+  if(!known) return '';
+  return known.server
+    ? '<span class="flag-enforced server">🛡 server-enforced</span>'
+    : '<span class="flag-enforced client">👁 front-end only</span>';
+}
+
 function renderFlags(flags){
   el('flagList').innerHTML = flags.map(f => `
-    <div class="flag-row">
-      <div class="flag-meta">
-        <div class="label">${escapeHtml(f.label)}</div>
-        <div class="page">${escapeHtml(f.page || '')}</div>
-        <div class="key">${escapeHtml(f.featureKey)}</div>
+    <div class="flag-card ${f.enabled ? 'is-on':''}">
+      <div class="flag-card-top">
+        <div class="flag-meta">
+          <div class="label">${escapeHtml(f.label)}</div>
+          <div class="page">${escapeHtml(f.page || '')}</div>
+          <div class="key">${escapeHtml(f.featureKey)}</div>
+          ${enforcementBadge(f.featureKey)}
+        </div>
+        <button class="toggle ${f.enabled ? 'on':''}" data-key="${escapeHtml(f.featureKey)}" data-label="${escapeHtml(f.label)}" data-page="${escapeHtml(f.page||'')}" data-enabled="${f.enabled}"></button>
       </div>
-      <button class="toggle ${f.enabled ? 'on':''}" data-key="${escapeHtml(f.featureKey)}" data-label="${escapeHtml(f.label)}" data-page="${escapeHtml(f.page||'')}" data-enabled="${f.enabled}"></button>
     </div>`).join('');
   document.querySelectorAll('.toggle').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -1320,10 +1380,51 @@ function renderFlags(flags){
         const res = await callPost({ action:'updateFlag', token:getToken(), tripId: currentTripId, featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
         if(res.error) throw new Error(res.error);
         renderFlags(res.flags);
+        renderMissingFlags(res.flags);
       }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
     });
   });
 }
+
+function renderMissingFlags(flags){
+  const wrap = el('missingFlagsWrap');
+  if(!wrap) return;
+  const existingKeys = new Set((flags || []).map(f => f.featureKey));
+  const missing = KNOWN_FEATURE_KEYS.filter(k => !existingKeys.has(k.featureKey));
+  if(!missing.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <h4 style="margin:2px 0 10px;">Not set up yet</h4>
+    <p style="font-size:12.5px; color:var(--teal-700); opacity:.8; margin:0 0 12px;">These are already wired into the site's code but don't have a toggle here yet — they default to enabled for everyone until you add one.</p>
+    <div class="missing-flags">
+      ${missing.map(k => `
+        <div class="flag-card is-missing">
+          <div class="flag-meta">
+            <div class="label">${escapeHtml(k.label)}</div>
+            <div class="page">${escapeHtml(k.page)}</div>
+            <div class="key">${escapeHtml(k.featureKey)}</div>
+            ${k.server ? '<span class="flag-enforced server">🛡 server-enforced</span>' : '<span class="flag-enforced client">👁 front-end only</span>'}
+          </div>
+          <button type="button" class="btn-ghost" data-add-key="${escapeHtml(k.featureKey)}" data-add-label="${escapeHtml(k.label)}" data-add-page="${escapeHtml(k.page)}">+ Add toggle</button>
+        </div>`).join('')}
+    </div>`;
+  wrap.querySelectorAll('button[data-add-key]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true; btn.textContent = 'Adding…';
+      try{
+        const res = await callPost({
+          action:'updateFlag', token:getToken(), tripId: currentTripId,
+          featureKey: btn.dataset.addKey, enabled:true,
+          label: btn.dataset.addLabel, page: btn.dataset.addPage,
+        });
+        if(res.error) throw new Error(res.error);
+        renderFlags(res.flags);
+        renderMissingFlags(res.flags);
+        showDashBanner('ok', `${btn.dataset.addLabel} now has a toggle.`);
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; btn.textContent = '+ Add toggle'; }
+    });
+  });
+}
+
 
 /* ---------- pending admin requests (fallback for when the email fails) ---------- */
 async function loadPendingAdmins(){
@@ -1471,6 +1572,7 @@ async function loadFlags(){
     const res = await callGet({ action:'flags', tripId: currentTripId });
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
+    renderMissingFlags(res.flags);
   }catch(err){ showDashBanner('bad', err.message); }
 }
 
@@ -2124,6 +2226,7 @@ el('addFlagForm').addEventListener('submit', async e=>{
     });
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
+    renderMissingFlags(res.flags);
     el('addFlagForm').reset();
     showDashBanner('ok', 'Feature added.');
   }catch(err){ showDashBanner('bad', err.message); }

@@ -174,8 +174,8 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
   <div class="flex items-center gap-3">
     <span class="mono text-xs flex items-center gap-2 opacity-70"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
     <a href="test_itenary.html" id="mapViewLink" class="btn-ghost" style="display:inline-flex; align-items:center; gap:7px;" title="Split-screen map view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map view</a>
-    <button class="btn-ghost" onclick="pullItinerary(true)">Reload</button>
-    <button class="btn-primary" onclick="saveItinerary()">Save changes</button>
+    <button class="btn-ghost" data-feature="itinerary.editing" onclick="pullItinerary(true)">Reload</button>
+    <button class="btn-primary" data-feature="itinerary.editing" onclick="saveItinerary()">Save changes</button>
   </div>
 </div>
 
@@ -352,6 +352,16 @@ async function saveItinerary(){
   if(route) route.textContent = `ROUTE · ${(trip.origin||'').toUpperCase()} → ${(trip.waypoint||'').toUpperCase()} → ${(trip.destination||'').toUpperCase()}`;
   const mapLink = document.getElementById('mapViewLink');
   if(mapLink) mapLink.href = withTrip('test_itenary.html');
+  // Fetched once and cached rather than calling applyFeatureFlags() again
+  // on every edit — the day/activity list re-renders on almost every
+  // keystroke (updateActivity, updateDay, …), and re-fetching the flag
+  // list from the network that often would be wasteful. reapplyFeatureFlags()
+  // below re-applies this same cached result to whatever's newly in the DOM.
+  // Key is 'itinerary.editing' to match the server-side check in
+  // itinerary.js's POST handler — this client-side tag is a courtesy
+  // (hides the controls before someone wastes a click); the real
+  // enforcement is server-side either way.
+  cachedFeatureFlags = await applyFeatureFlags(trip.id);
   await pullItinerary();
 })();
 
@@ -361,6 +371,21 @@ async function saveItinerary(){
 const dayTabsEl = document.getElementById('dayTabs');
 const dayBodyEl = document.getElementById('dayBody');
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+let cachedFeatureFlags = {};
+function reapplyFeatureFlags(){
+  document.querySelectorAll('[data-feature]').forEach(node => {
+    if(cachedFeatureFlags[node.dataset.feature] === false){
+      if(['INPUT','BUTTON','SELECT','TEXTAREA'].includes(node.tagName)){
+        node.setAttribute('disabled', 'disabled');
+        node.title = 'This feature is currently restricted.';
+      }else{
+        node.style.display = 'none';
+      }
+      node.classList.add('feature-restricted');
+    }
+  });
+}
 
 function fmtDateShort(iso){
   if(!iso) return 'No date';
@@ -373,7 +398,8 @@ function render(){
   if(!days.length){
     dayTabsEl.innerHTML = '';
     dayBodyEl.innerHTML = `<div class="empty-state">No days yet — add your first one to start planning.</div>
-      <div class="text-center mt-3"><button class="btn-primary" onclick="addDay()">+ Add day</button></div>`;
+      <div class="text-center mt-3"><button class="btn-primary" data-feature="itinerary.editing" onclick="addDay()">+ Add day</button></div>`;
+    reapplyFeatureFlags();
     return;
   }
   if(activeDayIndex >= days.length) activeDayIndex = days.length - 1;
@@ -383,7 +409,7 @@ function render(){
       <span class="dt-label">${escAttr(d.day||('Day '+(di+1)))}</span>
       <span class="dt-date">${d.date ? fmtDateShort(d.date) : (d.tbd ? 'TBD' : '—')}</span>
     </div>`).join('')
-    + `<div class="day-tab-add" onclick="addDay()" title="Add day">+</div>`;
+    + `<div class="day-tab-add" data-feature="itinerary.editing" onclick="addDay()" title="Add day">+</div>`;
 
   const d = days[activeDayIndex];
   const di = activeDayIndex;
@@ -401,7 +427,7 @@ function render(){
             </div>
           </div>
         </div>
-        <button class="btn-danger" onclick="removeDay(${di})">Remove day</button>
+        <button class="btn-danger" data-feature="itinerary.editing" onclick="removeDay(${di})">Remove day</button>
       </div>
       <label>Title</label>
       <input value="${escAttr(d.title)}" oninput="updateDay(${di},'title',this.value)" placeholder="e.g. Beach day & sunset cruise"/>
@@ -413,11 +439,12 @@ function render(){
     ${!acts.length ? `<div class="empty-state">No activities yet for this day.</div>` : ''}
 
     <div class="add-activity-card">
-      <button class="add-activity-btn" onclick="addActivity(${di})">
+      <button class="add-activity-btn" data-feature="itinerary.editing" onclick="addActivity(${di})">
         <span style="font-size:16px;">＋</span> Add Activity
       </button>
     </div>
   `;
+  reapplyFeatureFlags();
 }
 
 function renderActivity(d, di, a, ai){
@@ -459,9 +486,9 @@ function renderActivity(d, di, a, ai){
 
         <div class="tl-actions">
           ${directionsUrl ? `<a class="tl-mini-btn" href="${directionsUrl}" target="_blank" rel="noopener">🧭 Directions</a>` : ''}
-          ${ai>0 ? `<button class="tl-mini-btn" onclick="moveActivity(${di},${ai},-1)" title="Move up">↑</button>` : ''}
-          ${ai < (d.activities.length-1) ? `<button class="tl-mini-btn" onclick="moveActivity(${di},${ai},1)" title="Move down">↓</button>` : ''}
-          <button class="tl-mini-btn danger" onclick="removeActivity(${di},${ai})">✕ Remove</button>
+          ${ai>0 ? `<button class="tl-mini-btn" data-feature="itinerary.editing" onclick="moveActivity(${di},${ai},-1)" title="Move up">↑</button>` : ''}
+          ${ai < (d.activities.length-1) ? `<button class="tl-mini-btn" data-feature="itinerary.editing" onclick="moveActivity(${di},${ai},1)" title="Move down">↓</button>` : ''}
+          <button class="tl-mini-btn danger" data-feature="itinerary.editing" onclick="removeActivity(${di},${ai})">✕ Remove</button>
         </div>
       </div>
     </div>`;
