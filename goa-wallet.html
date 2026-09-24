@@ -1551,6 +1551,16 @@ async function flushPendingOps(){
 window.addEventListener('online', flushPendingOps);
 setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
 
+// Phase 4/5: every add* action creates a DRAFT record server-side — it
+// never enters the approval queue (and never shows up for admins) until
+// submitForApproval is called separately. The UI never exposed that as
+// its own step — "Add expense" is expected to mean "send it in" — so
+// every add flow below calls this immediately afterward instead of
+// leaving records stranded as invisible drafts.
+async function submitForApprovalAuto(recordType, id, actor){
+  return await pushToSheet('submitForApproval', {recordType, id}, actor);
+}
+
 async function pushToSheet(action, payload, actor, opts){
   opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
@@ -2074,14 +2084,16 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     }
     
     persistLocal(); closeModal('expenseModal'); renderAll();
-    await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom}, actor);
+    const synced = await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom}, actor);
     // Persist the auto-withdrawal itself — without this call it only ever
     // existed in memory/localStorage and never actually left anyone's pool.
     if(paidFromDeposit && depositUsedFrom){
       await pushToSheet('addDeposit', {id: withdrawalId, person: depositUsedFrom, amount: Number(amount), date, note: `Paid for: ${title}`, type: 'withdrawal'}, actor);
+      await submitForApprovalAuto('deposit', withdrawalId, actor);
     }
+    if(synced) await submitForApprovalAuto('expense', id, actor);
     renderAll();
-    showBanner('ok', `✅ Expense "${title}" logged${paidFromDeposit ? ` and paid from ${depositUsedFrom}'s deposit` : ''}.`);
+    showBanner('ok', `✅ Expense "${title}" sent for admin review${paidFromDeposit ? ` (and paid from ${depositUsedFrom}'s deposit)` : ''}. It'll appear for everyone once approved.`);
   }
 });
 async function removeExpense(id){
@@ -2279,9 +2291,10 @@ async function recordEqualSettlementAt(idx){
   wallet.settlements.push({id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note, actor, ts:new Date().toISOString()});
   persistLocal(); renderAll();
   const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note}, actor);
+  if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
-  if(row) row.innerHTML = `<span class="text-sm">✅ ${p.from} → ${p.to} recorded (₹${p.amount.toFixed(0)})${synced ? '' : ' — saved locally, will sync when reachable'}</span>`;
-  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  if(row) row.innerHTML = `<span class="text-sm">✅ ${p.from} → ${p.to} sent for review (₹${p.amount.toFixed(0)})${synced ? '' : ' — saved locally, will sync when reachable'}</span>`;
+  showBanner(synced ? 'ok' : 'warn', `✅ Settlement sent for admin review: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
 }
 async function recordAllEqualSettlementsFromState(){
   const payments = equalCalcState.payments;
@@ -2296,12 +2309,13 @@ async function recordAllEqualSettlementsFromState(){
     const id = 's'+Date.now()+Math.floor(Math.random()*1000);
     wallet.settlements.push({id, from:p.from, to:p.to, amount:p.amount, note, actor, ts:new Date().toISOString()});
     const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note}, actor);
-    if(!synced) allSynced = false;
+    if(!synced){ allSynced = false; }
+    else{ await submitForApprovalAuto('settlement', id, actor); }
   }
   persistLocal(); renderAll();
   equalCalcState = { payments: [], note: '' };
   closeModal('settlementModal');
-  showBanner(allSynced ? 'ok' : 'warn', `✅ Recorded ${payments.length} settlements.${allSynced ? '' : ' Some may only be saved locally — check the sync status and hit Refresh.'}`);
+  showBanner(allSynced ? 'ok' : 'warn', `✅ Sent ${payments.length} settlements for admin review.${allSynced ? '' : ' Some may only be saved locally — check the sync status and hit Refresh.'}`);
 }
 function updateSettlementDepositOption(){
   const fromPerson = document.getElementById('s-from').value;
@@ -2388,10 +2402,12 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
   // in memory/localStorage and the deposit pool was never actually touched.
   if(useDeposit){
     await pushToSheet('addDeposit', {id: withdrawalId, person: from, amount: Number(amount), date: new Date().toISOString().slice(0,10), note: `Settlement to ${to}: ${note || 'payment'}`, type: 'withdrawal'}, actor);
+    await submitForApprovalAuto('deposit', withdrawalId, actor);
   }
+  if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
   const method = useDeposit ? ` via ${from}'s deposit` : '';
-  showBanner(synced ? 'ok' : 'warn', `✅ Settlement recorded: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  showBanner(synced ? 'ok' : 'warn', `✅ Settlement sent for admin review: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
 });
 async function removeSettlement(id){
   confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
@@ -3018,8 +3034,9 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     wallet.deposits.push({id, person, amount, date, note, type, loggedBy:actor, ts:new Date().toISOString()});
     persistLocal(); closeModal('depositModal'); renderAll();
     const synced = await pushToSheet('addDeposit', {id, person, amount, date, note, type}, actor);
+    if(synced) await submitForApprovalAuto('deposit', id, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} of ₹${amount.toFixed(2)} logged for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} of ₹${amount.toFixed(2)} for <b>${person}</b> sent for admin review.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
   }
   if(pdReturnPerson){ const rp = pdReturnPerson; pdReturnPerson = null; viewPersonDeposits(rp); }
 });
