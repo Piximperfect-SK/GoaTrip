@@ -597,6 +597,7 @@
       </div>
       <div class="flex items-center gap-3">
         <span class="mono text-xs flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+        <span id="walletWhoAmITop" class="mono text-xs" style="display:none; padding:6px 12px; border-radius:9999px; background:var(--sand-2); border:1px solid var(--line); cursor:pointer;" title="Click to log out"></span>
         <button class="btn-ghost" data-feature="wallet.refresh" onclick="pullFromSheet(true)">Refresh</button>
         <button class="btn-primary" data-feature="wallet.addExpense" onclick="openExpenseModal()">+ Add expense</button>
       </div>
@@ -1663,6 +1664,7 @@ document.getElementById('verifyForm').addEventListener('submit', async e=>{
     if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
     setUserSession(data.token, data.name);
     localStorage.setItem('goaWalletLastActor', data.name);
+    refreshWalletIdentityUI();
     document.getElementById('nameVerifyModal').classList.remove('open');
     const resolve = verifyResolver; verifyResolver = null;
     if(resolve) resolve(data.name);
@@ -3595,13 +3597,37 @@ function closeWalletGate(){
 }
 function setWalletAdminUI(name){
   IS_WALLET_ADMIN = !!name;
+  refreshWalletIdentityUI();
+}
+// Shared by both the admin path (setWalletAdminUI above) and the
+// participant path (login.js sign-ins) — previously only setWalletAdminUI
+// ever touched #walletWhoAmI/#walletLogoutBtn, so a signed-in participant
+// never saw their own name or a way to log out; this is what both paths
+// now call instead.
+function refreshWalletIdentityUI(){
+  const name = getSessionName();
   const who = document.getElementById('walletWhoAmI');
-  if(who) who.textContent = name ? `Signed in as ${name}` : 'Not signed in as admin';
+  if(who) who.textContent = name ? `Signed in as ${name}${IS_WALLET_ADMIN ? ' (admin)' : ''}` : 'Not signed in';
   const signinBtn = document.getElementById('walletAdminSigninBtn');
   const logoutBtn = document.getElementById('walletLogoutBtn');
-  if(signinBtn) signinBtn.style.display = name ? 'none' : 'block';
+  if(signinBtn) signinBtn.style.display = IS_WALLET_ADMIN ? 'none' : 'block';
   if(logoutBtn) logoutBtn.style.display = name ? 'block' : 'none';
+
+  const top = document.getElementById('walletWhoAmITop');
+  if(top){
+    if(name){
+      top.textContent = `${IS_WALLET_ADMIN ? '\uD83D\uDD11 ' : '\uD83D\uDC64 '}${name}`;
+      top.style.display = 'inline-flex';
+    } else {
+      top.style.display = 'none';
+    }
+  }
 }
+// Bound once at load rather than inside refreshWalletIdentityUI() (which
+// runs on every login/boot) so this doesn't stack duplicate listeners.
+document.getElementById('walletWhoAmITop')?.addEventListener('click', ()=>{
+  document.getElementById('walletLogoutBtn')?.click();
+});
 // Called once on load, and again after any 401 from wallet.js mid-session
 // (expired/invalid token) — verifies the token the same way admin.html
 // does (action:'whoAmI'), never trusting its mere presence in storage.
@@ -3698,6 +3724,7 @@ document.getElementById('participantGateForm').addEventListener('submit', async 
     if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
     setUserSession(data.token, data.name);
     localStorage.setItem('goaWalletLastActor', data.name);
+    refreshWalletIdentityUI();
     closeWalletGate();
     await initWalletApp();
   }catch(err){
@@ -3722,6 +3749,7 @@ document.getElementById('walletAdminSigninBtn')?.addEventListener('click', (e)=>
 document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
   e.preventDefault();
   clearWalletSession();
+  clearUserSession();
   location.reload();
 });
 
@@ -3772,6 +3800,7 @@ async function populateGateParticipants(){
     // actually expired/invalid, wallet.js will 401 on the very first
     // request inside initWalletApp() and pullFromSheet() reopens the
     // gate via showAccessGate() at that point.
+    refreshWalletIdentityUI();
     closeWalletGate();
     await initWalletApp();
     return;
