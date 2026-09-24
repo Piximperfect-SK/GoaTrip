@@ -1141,13 +1141,16 @@
   <div class="modal-panel" style="max-width:380px;">
     <div class="p-6">
       <p class="section-eyebrow mb-2">Quick check</p>
-      <h3 class="display text-xl font-semibold mb-2" id="verifyTitle">Who's making this change?</h3>
-      <p class="text-sm opacity-60 mb-5" id="verifySubtitle">We log a name against every add, edit or removal in the wallet.</p>
+      <h3 class="display text-xl font-semibold mb-2" id="verifyTitle">Sign in to continue</h3>
+      <p class="text-sm opacity-60 mb-5" id="verifySubtitle">Enter your name and the trip password — you'll only need to do this once per visit.</p>
+      <div id="verifyBanner" class="banner bad mb-4" style="display:none;"></div>
       <form id="verifyForm">
         <label>Your name</label>
         <select id="verify-name" required class="w-full mb-4"></select>
+        <label>Trip password</label>
+        <input type="password" id="verify-password" required class="w-full mb-4" autocomplete="current-password">
         <div class="flex gap-3">
-          <button type="submit" class="btn-primary flex-1">Confirm</button>
+          <button type="submit" id="verifySubmitBtn" class="btn-primary flex-1">Sign in</button>
           <button type="button" class="btn-ghost" onclick="cancelVerify()">Cancel</button>
         </div>
       </form>
@@ -1519,11 +1522,10 @@ setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
 async function pushToSheet(action, payload, actor, opts){
   opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
-  // Token is sent when present (needed once the wallet is locked, or for
-  // the always-admin-only actions), but its absence no longer blocks the
-  // request client-side — wallet.js is the real authority on whether this
-  // particular action needs it, based on the trip's lock state.
-  const token = getWalletToken();
+  // wallet.js now requires a verified session token on every write, no
+  // exceptions — so this has to be whichever session is actually signed
+  // in (admin or participant), not just the admin token.
+  const token = getSessionToken();
   setSyncStatus('pending');
   let res, text;
   try{
@@ -1550,16 +1552,25 @@ async function pushToSheet(action, payload, actor, opts){
     return null;
   }
   if(res.status === 401){
-    // Either the wallet is locked and this needs an admin (most common
-    // now, since writes no longer need a token pre-lock), or an admin
-    // token specifically was invalid/expired. Either way: not a
-    // connectivity problem, so never queued/retried — and show the
-    // server's actual message rather than assuming "session expired".
+    // Not signed in at all, an admin token was invalid/expired, a
+    // participant token was invalid/expired, or the wallet is locked and
+    // this action needs an admin specifically — wallet.js's message tells
+    // us which. Either way: not a connectivity problem, so never
+    // queued/retried.
     setSyncStatus('bad');
     if(opts.fromQueue) dequeuePendingOp(action, payload);
-    if(token) clearWalletSession(); // only clear if we actually had one to invalidate
-    setWalletAdminUI(null);
-    showWalletGate(data.error || 'Please sign in as admin to continue. Your last change is saved locally and will sync once you\u2019re signed in.');
+    if(token && token === getWalletToken()){
+      // Admin session was the one that failed — same admin-gate flow as before.
+      clearWalletSession();
+      setWalletAdminUI(null);
+      showWalletGate(data.error || 'Please sign in as admin to continue. Your last change is saved locally and will sync once you\u2019re signed in.');
+    } else {
+      // No session, or a participant session that expired/was rejected —
+      // clear it so the next requestActor() call re-prompts for sign-in
+      // rather than silently reusing a dead token.
+      if(token) clearUserSession();
+      showBanner('err', `<b>${data.error || 'Please sign in to continue.'}</b> Your last change is saved locally and will sync once you\u2019re signed in.`);
+    }
     return null;
   }
   if(data.error){
@@ -1582,26 +1593,54 @@ async function pushToSheet(action, payload, actor, opts){
    NAME VERIFICATION (promise-based, dropdown of the 11 fixed people)
 =============================================================*/
 let verifyResolver = null;
+// Every add/edit/remove call site still calls requestActor() before
+// writing — but now it's a real sign-in, not a free-text name picker:
+// wallet.js derives `actor` from the session token server-side and
+// rejects unauthenticated writes outright, so a name here has to be
+// backed by a verified session or the write will just 401.
 function requestActor(title, subtitle){
+  const cached = getSessionName();
+  if(cached) return Promise.resolve(cached);
   return new Promise(resolve=>{
     verifyResolver = resolve;
-    document.getElementById('verifyTitle').textContent = title || "Who's making this change?";
-    document.getElementById('verifySubtitle').textContent = subtitle || "We log a name against every add, edit or removal.";
+    document.getElementById('verifyTitle').textContent = title ? `Sign in to ${title.charAt(0).toLowerCase()}${title.slice(1)}` : 'Sign in to continue';
+    document.getElementById('verifySubtitle').textContent = subtitle || "Enter your name and the trip password — you'll only need to do this once per visit.";
+    document.getElementById('verifyBanner').style.display = 'none';
     const sel = document.getElementById('verify-name');
     sel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
     const last = localStorage.getItem('goaWalletLastActor');
     if(last && PARTICIPANTS.includes(last)) sel.value = last;
+    document.getElementById('verify-password').value = '';
     document.getElementById('nameVerifyModal').classList.add('open');
   });
 }
-document.getElementById('verifyForm').addEventListener('submit', e=>{
+document.getElementById('verifyForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const name = document.getElementById('verify-name').value;
-  if(!name) return;
-  localStorage.setItem('goaWalletLastActor', name);
-  document.getElementById('nameVerifyModal').classList.remove('open');
-  const resolve = verifyResolver; verifyResolver = null;
-  if(resolve) resolve(name);
+  const password = document.getElementById('verify-password').value;
+  const banner = document.getElementById('verifyBanner');
+  banner.style.display = 'none';
+  if(!name || !password || !window.TRIP) return;
+  const btn = document.getElementById('verifySubmitBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(TRIP.id), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, password })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
+    setUserSession(data.token, data.name);
+    localStorage.setItem('goaWalletLastActor', data.name);
+    document.getElementById('nameVerifyModal').classList.remove('open');
+    const resolve = verifyResolver; verifyResolver = null;
+    if(resolve) resolve(data.name);
+  }catch(err){
+    banner.textContent = err.message;
+    banner.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
 });
 function cancelVerify(){
   document.getElementById('nameVerifyModal').classList.remove('open');
@@ -3453,6 +3492,27 @@ async function initWalletApp(){
    by checkWalletAdmin()/wallet.js). Reuses the same sessionStorage
    keys and /admin login endpoint as admin.html.
 =============================================================*/
+// Participant (non-admin) session, from login.js — separate from the
+// admin token below. Populated the first time requestActor() needs a
+// signed-in identity; cached for the rest of the tab's session so people
+// aren't re-prompted before every single add/edit/remove.
+const WALLET_USER_TOKEN_KEY = 'goaUserToken';
+function getUserToken(){ return sessionStorage.getItem(WALLET_USER_TOKEN_KEY); }
+function getUserName(){ return sessionStorage.getItem(WALLET_USER_TOKEN_KEY + '_name'); }
+function setUserSession(token, name){
+  sessionStorage.setItem(WALLET_USER_TOKEN_KEY, token);
+  sessionStorage.setItem(WALLET_USER_TOKEN_KEY + '_name', name);
+}
+function clearUserSession(){
+  sessionStorage.removeItem(WALLET_USER_TOKEN_KEY);
+  sessionStorage.removeItem(WALLET_USER_TOKEN_KEY + '_name');
+}
+// Whichever session is currently signed in — admin takes precedence since
+// checkWalletAdmin()/setWalletAdminUI() already verify that one against
+// the server; the user token is trusted until wallet.js 401s on it.
+function getSessionName(){ return (IS_WALLET_ADMIN && getWalletToken()) ? sessionStorage.getItem(WALLET_NAME_KEY) : getUserName(); }
+function getSessionToken(){ return (IS_WALLET_ADMIN && getWalletToken()) ? getWalletToken() : getUserToken(); }
+
 const WALLET_TOKEN_KEY = 'goaAdminToken';
 const WALLET_NAME_KEY = 'goaAdminName';
 let IS_WALLET_ADMIN = false;
