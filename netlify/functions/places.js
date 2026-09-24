@@ -210,7 +210,31 @@ async function resolveAndCache(rawQuery) {
   if (!key) return { resolved: false };
 
   const { rows } = await query('SELECT * FROM resolved_places WHERE query_key = $1', [key]);
-  if (rows.length) return serializeCacheRow(rows[0]);
+  if (rows.length) {
+    const cached = rows[0];
+    // Rows written before photo matching existed are `resolved: true`
+    // with no photo_source at all — that's different from a row where
+    // we genuinely looked for a photo and found none (photo_source
+    // would be '' in that case, since matchPhoto always sets it to
+    // 'wikipedia' or ''). Backfill the former once here rather than
+    // requiring every old place to be manually hit with action=refresh.
+    if (cached.resolved && cached.photo_source === null) {
+      let photoInfo = { photo: null, photoTitle: null, photoSource: '', photoCandidates: [] };
+      try {
+        photoInfo = await matchPhoto(cached.name, Number(cached.lat), Number(cached.lng));
+      } catch (e) {
+        // leave photoInfo at its empty default — still record photo_source
+        // as '' below so this row won't be treated as un-backfilled forever
+      }
+      await query(
+        `UPDATE resolved_places SET photo = $2, photo_title = $3, photo_source = $4, photo_candidates = $5
+         WHERE query_key = $1`,
+        [key, photoInfo.photo, photoInfo.photoTitle, photoInfo.photoSource, JSON.stringify(photoInfo.photoCandidates)]
+      );
+      return { ...serializeCacheRow(cached), ...photoInfo };
+    }
+    return serializeCacheRow(cached);
+  }
 
   let result = await geocodeViaNominatim(rawQuery, true);
   if (!result) result = await geocodeViaNominatim(rawQuery, false);

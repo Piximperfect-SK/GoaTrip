@@ -328,6 +328,39 @@ async function pullItinerary(manual){
     showBanner('err', `Couldn't reach the backend. Working from the last local draft. ${err.message}`);
   }
   render();
+  backfillMissingPhotos();
+}
+
+// Places saved before photo-matching existed are stuck at status:'ok'
+// with photo:null forever — resolveActivityPlace() only ever runs on
+// blur/Enter of the name field, so nothing would ever ask for their
+// photo again on its own. This runs once per itinerary load, quietly
+// re-resolves just those places (their name/coords are already known,
+// so it's a cheap cache-hit + photo-match round trip, not a full
+// re-geocode), and saves the result so index.html's carousel — which
+// only ever reads what's already stored, never calls /places itself —
+// picks the photos up on its next load too.
+async function backfillMissingPhotos(){
+  let changed = false;
+  for(const d of days){
+    for(const a of (d.activities||[])){
+      const p = a.place;
+      if(!p || p.status !== 'ok' || p.lat == null || p.photo) continue;
+      try{
+        const resolved = await resolvePlace(p.resolvedName || p.name);
+        if(resolved && resolved.photo){
+          p.photo = resolved.photo; p.caption = resolved.photoTitle || resolved.name;
+          p.source = resolved.photoSource; p.photoCandidates = resolved.photoCandidates || [];
+          changed = true;
+        }
+      }catch(e){ /* leave it — will just retry on next load */ }
+    }
+  }
+  if(changed){
+    render();
+    persistLocal();
+    if(window.TRIP) saveItinerary();
+  }
 }
 
 async function saveItinerary(){
@@ -426,7 +459,7 @@ function render(){
       <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-[260px]">
           <div><label>Day label</label><input value="${escAttr(d.day)}" oninput="updateDay(${di},'day',this.value)"/></div>
-          <div><label>Date</label><input type="date" value="${escAttr(d.date)}" onchange="updateDay(${di},'date',this.value)"/></div>
+          <div><label>Date</label><input type="date" value="${/^\d{4}-\d{2}-\d{2}$/.test(d.date||'') ? d.date : ''}" onchange="updateDay(${di},'date',this.value)"/></div>
           <div class="sm:col-span-2"><label>Status</label>
             <div class="tag-row">
               ${['TRAVEL','ACTIVITY','FREE','TBD'].map(t=>`<span class="tag-chip ${d.tag===t?'active':''}" onclick="updateDay(${di},'tag','${t}')">${t}</span>`).join('')}
@@ -560,7 +593,7 @@ async function resolveActivityPlace(di, ai){
   const p = a.place;
   const rawName = (p.name||'').trim();
   if(!rawName){ a.place = null; render(); return; }
-  if(p.status === 'ok' && p._fetchedFor === rawName) return;
+  if(p.status === 'ok' && p._fetchedFor === rawName && p.photo) return;
   p.status = 'pending';
   render();
   try{
