@@ -267,6 +267,8 @@
   .status-pill.Approved{ background:rgba(62,124,89,.15); color:#2C5940; }
   .status-pill.Pending{ background:rgba(201,162,39,.18); color:#8A6D14; }
   .status-pill.Rejected, .status-pill.Revoked{ background:rgba(232,93,42,.15); color:var(--mango-2); }
+  .status-pill.Draft{ background:rgba(91,100,114,.15); color:var(--bp-slate,#5B6472); }
+  .wallet-type-tag{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin-right:6px; }
   .row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
   .row-actions button{ font-size:11.5px; padding:6px 12px; }
   .search-field{ margin-bottom:14px; }
@@ -649,6 +651,11 @@
         Cancellations
         <span class="sb-badge-count" id="sbCancelBadge" style="display:none;">0</span>
       </button>
+      <button type="button" class="dash-tab sb-link" data-tab="wallet">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg></span>
+        Wallet approvals
+        <span class="sb-badge-count" id="sbWalletBadge" style="display:none;">0</span>
+      </button>
       <button type="button" class="dash-tab sb-link" data-tab="crew">
         <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><circle cx="18" cy="7" r="3"/><path d="M22 21v-1a4 4 0 0 0-3-3.87"/></svg></span>
         Team / Crew
@@ -776,6 +783,24 @@
             </select>
           </div>
           <div id="cancellationList"></div>
+        </div>
+      </div>
+
+      <!-- ---- Wallet approvals ---- -->
+      <div class="dash-panel hidden" id="panel-wallet">
+        <div class="sec-card">
+          <h3>Pending wallet submissions</h3>
+          <p class="cardsub">Expenses, settlements and deposits participants have submitted, waiting on an admin decision. Everyone can already see anything already approved — this is only the queue.</p>
+          <div class="search-field" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <select id="walletFilter" onchange="renderWalletApprovals()" style="width:auto; min-width:180px;">
+              <option value="pending_approval">Pending approval</option>
+              <option value="">All statuses</option>
+              <option value="draft">Draft (not yet submitted)</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div id="walletApprovalList"></div>
         </div>
       </div>
     </div>
@@ -1034,6 +1059,20 @@
   </div>
 </div>
 
+<!-- ============ WALLET REJECT REASON MODAL ============ -->
+<div class="modal-overlay hidden" id="walletRejectModalOverlay">
+  <div class="modal-card" style="max-width:420px; text-align:left;">
+    <h3>Reject this record?</h3>
+    <p class="modal-sub" id="walletRejectModalSub"></p>
+    <div class="gate-banner" id="walletRejectModalBanner"></div>
+    <div class="gate-field"><label>Reason (optional, shown to the submitter)</label><textarea id="wr-reason" rows="3" maxlength="300" placeholder="e.g. Receipt missing / amount doesn't match"></textarea></div>
+    <div style="display:flex; gap:10px; margin-top:6px;">
+      <button type="button" class="btn-ghost" id="walletRejectCancelBtn" style="flex:1;">Cancel</button>
+      <button type="button" class="btn-danger" id="walletRejectConfirmBtn" style="flex:1;">Reject record</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ PIN CHANGE MODAL (forced on first login after approval, or
      opened voluntarily any time via the "Change PIN" button) ============ -->
 <div class="modal-overlay hidden" id="pinModalOverlay">
@@ -1094,6 +1133,19 @@ async function callRegistrationPost(body){
   const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   return res.json();
 }
+// wallet.js takes tripId as a query param on both GET and POST (see its
+// handler — params.tripId, not something read out of the body), so both
+// helpers below build the URL the same way callRegistrationPost does.
+async function callWalletGet(params){
+  const url = FUNCTIONS_BASE + '/wallet?' + new URLSearchParams({ ...params, tripId: currentTripId || '' }).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function callWalletPost(body){
+  const url = FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(currentTripId || '');
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
 
 /* ---------- session ---------- */
 function getToken(){ return sessionStorage.getItem('goaAdminToken'); }
@@ -1121,6 +1173,7 @@ function showLoggedIn(name){
   loadBoardMembers();
   loadCrew();
   loadContent();
+  loadWalletApprovals();
 }
 
 /* ---------- mobile sidebar toggle ---------- */
@@ -1140,6 +1193,7 @@ const TAB_TITLES = {
   admins: ['Console', 'Admins & security'],
   registrations: ['Console', 'Registrations'],
   cancellations: ['Console', 'Cancellations'],
+  wallet: ['Console', 'Wallet approvals'],
   crew: ['Console', 'Team / Crew'],
   content: ['Console', 'Page content'],
 };
@@ -1190,7 +1244,7 @@ async function populateTripPicker(){
   }catch(err){
     console.warn('populateTripPicker failed — trip list unavailable, continuing boot anyway.', err);
   }
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); });
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); loadWalletApprovals(); });
 }
 
 /* ---------- gate mode switch ---------- */
@@ -1461,6 +1515,117 @@ function renderPendingAdmins(pending){
     });
   });
 }
+
+/* ---------- wallet approvals ---------- */
+let currentWalletState = { expenses: [], settlements: [], deposits: [] };
+function walletStatusPillHtml(status){
+  const cls = status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected'
+    : status === 'pending_approval' ? 'Pending' : 'Draft';
+  const label = status === 'pending_approval' ? 'pending approval' : (status || 'draft');
+  return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
+}
+async function loadWalletApprovals(){
+  if(!currentTripId) return;
+  try{
+    const res = await callWalletGet({ token: getToken() });
+    if(res.error) throw new Error(res.error);
+    currentWalletState = res;
+    renderWalletApprovals();
+    const pending = ['expenses','settlements','deposits']
+      .reduce((sum, k) => sum + (res[k] || []).filter(r => r.status === 'pending_approval').length, 0);
+    const badge = el('sbWalletBadge');
+    if(badge){
+      if(pending > 0){ badge.textContent = pending; badge.style.display = 'inline-block'; badge.classList.add('warn'); }
+      else{ badge.style.display = 'none'; }
+    }
+  }catch(err){ console.warn('loadWalletApprovals failed', err); }
+}
+// Flattens the three record types into one list with a shared shape for
+// rendering — each record already carries its own status/submittedBy/
+// approvedBy/etc from wallet.js's approvalFields(), just under different
+// field names per type (createdBy vs actor vs loggedBy for "who"), so
+// this is mainly picking the right label/who/amount out of each shape.
+function flattenWalletRecords(){
+  const expenses = (currentWalletState.expenses || []).map(r => ({
+    recordType: 'expense', id: r.id, label: r.title, who: r.createdBy, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  const settlements = (currentWalletState.settlements || []).map(r => ({
+    recordType: 'settlement', id: r.id, label: `${r.from} → ${r.to}`, who: r.actor, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  const deposits = (currentWalletState.deposits || []).map(r => ({
+    recordType: 'deposit', id: r.id, label: `${r.person} (${r.type})`, who: r.loggedBy, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  return [...expenses, ...settlements, ...deposits];
+}
+function renderWalletApprovals(){
+  const box = el('walletApprovalList');
+  if(!box) return;
+  const filterVal = el('walletFilter') ? el('walletFilter').value : 'pending_approval';
+  let records = flattenWalletRecords();
+  if(filterVal) records = records.filter(r => r.status === filterVal);
+  if(!records.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">Nothing here right now.</p>'; return; }
+  box.innerHTML = records.map(r => `
+    <div class="flag-row">
+      <div class="flag-meta">
+        <div class="label"><span class="wallet-type-tag">${escapeHtml(r.recordType)}</span>${escapeHtml(r.label)} ${walletStatusPillHtml(r.status)}</div>
+        <div class="page">Rs.${escapeHtml(String(r.amount))} · by ${escapeHtml(r.who || '—')}${r.status === 'rejected' && r.rejectionReason ? ' · ' + escapeHtml(r.rejectionReason) : ''}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        ${r.status === 'pending_approval' ? `
+          <button class="btn-ghost" data-approve data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Approve</button>
+          <button class="btn-danger" data-reject data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Reject</button>
+        ` : ''}
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('button[data-approve]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        const res = await callWalletPost({ action:'approveRecord', token:getToken(), payload:{ recordType: btn.dataset.type, id: btn.dataset.id } });
+        if(res.error) throw new Error(res.error);
+        showDashBanner('ok', 'Record approved.');
+        loadWalletApprovals();
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
+    });
+  });
+  box.querySelectorAll('button[data-reject]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openWalletRejectModal(btn.dataset.type, btn.dataset.id));
+  });
+}
+let walletRejectTarget = null;
+function openWalletRejectModal(recordType, id){
+  walletRejectTarget = { recordType, id };
+  el('walletRejectModalBanner').className = 'gate-banner';
+  el('wr-reason').value = '';
+  el('walletRejectModalSub').textContent = `${recordType} ${id}`;
+  el('walletRejectModalOverlay').classList.remove('hidden');
+}
+function closeWalletRejectModal(){ el('walletRejectModalOverlay').classList.add('hidden'); walletRejectTarget = null; }
+el('walletRejectCancelBtn').addEventListener('click', closeWalletRejectModal);
+el('walletRejectConfirmBtn').addEventListener('click', async ()=>{
+  if(!walletRejectTarget) return;
+  const btn = el('walletRejectConfirmBtn');
+  btn.disabled = true;
+  try{
+    const res = await callWalletPost({
+      action:'rejectRecord', token:getToken(),
+      payload:{ recordType: walletRejectTarget.recordType, id: walletRejectTarget.id, reason: el('wr-reason').value.trim() },
+    });
+    if(res.error) throw new Error(res.error);
+    closeWalletRejectModal();
+    showDashBanner('ok', 'Record rejected.');
+    loadWalletApprovals();
+  }catch(err){
+    el('walletRejectModalBanner').className = 'gate-banner show bad';
+    el('walletRejectModalBanner').textContent = err.message;
+  }finally{ btn.disabled = false; }
+});
 
 /* ---------- admins & security ---------- */
 let currentAdmins = [];
