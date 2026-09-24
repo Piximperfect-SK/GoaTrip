@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { query } = require('./lib/db');
 const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText, sanitizeNumber, normalizeDepositType, validatePayload } = require('./lib/validate');
-const { verifySessionToken } = require('./lib/auth');
+const { verifySessionTokenFull } = require('./lib/auth');
 
 // Not a secret (visible in this repo/front-end) — a "type this exact phrase"
 // guard against one stray/automated POST wiping a trip's wallet, same as
@@ -156,26 +156,36 @@ exports.handler = async (event) => {
 
     const { action } = body;
     const payload = body.payload || {};
-    let actor = sanitizeText(body.actor || 'Unknown', 80);
 
     if (!SCHEMAS.hasOwnProperty(action)) return badRequest('Unknown or invalid action.');
-    if (typeof body.actor !== 'string' || body.actor.length < 1 || body.actor.length > 80) {
-      return badRequest('Invalid actor name.');
+
+    // Identity now comes ONLY from a verified session token — body.actor
+    // is gone. Previously any caller could POST any actor name they liked
+    // (a free-text field the frontend happened to fill in), which meant
+    // the audit trail (created_by/updated_by/activity log) recorded
+    // whatever the client claimed rather than who was actually logged in.
+    // Both regular users and admins hold session tokens now (see login.js),
+    // so "no token" simply means "not logged in" — there's no more
+    // unauthenticated-but-named write path at all, locked or not.
+    const session = body.token ? verifySessionTokenFull(body.token) : null;
+    if (!session) {
+      return unauthorized('Please log in to make changes to the wallet.');
     }
+    const actor = sanitizeText(session.name, 80);
+    const isAdmin = session.role === 'admin';
 
     // Access rule: before the trip's admin marks the wallet "locked" (final
-    // submission), anyone can log expenses/settlements/deposits under their
-    // own name — no admin session needed. Once locked, every write requires
-    // a valid admin session token, same as before. resetWallet is always
-    // admin-only regardless of lock state — wiping a trip's whole wallet is
-    // too destructive to leave open to anyone with the link.
+    // submission), any logged-in participant can log expenses/settlements/
+    // deposits under their own session identity. Once locked, only admins
+    // can write. resetWallet is always admin-only regardless of lock state
+    // — wiping a trip's whole wallet is too destructive to leave open to
+    // every participant.
     const locked = await getWalletLockState(tripId);
-    const adminName = body.token ? verifySessionToken(body.token) : null;
     const requiresAdmin = action === 'resetWallet' || locked;
-    if (requiresAdmin && !adminName) {
+    if (requiresAdmin && !isAdmin) {
       return unauthorized(
         action === 'resetWallet'
-          ? 'Resetting the wallet requires an admin session — please log in.'
+          ? 'Resetting the wallet requires an admin session — please log in as admin.'
           : 'The wallet is locked for final submission — only admins can make changes now. Please log in as admin.'
       );
     }
