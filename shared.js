@@ -298,6 +298,12 @@ async function resolvePlace(rawText){
         query: cleaned, name: data.name, displayName: data.displayName,
         lat: data.lat, lng: data.lng, placeId: data.placeId,
         type: data.type, confidence: data.confidence,
+        // Photo matching now happens server-side (in the /places function),
+        // coordinate-aware and pre-ranked — this is already the best
+        // available match (or null if none was confident enough), plus a
+        // few alternates in case a caller wants to offer "try another photo".
+        photo: data.photo || null, photoTitle: data.photoTitle || null,
+        photoSource: data.photoSource || '', photoCandidates: data.photoCandidates || [],
       };
     }
   }catch(e){
@@ -306,6 +312,50 @@ async function resolvePlace(rawText){
   }
   writePlaceCache(key, result);
   return result;
+}
+
+/* ============================================================
+   FIELD TOOLTIPS — a small floating message anchored to any input,
+   for things that don't have a static <p class="wiz-error"> already
+   sitting in the markup: server-side rejections, "already
+   registered" notices, "that doesn't look like a real number"
+   warnings, etc. Any form on the site can use it — not tied to the
+   registration wizard.
+   Usage: showFieldTooltip(inputEl, 'message', 'bad'|'ok'|'info')
+          hideFieldTooltip(inputEl)
+   'bad' tooltips stay until explicitly hidden (e.g. on next input);
+   'ok'/'info' auto-dismiss after a few seconds.
+   ============================================================ */
+function showFieldTooltip(inputEl, message, kind){
+  if(!inputEl) return;
+  kind = kind || 'bad';
+  hideFieldTooltip(inputEl);
+  let anchor = inputEl.parentElement;
+  if(!anchor) return;
+  if(getComputedStyle(anchor).position === 'static'){
+    anchor.classList.add('field-tooltip-anchor');
+  }
+  const tip = document.createElement('div');
+  tip.className = `field-tooltip ${kind}`;
+  tip.textContent = message;
+  anchor.appendChild(tip);
+  tip.style.top = (inputEl.offsetTop + inputEl.offsetHeight + 10) + 'px';
+  tip.style.left = inputEl.offsetLeft + 'px';
+  requestAnimationFrame(() => tip.classList.add('show'));
+  inputEl._fieldTooltip = tip;
+  if(kind !== 'bad'){
+    clearTimeout(inputEl._fieldTooltipTimer);
+    inputEl._fieldTooltipTimer = setTimeout(() => hideFieldTooltip(inputEl), 4000);
+  }
+}
+
+function hideFieldTooltip(inputEl){
+  if(!inputEl || !inputEl._fieldTooltip) return;
+  const tip = inputEl._fieldTooltip;
+  clearTimeout(inputEl._fieldTooltipTimer);
+  tip.classList.remove('show');
+  setTimeout(() => tip.remove(), 150);
+  inputEl._fieldTooltip = null;
 }
 
 /* ============================================================
@@ -360,4 +410,42 @@ function renderQrSafely(el, text){
     img.onerror = () => { img.style.display = 'none'; };
     el.appendChild(img);
   }
+}
+
+/**
+ * Sequences a set of places into a driving circuit starting and ending
+ * at `villa`, using nearest-neighbor greedy ordering on top of the
+ * haversineKm() above. Not a true TSP solve (that's overkill for the
+ * ~5-10 stops a day trip realistically has) — nearest-neighbor gets a
+ * reasonable loop cheaply and deterministically.
+ * @param {{lat: number, lng: number}} villa
+ * @param {Array<{name: string, lat: number, lng: number}>} places
+ * @returns {Array<{name: string, lat: number, lng: number, legDistanceKm: number}>}
+ */
+function calculateCircuitRoute(villa, places){
+  if(!villa || villa.lat == null || villa.lng == null) return [];
+
+  const unvisited = [...places.filter(p => p && p.lat != null && p.lng != null)];
+  const circuit = [];
+  let currentLoc = { lat: villa.lat, lng: villa.lng };
+
+  while(unvisited.length > 0){
+    let nearestIdx = -1;
+    let minDistance = Infinity;
+
+    for(let i = 0; i < unvisited.length; i++){
+      const dist = haversineKm(currentLoc, unvisited[i]);
+      if(dist < minDistance){
+        minDistance = dist;
+        nearestIdx = i;
+      }
+    }
+
+    const nextStop = unvisited.splice(nearestIdx, 1)[0];
+    nextStop.legDistanceKm = Math.round(minDistance * 10) / 10;
+    circuit.push(nextStop);
+    currentLoc = nextStop;
+  }
+
+  return circuit;
 }

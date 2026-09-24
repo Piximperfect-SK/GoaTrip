@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Circuit Map — Goa Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="shared.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  *{ box-sizing:border-box; }
+  h1,h2,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+  body{ margin:0; padding:0; overflow:hidden; height:100vh; width:100vw; background:var(--paper); }
+  #map{ position:absolute; inset:0; z-index:1; width:100%; height:100%; }
+
+  .floating-card{
+    position:absolute; top:16px; left:16px; z-index:10;
+    width:calc(100% - 32px); max-width:380px; max-height:calc(100vh - 32px);
+    background:rgba(251, 251, 253, 0.92);
+    -webkit-backdrop-filter:blur(14px) saturate(160%);
+    backdrop-filter:blur(14px) saturate(160%);
+    border:1px solid var(--line); border-radius:16px; padding:18px;
+    box-shadow:0 16px 36px -10px rgba(0,0,0,0.15); display:flex; flex-direction:column;
+  }
+  .floating-card-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+
+  .stop-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; background:white; border:1px solid var(--line);
+    border-radius:10px; font-size:12.5px;
+  }
+  .stop-item + .stop-item{ margin-top:8px; }
+  .stop-badge{
+    width:22px; height:22px; border-radius:50%; background:var(--mango);
+    color:white; font-weight:700; font-size:11px; display:inline-flex;
+    align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .stop-row{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .stop-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+  .stop-dist{ font-family:'Space Mono',monospace; opacity:.6; font-size:11px; flex-shrink:0; }
+  .circuit-list{ overflow-y:auto; padding-right:4px; margin-bottom:14px; flex:1; max-height:40vh; }
+  .circuit-list::-webkit-scrollbar{ width:6px; }
+  .circuit-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:9999px; }
+  .empty-note{ font-size:12.5px; opacity:.6; padding:6px 2px; }
+
+  /* Leaflet ships its own default marker icons as relative image
+     paths (marker-icon.png etc.) resolved against leaflet.css's own
+     URL — those requests hit unpkg.com too, which img-src does NOT
+     allow (only script-src/style-src do). Rather than widen the CSP
+     further just for default pin icons, markers are drawn as inline
+     divIcon HTML/CSS below — no image requests at all. */
+  .circuit-pin{
+    width:26px; height:26px; border-radius:50% 50% 50% 0; transform:rotate(-45deg);
+    background:var(--mango); border:2px solid white; box-shadow:0 2px 6px rgba(0,0,0,.35);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .circuit-pin.villa{ background:var(--teal-900); }
+  .circuit-pin span{ transform:rotate(45deg); color:white; font-size:11px; font-weight:700; font-family:'Space Grotesk',sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="floating-card">
+  <div class="floating-card-top">
+    <a href="itinerary.html" class="btn-icon" title="Back to Itinerary" style="color:var(--ink); background:var(--sand-2); border-color:var(--line);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <span class="mono text-[10px] tracking-widest opacity-60" style="letter-spacing:.12em;">CIRCUIT LOCATOR</span>
+  </div>
+
+  <h2 class="display text-lg font-bold mb-1" id="tripTitle">Optimized Goa Loop</h2>
+  <p class="text-xs opacity-70 mb-3" id="circuitSummary">Loading trip locations…</p>
+
+  <div id="circuitList" class="circuit-list"></div>
+
+  <a id="gmapsLaunchBtn" href="#" target="_blank" rel="noopener" class="btn-primary text-center block text-xs" style="display:none; text-decoration:none;">
+    🧭 Open Full Driving Loop in Google Maps
+  </a>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="shared.js"></script>
+<script>
+async function bootCircuitMap(){
+  const trip = await initTripContext();
+  document.getElementById('tripTitle').textContent = `${trip.name} Circuit`;
+
+  const defaultLat = trip.villaLat || 15.4989;
+  const defaultLng = trip.villaLng || 73.8278;
+
+  const map = L.map('map', { zoomControl:false }).setView([defaultLat, defaultLng], 11);
+  L.control.zoom({ position:'bottomright' }).addTo(map);
+
+  // CARTO's free "Voyager" raster tiles now require an API key (their
+  // no-key tier changed after this was first written — tiles started
+  // rendering with a diagonal "API KEY REQUIRED" watermark). Plain
+  // OpenStreetMap tiles need no key and were already CSP-allowed
+  // (netlify.toml's img-src covers *.tile.openstreetmap.org).
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom:19,
+    attribution:'© OpenStreetMap contributors'
+  }).addTo(map);
+
+  if(!trip.villaLat || !trip.villaLng){
+    document.getElementById('circuitSummary').textContent = 'Villa coordinates are missing for this trip.';
+    return;
+  }
+
+  const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(trip.id));
+  const data = await res.json();
+
+  const rawPlaces = [];
+  (data.days || []).forEach(day => {
+    (day.activities || []).forEach(act => {
+      if(act.place && act.place.lat != null && act.place.lng != null){
+        rawPlaces.push({
+          name: act.title || act.place.name || 'Activity',
+          lat: Number(act.place.lat),
+          lng: Number(act.place.lng)
+        });
+      }
+    });
+  });
+
+  const villa = { lat:Number(trip.villaLat), lng:Number(trip.villaLng), name:'Villa Base' };
+  const circuit = calculateCircuitRoute(villa, rawPlaces);
+
+  if(!circuit.length){
+    document.getElementById('circuitSummary').textContent = 'No geocoded places found in the itinerary yet.';
+    document.getElementById('circuitList').innerHTML = '<div class="empty-note">Add activities with resolved places on the Itinerary page — this map plots whatever\u2019s already geocoded there.</div>';
+    // Still center on the villa even with nothing to route yet.
+    L.marker([villa.lat, villa.lng], { icon: pinIcon('🏡', true) }).addTo(map).bindPopup('<b>🏡 Villa (Start & Finish)</b>');
+    return;
+  }
+
+  const polylineCoords = [[villa.lat, villa.lng]];
+
+  L.marker([villa.lat, villa.lng], { icon: pinIcon('🏡', true) })
+    .addTo(map)
+    .bindPopup('<b>🏡 Villa (Start & Finish)</b>');
+
+  let listHtml = '';
+  circuit.forEach((stop, i) => {
+    polylineCoords.push([stop.lat, stop.lng]);
+
+    L.marker([stop.lat, stop.lng], { icon: pinIcon(String(i + 1)) })
+      .addTo(map)
+      .bindPopup(`<b>Stop ${i+1}: ${escapeHtml(stop.name)}</b><br>+${stop.legDistanceKm} km from prior stop`);
+
+    listHtml += `
+      <div class="stop-item">
+        <div class="stop-row">
+          <span class="stop-badge">${i+1}</span>
+          <span class="stop-name">${escapeHtml(stop.name)}</span>
+        </div>
+        <span class="stop-dist">+${stop.legDistanceKm} km</span>
+      </div>`;
+  });
+
+  polylineCoords.push([villa.lat, villa.lng]);
+
+  const circuitLine = L.polyline(polylineCoords, {
+    color:'#FF6B4A',
+    weight:3.5,
+    dashArray:'6, 8',
+    lineCap:'round'
+  }).addTo(map);
+
+  map.fitBounds(circuitLine.getBounds(), { padding:[50, 50] });
+
+  const totalKm = Math.round(circuit.reduce((sum, s) => sum + s.legDistanceKm, 0) * 10) / 10;
+  document.getElementById('circuitSummary').textContent = `${circuit.length} stops (${totalKm} km loop starting from Villa)`;
+  document.getElementById('circuitList').innerHTML = listHtml;
+
+  const waypointsStr = circuit.map(p => `${p.lat},${p.lng}`).join('|');
+  const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${villa.lat},${villa.lng}&destination=${villa.lat},${villa.lng}&waypoints=${waypointsStr}&travelmode=driving`;
+
+  const launchBtn = document.getElementById('gmapsLaunchBtn');
+  launchBtn.href = gmapsUrl;
+  launchBtn.style.display = 'block';
+}
+
+// Inline divIcon instead of Leaflet's default image-based marker — see
+// the .circuit-pin CSS comment above for why (CSP img-src doesn't cover
+// unpkg.com, only script-src/style-src do).
+function pinIcon(label, isVilla){
+  return L.divIcon({
+    className: '',
+    html: `<div class="circuit-pin${isVilla ? ' villa' : ''}"><span>${escapeHtml(String(label))}</span></div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -26],
+  });
+}
+
+bootCircuitMap();
+</script>
+</body>
+</html>

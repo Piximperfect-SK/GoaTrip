@@ -36,16 +36,27 @@
     background-size:52px 52px;
   }
 
-  /* ---------- Full-page background video (no overlay) ---------- */
+  /* ---------- Full-page background video ---------- */
   #pageVideo{
     position:fixed !important; top:0; left:0; width:100%; height:100%;
     object-fit:cover; z-index:-3; pointer-events:none;
   }
+  /* Scrim over the video: index.html/itinerary.html/boarding-pass.html all
+     tint their background media so it reads as texture, not the dominant
+     visual — this page never had that layer, so on any viewport wider
+     than the content (an ultrawide monitor, or a desktop browser zoomed
+     out) the raw stock video filled the leftover space at full strength.
+     Sits at z-index -2 (above the video, below all real content) and
+     tints toward --paper so it matches the rest of the app's palette. */
+  #pageVideoScrim{
+    position:fixed !important; inset:0; z-index:-2; pointer-events:none;
+    background:linear-gradient(180deg, rgba(251,246,236,.72) 0%, rgba(251,246,236,.86) 45%, rgba(251,246,236,.94) 100%);
+  }
 
   /* Text sitting directly on the raw video (no card behind it) needs its
      own contrast, since there's no overlay/scrim to rely on. */
-  .on-video h3{ color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
-  .on-video p{ color:rgba(255,255,255,.88); text-shadow:0 1px 3px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.4); }
+  .on-video h3{ color:var(--ink); }
+  .on-video p{ color:var(--ink); opacity:.72; }
 
   /* ---------- Scattered decorative watermarks ----------
      6 distinct icons, faint, fixed to the viewport, each with its own
@@ -131,7 +142,7 @@
   }
   #menuToggle{ display:none; }
 
-  .page{ display:none; padding:26px 28px 60px; max-width:1400px; position:relative; }
+  .page{ display:none; padding:26px 28px 60px; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box; position:relative; }
   .page.active{ display:block; animation:pageIn .35s ease; }
   .page.watermarked::before{
     content:''; position:absolute; top:10px; right:0; width:340px; height:340px; z-index:-1;
@@ -184,6 +195,29 @@
   .btn-ghost:active{ transform:scale(.97); }
   .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; color:var(--ink); }
   .btn-icon:hover{ background:var(--sand); }
+
+  /* ---------- Admin login gate ---------- */
+  .wallet-gate{
+    position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:linear-gradient(-135deg, var(--mango) 0%, var(--azulejo) 55%, var(--teal-900) 100%);
+  }
+  .wallet-gate-card{
+    background:var(--paper); border-radius:20px; padding:36px 32px 30px; width:100%; max-width:360px;
+    box-shadow:0 30px 70px -25px rgba(0,0,0,.55); text-align:center;
+  }
+  .wallet-gate-badge{
+    width:48px; height:48px; border-radius:14px; margin:0 auto 14px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--teal-800), var(--teal-900)); font-size:20px;
+    box-shadow:0 10px 22px -8px rgba(11,61,58,.55);
+  }
+  .wallet-gate-card h1{ font-size:1.35rem; margin:0 0 4px; color:var(--ink); }
+  .wallet-gate-sub{
+    font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--mango-2); margin:0 0 20px;
+  }
+  .wallet-gate-card .field-row{ text-align:left; }
+  .wallet-gate-note{ font-size:12px; opacity:.6; margin-top:16px; }
+  .wallet-gate-note a{ color:var(--azulejo); text-decoration:underline; }
 
   /* ---------- Form elements ----------
      One consistent look across every input/select/textarea in the app:
@@ -258,7 +292,17 @@
   .app-modal{ position:fixed; inset:0; z-index:200; display:none; align-items:flex-start; justify-content:center; background:rgba(15,38,34,0.55); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); padding:16px; overflow-y:auto; animation:modalBgIn .2s ease; }
   .app-modal.open{ display:flex; }
   @keyframes modalBgIn{ from{ opacity:0; } to{ opacity:1; } }
-  .modal-panel{ background:var(--paper); border-radius:18px; width:100%; max-width:560px; margin:40px auto; box-shadow:0 40px 90px -30px rgba(0,0,0,.5); animation:modalPanelIn .25s cubic-bezier(.22,1,.36,1); }
+  .modal-panel{
+    background:var(--paper); border-radius:18px; width:100%; max-width:560px; margin:40px auto;
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.5); animation:modalPanelIn .25s cubic-bezier(.22,1,.36,1);
+    /* Was previously unbounded at desktop widths — this cap + scroll only
+       applied inside the @media(max-width:900px) block below, so a modal
+       with a lot of content (e.g. many payer/split chips) could grow
+       taller than the browser window with no scroll affordance, pushing
+       its own footer buttons off-screen. Apply the same cap + internal
+       scroll at every viewport width now, not just mobile. */
+    max-height:calc(100vh - 80px); overflow-y:auto;
+  }
   @keyframes modalPanelIn{ from{ opacity:0; transform:translateY(14px) scale(.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
   .modal-panel.wide{ max-width:720px; }
   .modal-close{ width:30px; height:30px; border-radius:9999px; display:flex; align-items:center; justify-content:center; background:var(--sand); cursor:pointer; transition:.15s; }
@@ -400,9 +444,58 @@
 </head>
 <body>
 
+<!-- ============ ACCESS GATE (mandatory) ============
+     The wallet holds real financial data, so this is no longer an
+     optional "sign in if you want to make changes" overlay — wallet.js
+     now rejects GET and POST alike without a valid session token, and
+     boot() below never calls initWalletApp() (which is what actually
+     fetches/renders wallet data) until one of the two forms below
+     succeeds. There is deliberately no "continue without signing in"
+     option anymore. Participant sign-in posts to login.js (shared trip
+     password + pick-your-registered-name); admin sign-in reuses the
+     same /admin endpoint and sessionStorage key as admin.html, so
+     logging in on either page carries over to the other for the rest
+     of this browser tab. -->
+<div id="walletGate" class="wallet-gate" style="display:flex;">
+  <div class="wallet-gate-card">
+    <div class="wallet-gate-badge">🔒</div>
+    <h1 class="display">Trip Wallet</h1>
+    <p class="wallet-gate-sub" id="gateSub">Sign in to view the wallet</p>
+    <div id="gateBanner" class="banner err" style="display:none;"></div>
+
+    <form id="participantGateForm">
+      <div class="field-row mb-3">
+        <label>Your name</label>
+        <select id="pg-name" required class="w-full"></select>
+      </div>
+      <div class="field-row mb-4">
+        <label>Trip password</label>
+        <input type="password" id="pg-password" placeholder="Trip password" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="btn-primary w-full" id="pgSubmitBtn">Sign in</button>
+    </form>
+
+    <form id="walletLoginForm" style="display:none;">
+      <div class="field-row mb-3">
+        <label>Name</label>
+        <input type="text" id="wg-name" placeholder="Your admin name" autocomplete="username" required/>
+      </div>
+      <div class="field-row mb-4">
+        <label>PIN / Code</label>
+        <input type="password" id="wg-code" placeholder="Admin PIN" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="btn-primary w-full" id="wgSubmitBtn">Sign in</button>
+    </form>
+
+    <p class="wallet-gate-note"><a href="#" id="gateModeToggle">Signing in as admin instead →</a></p>
+    <p class="wallet-gate-note">Not registered for this trip? <a href="admin.html">Request access →</a></p>
+  </div>
+</div>
+
 <video id="pageVideo" autoplay muted loop playsinline preload="none" onerror="this.style.display='none'">
   <source src="videos/6.mp4" type="video/mp4">
 </video>
+<div id="pageVideoScrim" aria-hidden="true"></div>
 
 <!-- Scattered decorative watermarks — faint, fixed, non-interactive -->
 <div class="scatter-deco deco-anchor" aria-hidden="true">
@@ -484,7 +577,10 @@
       <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
     <div class="foot">
+      <p class="mono" style="font-size:11px; opacity:.6; margin-bottom:8px;" id="walletWhoAmI"></p>
       <a href="index.html" class="hover:text-white">← Back to trip site</a>
+      <a href="#" id="walletAdminSigninBtn" class="hover:text-white" style="display:block; margin-top:6px;">Admin sign-in</a>
+      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:none; margin-top:6px;">Log out</a>
     </div>
   </aside>
 
@@ -732,7 +828,7 @@
 <button type="button" class="fab" data-feature="wallet.addExpense" aria-label="Add expense" onclick="openExpenseModal()">+</button>
 
 <!-- ============ MODAL: Add / Edit Expense ============ -->
-<div id="expenseModal" class="app-modal">
+<div id="expenseModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel wide">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <h3 class="display text-xl font-semibold" id="expenseModalTitle">Add expense</h3>
@@ -836,7 +932,7 @@
 </div>
 
 <!-- ============ MODAL: Expense details ============ -->
-<div id="detailModal" class="app-modal">
+<div id="detailModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <h3 class="display text-xl font-semibold">Expense details</h3>
@@ -847,7 +943,7 @@
 </div>
 
 <!-- ============ MODAL: Person detail ============ -->
-<div id="personModal" class="app-modal">
+<div id="personModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel wide">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <h3 class="display text-xl font-semibold" id="personModalTitle">Participant</h3>
@@ -858,7 +954,7 @@
 </div>
 
 <!-- ============ MODAL: Edit participant (rename + manual balance correction) ============ -->
-<div id="participantEditModal" class="app-modal">
+<div id="participantEditModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel wide">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <div>
@@ -915,6 +1011,27 @@
         </div>
       </div>
 
+      <!-- ---- Merge into another participant ----
+           For duplicate/typo'd names ("Vikas Kumar" vs "Vikash Kumar",
+           "Rudra" vs "Rudra Tiwari") that already have real history
+           attached — merging re-points every expense payer/split,
+           settlement, deposit and adjustment from this person onto the
+           target, then removes this (now-empty) duplicate. Unlike
+           "Remove participant" below, this is the tool for a duplicate
+           that already has money data on it. -->
+      <div class="panel p-5 mt-5" style="border-color:rgba(30,96,145,.3); background:rgba(30,96,145,.04);">
+        <h4 class="font-semibold mb-1" style="color:var(--azulejo)">Merge into another participant</h4>
+        <p class="text-xs opacity-60 mb-3">For a duplicate or typo'd name — moves every expense, settlement, deposit and adjustment from <b id="peMergeFromName"></b> onto whoever you pick below, then removes <b id="peMergeFromName2"></b> as a separate entry. Saved on this device only, same as renaming.</p>
+        <form id="mergeForm" class="flex flex-wrap items-end gap-3">
+          <div class="flex-1 min-w-[180px]">
+            <label>Merge into</label>
+            <select id="pe-merge-target" required></select>
+          </div>
+          <button type="submit" class="btn-ghost" style="border-color:var(--azulejo); color:var(--azulejo)">Merge</button>
+        </form>
+        <p class="text-xs mt-2" id="peMergeNote" style="opacity:.55;"></p>
+      </div>
+
       <!-- ---- Remove participant ---- -->
       <div class="panel p-5 mt-5" style="border-color:rgba(232,93,42,.3); background:rgba(232,93,42,.03);">
         <h4 class="font-semibold mb-1" style="color:var(--mango-2)">Remove participant</h4>
@@ -927,7 +1044,7 @@
 </div>
 
 <!-- ============ MODAL: Record settlement ============ -->
-<div id="settlementModal" class="app-modal">
+<div id="settlementModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel wide">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <div>
@@ -957,6 +1074,7 @@
 
       <div id="equalWarning" class="banner warn mb-4" style="display:none;"></div>
 
+      <p class="text-xs opacity-45 mb-4">This gives the <i>fewest payments</i> for just the people/transactions you pick — separate from "Who owes whom" on the Settlements tab, which shows the direct, full-ledger answer for everyone.</p>
       <button type="button" class="btn-ghost w-full mb-4" onclick="calculateEqualSettlement()">Calculate equal split</button>
 
       <div id="equalResults"></div>
@@ -986,7 +1104,7 @@
 </div>
 
 <!-- ============ MODAL: Person deposits (view/edit/delete one person's deposits) ============ -->
-<div id="personDepositsModal" class="app-modal">
+<div id="personDepositsModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel wide">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <div>
@@ -1008,7 +1126,7 @@
 </div>
 
 <!-- ============ MODAL: Add / Edit Deposit ============ -->
-<div id="depositModal" class="app-modal">
+<div id="depositModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel">
     <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
       <div>
@@ -1038,17 +1156,20 @@
 </div>
 
 <!-- ============ MODAL: Name verification ============ -->
-<div id="nameVerifyModal" class="app-modal">
+<div id="nameVerifyModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel" style="max-width:380px;">
     <div class="p-6">
       <p class="section-eyebrow mb-2">Quick check</p>
-      <h3 class="display text-xl font-semibold mb-2" id="verifyTitle">Who's making this change?</h3>
-      <p class="text-sm opacity-60 mb-5" id="verifySubtitle">We log a name against every add, edit or removal in the wallet.</p>
+      <h3 class="display text-xl font-semibold mb-2" id="verifyTitle">Sign in to continue</h3>
+      <p class="text-sm opacity-60 mb-5" id="verifySubtitle">Enter your name and the trip password — you'll only need to do this once per visit.</p>
+      <div id="verifyBanner" class="banner bad mb-4" style="display:none;"></div>
       <form id="verifyForm">
         <label>Your name</label>
         <select id="verify-name" required class="w-full mb-4"></select>
+        <label>Trip password</label>
+        <input type="password" id="verify-password" required class="w-full mb-4" autocomplete="current-password">
         <div class="flex gap-3">
-          <button type="submit" class="btn-primary flex-1">Confirm</button>
+          <button type="submit" id="verifySubmitBtn" class="btn-primary flex-1">Sign in</button>
           <button type="button" class="btn-ghost" onclick="cancelVerify()">Cancel</button>
         </div>
       </form>
@@ -1057,7 +1178,7 @@
 </div>
 
 <!-- ============ MODAL: Confirm delete ============ -->
-<div id="confirmModal" class="app-modal">
+<div id="confirmModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel" style="max-width:380px;">
     <div class="p-6">
       <p class="section-eyebrow mb-2" style="color:var(--mango-2)">Confirm</p>
@@ -1119,10 +1240,12 @@
    CONFIG
 =============================================================*/
 function loadParticipants(){
-  // Participants are derived from registrations, not a fixed list —
-  // see syncParticipantsFromRegistrations(), called on every boot/refresh.
-  // Only a locally-saved draft (renames/manual removals on this device)
-  // is trusted here; there is no hardcoded fallback roster any more.
+  // Registrations are the source of truth (see syncParticipantsFromRegistrations()
+  // below, which now reconciles PARTICIPANTS to exactly match current
+  // registrations — not just append to them — every time it runs). This
+  // local cache only exists so the page has *something* to render for the
+  // instant before that sync completes (or if it's briefly offline); it
+  // gets overwritten by the sync almost immediately on every load.
   try{
     const saved = JSON.parse(localStorage.getItem('goaWalletParticipants'));
     if(Array.isArray(saved) && saved.length > 0) return saved;
@@ -1135,37 +1258,64 @@ let PARTICIPANTS = [];
 /* ============================================================
    REGISTRATION → PARTICIPANTS auto-add
    Pulls the registrant list from the same backend the homepage
-   writes to, and appends anyone not already a wallet participant
-   (case-insensitive match, so a typo'd re-registration doesn't
-   create a duplicate person). Never removes or reorders anyone —
-   admin renames and manual edits are always left alone. Runs once
-   at load and again after every successful registration-triggered
-   refresh; failures are silent (console only) since this is a
-   nice-to-have on top of the existing hardcoded roster, not a
-   required sync path like pullFromSheet().
+   writes to and makes it the source of truth for who's in the
+   wallet — not just an additive top-up. Anyone no longer in that
+   list gets dropped automatically UNLESS they have real recorded
+   history (expenses/settlements/deposits/manual adjustments), since
+   silently removing someone with actual money data would corrupt the
+   ledger; everyone else always exactly mirrors current registrations,
+   so stale/local-only/test names (added before this app existed, or
+   left over on one device) stop lingering. Runs once at load and
+   again after every manual refresh; failures are silent (console
+   only) since this shouldn't block using the wallet if the
+   registration endpoint is briefly unreachable.
 =============================================================*/
+let lastParticipantSyncAt = 0;
 async function syncParticipantsFromRegistrations(){
   if(!window.TRIP) return;
+  // Light debounce — this runs on every boot AND every manual refresh,
+  // so a user hammering Refresh shouldn't fire it more than once every
+  // few seconds.
+  const now = Date.now();
+  if(now - lastParticipantSyncAt < 5000) return;
+  lastParticipantSyncAt = now;
   try{
     const res = await fetch(FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(TRIP.id) + '&type=participants');
     const data = await res.json();
     if(data.error || !Array.isArray(data.participants)) return;
-    const existingLower = new Set(PARTICIPANTS.map(p => p.toLowerCase()));
-    let added = false;
-    data.participants.forEach(name => {
-      const trimmed = String(name || '').trim();
-      if(!trimmed) return;
-      const key = trimmed.toLowerCase();
-      if(existingLower.has(key)) return;
-      existingLower.add(key);
-      PARTICIPANTS.push(trimmed);
-      added = true;
+
+    const registered = data.participants.map(n => String(n || '').trim()).filter(Boolean);
+    const registeredLower = new Set(registered.map(n => n.toLowerCase()));
+
+    // Keep anyone currently listed who's fallen off the registration
+    // list but still has real history against their name — dropping
+    // them would leave orphaned expenses/settlements with no matching
+    // participant. Pure clutter (test entries, stale local renames,
+    // duplicates) with no history is what actually gets purged.
+    const keepDespiteNotRegistered = PARTICIPANTS.filter(
+      p => !registeredLower.has(p.toLowerCase()) && participantHasHistory(p)
+    );
+
+    const merged = [...registered];
+    keepDespiteNotRegistered.forEach(p => {
+      if(!merged.some(m => m.toLowerCase() === p.toLowerCase())) merged.push(p);
     });
-    if(added){
+
+    const changed = merged.length !== PARTICIPANTS.length || merged.some((p, i) => p !== PARTICIPANTS[i]);
+    if(changed){
+      PARTICIPANTS = merged;
       persistParticipants();
       populateSelects();
+      // The hidden <select>s above are what the chip pickers in the Add/Edit
+      // expense wizard were built from, but the chips themselves are only
+      // rendered once at page load (see renderPayerChips()/renderSplitChips()
+      // below) — without re-calling them here, newly-registered people never
+      // show up as selectable chips even though they're in the underlying
+      // <select>. This was the cause of the "no one to split with" bug.
+      if(typeof renderPayerChips === 'function') renderPayerChips();
+      if(typeof renderSplitChips === 'function') renderSplitChips();
       renderAll();
-      showBanner('ok', 'New registrant(s) added to the participant list.');
+      showBanner('ok', 'Participant list synced with current registrations.');
     }
   }catch(err){
     console.warn('syncParticipantsFromRegistrations failed (non-fatal):', err);
@@ -1196,6 +1346,8 @@ async function rebuildParticipantsFromRegistrations(){
     PARTICIPANTS = data.participants.map(n => String(n).trim()).filter(Boolean);
     persistParticipants();
     populateSelects();
+    if(typeof renderPayerChips === 'function') renderPayerChips();
+    if(typeof renderSplitChips === 'function') renderSplitChips();
     renderAll();
     showBanner('ok', 'Participant list rebuilt from current registrations.');
   }catch(err){
@@ -1307,9 +1459,22 @@ function setSyncStatus(state, meta){
 
 async function pullFromSheet(manual){
   if(!window.TRIP){ setSyncStatus('bad'); return; }
+  // GET now requires a session too (admin or participant) — the wallet
+  // holds real financial data, so it's no longer publicly viewable.
+  const token = getSessionToken();
+  if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
+    if(res.status === 401){
+      // Session invalid/expired — clear whichever one we sent and force
+      // back through the gate rather than showing wallet data at all.
+      if(token === getWalletToken()) { clearWalletSession(); setWalletAdminUI(null); }
+      else clearUserSession();
+      setSyncStatus('bad');
+      showAccessGate('Your session has expired — please sign in again.');
+      return;
+    }
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
@@ -1322,9 +1487,10 @@ async function pullFromSheet(manual){
     // never silently wipes locally-logged deposits.
     wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
+    WALLET_LOCKED = !!data.locked;
     setSyncStatus('ok');
-    clearBanner();
-    if(manual) showBanner('warn','Refreshed from the backend.');
+    applyWalletLockUI();
+    if(manual && !WALLET_LOCKED) showBanner('warn','Refreshed from the backend.');
   }catch(err){
     setSyncStatus('bad');
     showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
@@ -1333,58 +1499,179 @@ async function pullFromSheet(manual){
   if(manual) syncParticipantsFromRegistrations();
 }
 
-async function pushToSheet(action, payload, actor){
+/* ============================================================
+   PENDING-WRITE QUEUE
+   A write that fails purely because the backend is unreachable
+   (network error, no JSON back) is queued here and retried
+   automatically — on the next 'online' event, on boot, and on a
+   light interval — instead of relying on the user noticing the
+   "saved locally" banner and manually hitting Refresh. A write the
+   backend actively REJECTED (validation error, feature flag, etc.)
+   is a real answer, not a connectivity blip, so it's surfaced but
+   never queued/retried.
+=============================================================*/
+const PENDING_OPS_KEY = 'goaWalletPendingOps';
+function loadPendingOps(){
+  try{ const v = JSON.parse(localStorage.getItem(PENDING_OPS_KEY)); return Array.isArray(v) ? v : []; }
+  catch(e){ return []; }
+}
+function savePendingOps(ops){ localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops)); }
+function enqueuePendingOp(action, payload, actor){
+  const key = action + ':' + (payload && payload.id);
+  const ops = loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key);
+  ops.push({action, payload, actor, queuedAt:new Date().toISOString()});
+  savePendingOps(ops);
+  updatePendingIndicator();
+}
+function dequeuePendingOp(action, payload){
+  const key = action + ':' + (payload && payload.id);
+  savePendingOps(loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key));
+  updatePendingIndicator();
+}
+function updatePendingIndicator(){
+  const n = loadPendingOps().length;
+  const label = document.getElementById('syncLabel');
+  if(label) label.title = n > 0 ? `${n} change${n===1?'':'s'} waiting to sync` : '';
+}
+let flushingPendingOps = false;
+async function flushPendingOps(){
+  if(flushingPendingOps || !window.TRIP) return;
+  const ops = loadPendingOps();
+  if(!ops.length) return;
+  flushingPendingOps = true;
+  let recovered = 0;
+  for(const op of ops){
+    const result = await pushToSheet(op.action, op.payload, op.actor, {fromQueue:true});
+    if(result !== null){ dequeuePendingOp(op.action, op.payload); recovered++; }
+  }
+  flushingPendingOps = false;
+  if(recovered > 0){ showBanner('ok', `Synced ${recovered} change${recovered===1?'':'s'} that were waiting offline.`); renderAll(); }
+}
+window.addEventListener('online', flushPendingOps);
+setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
+
+async function pushToSheet(action, payload, actor, opts){
+  opts = opts || {};
   if(!window.TRIP){ setSyncStatus('bad'); return null; }
+  // wallet.js now requires a verified session token on every write, no
+  // exceptions — so this has to be whichever session is actually signed
+  // in (admin or participant), not just the admin token.
+  const token = getSessionToken();
   setSyncStatus('pending');
+  let res, text;
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
+    res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action, payload, actor, ts:new Date().toISOString()})
+      body: JSON.stringify({action, payload, actor, token, ts:new Date().toISOString()})
     });
-    const text = await res.text();
-    let data;
-    try{ data = JSON.parse(text); }
-    catch(parseErr){
-      throw new Error('Backend did not return JSON on write — please try again.');
-    }
-    if(data.error) throw new Error(data.error);
-    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
-    persistLocal();
-    setSyncStatus('ok');
-    clearBanner();
-    return data;
-  }catch(err){
+    text = await res.text();
+  }catch(networkErr){
+    // Fetch itself threw — no connection, DNS failure, etc. This is
+    // exactly the case worth queuing for an automatic retry.
     setSyncStatus('bad');
-    showBanner('err', `<b>Change saved locally, but the backend write failed.</b> ${err.message} It will show as synced again once the endpoint is reachable — hit Refresh to retry.`);
+    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
+    showBanner('err', `<b>Change saved locally — couldn't reach the backend.</b> It'll sync automatically once you're back online.`);
     return null;
   }
+  let data;
+  try{ data = JSON.parse(text); }
+  catch(parseErr){
+    setSyncStatus('bad');
+    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
+    showBanner('err', `<b>Change saved locally — the backend response was invalid.</b> It'll retry automatically.`);
+    return null;
+  }
+  if(res.status === 401){
+    // Not signed in at all, an admin token was invalid/expired, a
+    // participant token was invalid/expired, or the wallet is locked and
+    // this action needs an admin specifically — wallet.js's message tells
+    // us which. Either way: not a connectivity problem, so never
+    // queued/retried.
+    setSyncStatus('bad');
+    if(opts.fromQueue) dequeuePendingOp(action, payload);
+    if(token && token === getWalletToken()){
+      // Admin session was the one that failed — same admin-gate flow as before.
+      clearWalletSession();
+      setWalletAdminUI(null);
+      showWalletGate(data.error || 'Please sign in as admin to continue. Your last change is saved locally and will sync once you\u2019re signed in.');
+    } else {
+      // No session, or a participant session that expired/was rejected —
+      // clear it so the next requestActor() call re-prompts for sign-in
+      // rather than silently reusing a dead token.
+      if(token) clearUserSession();
+      showBanner('err', `<b>${data.error || 'Please sign in to continue.'}</b> Your last change is saved locally and will sync once you\u2019re signed in.`);
+    }
+    return null;
+  }
+  if(data.error){
+    // A real rejection (validation, feature flag, etc.) — not a
+    // connectivity problem, so never queued/retried.
+    setSyncStatus('bad');
+    if(opts.fromQueue) dequeuePendingOp(action, payload);
+    showBanner('err', `<b>Backend rejected this change:</b> ${data.error}`);
+    return null;
+  }
+  wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+  persistLocal();
+  if(typeof data.locked === 'boolean'){ WALLET_LOCKED = data.locked; applyWalletLockUI(); }
+  setSyncStatus('ok');
+  if(!WALLET_LOCKED) clearBanner();
+  return data;
 }
 
 /* ============================================================
    NAME VERIFICATION (promise-based, dropdown of the 11 fixed people)
 =============================================================*/
 let verifyResolver = null;
+// Every add/edit/remove call site still calls requestActor() before
+// writing — but now it's a real sign-in, not a free-text name picker:
+// wallet.js derives `actor` from the session token server-side and
+// rejects unauthenticated writes outright, so a name here has to be
+// backed by a verified session or the write will just 401.
 function requestActor(title, subtitle){
+  const cached = getSessionName();
+  if(cached) return Promise.resolve(cached);
   return new Promise(resolve=>{
     verifyResolver = resolve;
-    document.getElementById('verifyTitle').textContent = title || "Who's making this change?";
-    document.getElementById('verifySubtitle').textContent = subtitle || "We log a name against every add, edit or removal.";
+    document.getElementById('verifyTitle').textContent = title ? `Sign in to ${title.charAt(0).toLowerCase()}${title.slice(1)}` : 'Sign in to continue';
+    document.getElementById('verifySubtitle').textContent = subtitle || "Enter your name and the trip password — you'll only need to do this once per visit.";
+    document.getElementById('verifyBanner').style.display = 'none';
     const sel = document.getElementById('verify-name');
     sel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
     const last = localStorage.getItem('goaWalletLastActor');
     if(last && PARTICIPANTS.includes(last)) sel.value = last;
+    document.getElementById('verify-password').value = '';
     document.getElementById('nameVerifyModal').classList.add('open');
   });
 }
-document.getElementById('verifyForm').addEventListener('submit', e=>{
+document.getElementById('verifyForm').addEventListener('submit', async e=>{
   e.preventDefault();
   const name = document.getElementById('verify-name').value;
-  if(!name) return;
-  localStorage.setItem('goaWalletLastActor', name);
-  document.getElementById('nameVerifyModal').classList.remove('open');
-  const resolve = verifyResolver; verifyResolver = null;
-  if(resolve) resolve(name);
+  const password = document.getElementById('verify-password').value;
+  const banner = document.getElementById('verifyBanner');
+  banner.style.display = 'none';
+  if(!name || !password || !window.TRIP) return;
+  const btn = document.getElementById('verifySubmitBtn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(TRIP.id), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, password })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
+    setUserSession(data.token, data.name);
+    localStorage.setItem('goaWalletLastActor', data.name);
+    document.getElementById('nameVerifyModal').classList.remove('open');
+    const resolve = verifyResolver; verifyResolver = null;
+    if(resolve) resolve(data.name);
+  }catch(err){
+    banner.textContent = err.message;
+    banner.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
 });
 function cancelVerify(){
   document.getElementById('nameVerifyModal').classList.remove('open');
@@ -1662,6 +1949,12 @@ function openExpenseModal(){
   document.getElementById('e-payer').value = PARTICIPANTS[0];
   document.getElementById('e-paid-from-deposit').checked = false;
   document.getElementById('depositPaymentBox').style.display = 'none';
+  // Defensive: always rebuild the payer/split chips from the current
+  // PARTICIPANTS right before showing the modal, in case they were never
+  // re-rendered after a registration sync added new people (they're
+  // otherwise only rendered once at page load).
+  renderPayerChips();
+  renderSplitChips();
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
@@ -1687,9 +1980,11 @@ function startEditExpense(id){
   } else {
     document.getElementById('depositPaymentBox').style.display = 'none';
   }
-  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   document.getElementById('expenseModalTitle').textContent = 'Edit expense';
   document.getElementById('expenseFormSubmit').textContent = 'Save changes';
+  renderPayerChips();
+  renderSplitChips();
+  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
@@ -2131,8 +2426,28 @@ async function removeSettlement(id){
    entry — nothing else in the ledger moves. Splitting logic itself
    (share calculation per expense) is untouched.
 =============================================================*/
+// Union of the cached PARTICIPANTS roster with every payer/split/
+// settlement name actually present in the synced wallet data. A name
+// can exist in server-side expenses/settlements while being missing
+// from this device's local PARTICIPANTS cache (e.g. removed locally,
+// or never re-synced) — without this union, that person's share
+// silently drops out of computeNetBalances()/pairwiseSettlements()
+// instead of surfacing as an unresolved balance.
+function effectiveParticipants(){
+  const set = new Set(PARTICIPANTS);
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer) set.add(ex.payer);
+    (ex.split||[]).forEach(p=>{ if(p) set.add(p); });
+  });
+  wallet.settlements.forEach(s=>{
+    if(s.from) set.add(s.from);
+    if(s.to) set.add(s.to);
+  });
+  return Array.from(set);
+}
+
 function computeNetBalances(){
-  const net = {}; PARTICIPANTS.forEach(p=> net[p]=0);
+  const net = {}; effectiveParticipants().forEach(p=> net[p]=0);
   wallet.expenses.forEach(ex=>{
     if(net[ex.payer]===undefined) net[ex.payer]=0;
     net[ex.payer] += Number(ex.amount);
@@ -2177,8 +2492,9 @@ function pairwiseSettlements(){
   const ledger = buildPairwiseLedger();
   const seen = new Set();
   const result = [];
-  PARTICIPANTS.forEach(a=>{
-    PARTICIPANTS.forEach(b=>{
+  const people = effectiveParticipants();
+  people.forEach(a=>{
+    people.forEach(b=>{
       if(a===b) return;
       const key = [a,b].sort().join('|');
       if(seen.has(key)) return;
@@ -2812,6 +3128,16 @@ function openParticipantEditModal(person){
   `;
   renderPeAdjustmentList(person);
   updatePeRemoveState(person);
+
+  document.getElementById('peMergeFromName').textContent = person;
+  document.getElementById('peMergeFromName2').textContent = person;
+  const mergeSel = document.getElementById('pe-merge-target');
+  mergeSel.innerHTML = PARTICIPANTS.filter(p => p !== person).map(p => `<option value="${p}">${p}</option>`).join('');
+  document.getElementById('peMergeNote').textContent = PARTICIPANTS.length <= 1
+    ? 'No other participants to merge into yet.'
+    : '';
+  document.getElementById('mergeForm').querySelector('button[type="submit"]').disabled = PARTICIPANTS.length <= 1;
+
   openModal('participantEditModal');
 }
 
@@ -2948,6 +3274,75 @@ document.getElementById('renameForm').addEventListener('submit', async e=>{
   closeModal('participantEditModal');
   renderAll();
   showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
+});
+
+/* ---------------------------------------------------------------
+   MERGE — folds a duplicate/typo'd participant into another one.
+   Re-points every expense (payer + split membership/individual
+   amounts), settlement, deposit, activity-log entry and manual
+   adjustment from `source` onto `target`, then removes `source`
+   from the participant list. Local-only, same as rename/adjustments.
+------------------------------------------------------------------*/
+document.getElementById('mergeForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const source = peCurrentPerson;
+  const target = document.getElementById('pe-merge-target').value;
+  if(!source || !target || source === target) return;
+  if(!confirm(`Merge "${source}" into "${target}"?\n\nEvery expense, settlement, deposit and adjustment recorded for "${source}" will be moved onto "${target}", and "${source}" will then be removed from the participant list. This can't be undone automatically.`)) return;
+
+  const actor = await checkWalletAdmin('merge participants');
+  if(!actor) return;
+
+  // Expenses: reassign payer; merge split membership + individual amounts.
+  wallet.expenses.forEach(ex=>{
+    if(ex.payer === source) ex.payer = target;
+    if((ex.split||[]).includes(source)){
+      if(ex.split.includes(target)){
+        // Both source and target are already in this split — drop the
+        // source slot rather than leaving a duplicate entry for the
+        // same (now-merged) person.
+        ex.split = ex.split.filter(p => p !== source);
+        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
+          const sourceAmt = Number(ex.splitAmounts[source]) || 0;
+          const targetAmt = Number(ex.splitAmounts[target]) || 0;
+          ex.splitAmounts[target] = sourceAmt + targetAmt;
+          delete ex.splitAmounts[source];
+        }
+      }else{
+        ex.split = ex.split.map(p => p === source ? target : p);
+        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
+          ex.splitAmounts[target] = ex.splitAmounts[source];
+          delete ex.splitAmounts[source];
+        }
+      }
+    }
+  });
+
+  // Settlements: reassign from/to. A settlement directly between source
+  // and target becomes self-referential after merging (paying yourself)
+  // — drop those rather than keep a meaningless record.
+  wallet.settlements = wallet.settlements.filter(s=>{
+    const newFrom = s.from === source ? target : s.from;
+    const newTo = s.to === source ? target : s.to;
+    if(newFrom === newTo) return false;
+    s.from = newFrom; s.to = newTo;
+    return true;
+  });
+
+  // Deposits, activity log, manual adjustments — simple rename onto target.
+  (wallet.deposits||[]).forEach(d=>{ if(d.person === source) d.person = target; });
+  wallet.activity.forEach(a=>{ if(a.actor === source) a.actor = target; });
+  adjustments.forEach(a=>{ if(a.person === source) a.person = target; });
+  persistAdjustments();
+
+  const idx = PARTICIPANTS.indexOf(source);
+  if(idx !== -1) PARTICIPANTS.splice(idx, 1);
+  persistParticipants();
+
+  persistLocal();
+  closeModal('participantEditModal');
+  renderAll();
+  showBanner('ok', `Merged <b>${source}</b> into <b>${target}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
 });
 
 document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
@@ -3102,8 +3497,16 @@ function renderAll(){
     try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
   });
 }
-try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
-(async function boot(){
+// NOTE: this used to run unconditionally at load time, straight off
+// whatever `wallet` was seeded to via loadLocal() (localStorage — which
+// persists across visits/sessions, unlike the session tokens). On a
+// shared device that's real financial data from a previous sign-in,
+// rendered before boot() has even checked whether *this* visitor is
+// signed in — exactly what the mandatory gate exists to prevent. The
+// initial paint now happens inside boot()/initWalletApp(), only after a
+// session is confirmed; see pullFromSheet(), which calls renderAll()
+// itself once the (authenticated) fetch completes.
+async function initWalletApp(){
   const trip = await initTripContext();
   document.title = `Trip Wallet — ${trip.name}`;
   const sub = document.getElementById('walletSubtitle');
@@ -3113,7 +3516,268 @@ try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing
   populateSelects();
   await applyFeatureFlags(trip.id);
   await pullFromSheet();
+  await flushPendingOps();
   await syncParticipantsFromRegistrations();
+}
+
+/* ============================================================
+   ADMIN LOGIN (now OPTIONAL)
+   The wallet is open to everyone to view and edit until the trip's
+   admin locks it for final submission (wallet.js checks trips.wallet_locked
+   on every write). Signing in here is only needed to (a) make changes
+   once it's locked, or (b) do the handful of actions that stay
+   admin-only regardless of lock state (rename participant, manual
+   balance adjustment, remove participant, reset wallet — still gated
+   by checkWalletAdmin()/wallet.js). Reuses the same sessionStorage
+   keys and /admin login endpoint as admin.html.
+=============================================================*/
+// Participant (non-admin) session, from login.js — separate from the
+// admin token below. Populated the first time requestActor() needs a
+// signed-in identity; cached for the rest of the tab's session so people
+// aren't re-prompted before every single add/edit/remove.
+const WALLET_USER_TOKEN_KEY = 'goaUserToken';
+function getUserToken(){ return sessionStorage.getItem(WALLET_USER_TOKEN_KEY); }
+function getUserName(){ return sessionStorage.getItem(WALLET_USER_TOKEN_KEY + '_name'); }
+function setUserSession(token, name){
+  sessionStorage.setItem(WALLET_USER_TOKEN_KEY, token);
+  sessionStorage.setItem(WALLET_USER_TOKEN_KEY + '_name', name);
+}
+function clearUserSession(){
+  sessionStorage.removeItem(WALLET_USER_TOKEN_KEY);
+  sessionStorage.removeItem(WALLET_USER_TOKEN_KEY + '_name');
+}
+// Whichever session is currently signed in — admin takes precedence since
+// checkWalletAdmin()/setWalletAdminUI() already verify that one against
+// the server; the user token is trusted until wallet.js 401s on it.
+function getSessionName(){ return (IS_WALLET_ADMIN && getWalletToken()) ? sessionStorage.getItem(WALLET_NAME_KEY) : getUserName(); }
+function getSessionToken(){ return (IS_WALLET_ADMIN && getWalletToken()) ? getWalletToken() : getUserToken(); }
+
+const WALLET_TOKEN_KEY = 'goaAdminToken';
+const WALLET_NAME_KEY = 'goaAdminName';
+let IS_WALLET_ADMIN = false;
+let WALLET_LOCKED = false;
+function getWalletToken(){ return sessionStorage.getItem(WALLET_TOKEN_KEY); }
+function setWalletSession(token, name){
+  sessionStorage.setItem(WALLET_TOKEN_KEY, token);
+  sessionStorage.setItem(WALLET_NAME_KEY, name);
+}
+function clearWalletSession(){
+  sessionStorage.removeItem(WALLET_TOKEN_KEY);
+  sessionStorage.removeItem(WALLET_NAME_KEY);
+}
+// Opens the sign-in overlay (mandatory now — see boot() below, which
+// never calls initWalletApp() until one of the two forms succeeds).
+// `message` shows an error/info banner inside it; `mode` ('admin' or
+// omitted/'participant') picks which of the two forms is active.
+function showWalletGate(message, mode){
+  document.getElementById('walletGate').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const b = document.getElementById('gateBanner');
+  if(message){ b.style.display = 'flex'; b.className = 'banner err'; b.textContent = message; }
+  else b.style.display = 'none';
+  if(mode === 'admin') setGateMode('admin');
+}
+function showAccessGate(message){ showWalletGate(message); }
+function setGateMode(mode){
+  const pForm = document.getElementById('participantGateForm');
+  const aForm = document.getElementById('walletLoginForm');
+  const toggle = document.getElementById('gateModeToggle');
+  const sub = document.getElementById('gateSub');
+  const admin = mode === 'admin';
+  aForm.style.display = admin ? 'block' : 'none';
+  pForm.style.display = admin ? 'none' : 'block';
+  toggle.textContent = admin ? 'Signing in as a participant instead →' : 'Signing in as admin instead →';
+  sub.textContent = admin ? 'Admin sign-in' : 'Sign in to view the wallet';
+}
+function closeWalletGate(){
+  document.getElementById('walletGate').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function setWalletAdminUI(name){
+  IS_WALLET_ADMIN = !!name;
+  const who = document.getElementById('walletWhoAmI');
+  if(who) who.textContent = name ? `Signed in as ${name}` : 'Not signed in as admin';
+  const signinBtn = document.getElementById('walletAdminSigninBtn');
+  const logoutBtn = document.getElementById('walletLogoutBtn');
+  if(signinBtn) signinBtn.style.display = name ? 'none' : 'block';
+  if(logoutBtn) logoutBtn.style.display = name ? 'block' : 'none';
+}
+// Called once on load, and again after any 401 from wallet.js mid-session
+// (expired/invalid token) — verifies the token the same way admin.html
+// does (action:'whoAmI'), never trusting its mere presence in storage.
+async function verifyWalletSession(){
+  const token = getWalletToken();
+  if(!token) return null;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'whoAmI', token })
+    });
+    const data = await res.json();
+    if(data.ok && data.name) return data.name;
+  }catch(e){ /* treated as not verified below */ }
+  return null;
+}
+// Reflects lock state + admin state into the UI: hides the main
+// "add" entry points for a non-admin once the wallet is locked, and
+// explains why via the banner. Editing individual rows still goes
+// through checkWalletAdmin()/the server once locked, so this is a
+// UX convenience on top of the real (server-side) enforcement, not
+// the enforcement itself.
+function applyWalletLockUI(){
+  const readOnly = WALLET_LOCKED && !IS_WALLET_ADMIN;
+  document.querySelectorAll('[onclick="openExpenseModal()"]').forEach(b=>{ b.style.display = readOnly ? 'none' : ''; });
+  const depositBtn = document.querySelector('[onclick="openDepositModal()"]');
+  if(depositBtn) depositBtn.style.display = readOnly ? 'none' : '';
+  const settlementBtn = document.querySelector('[onclick="openSettlementModal()"]');
+  if(settlementBtn) settlementBtn.style.display = readOnly ? 'none' : '';
+  if(readOnly){
+    showBanner('warn', 'The wallet is locked for final submission — you can still view everything, but changes need an admin. <a href="#" id="walletReadonlySignin" style="text-decoration:underline;">Sign in as admin →</a>');
+    document.getElementById('walletReadonlySignin')?.addEventListener('click', (e)=>{ e.preventDefault(); showWalletGate(null, 'admin'); });
+  } else if(WALLET_LOCKED && IS_WALLET_ADMIN){
+    showBanner('info', 'The wallet is locked for final submission — as an admin you can still make changes.');
+  } else {
+    clearBanner();
+  }
+}
+
+document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const btn = document.getElementById('wgSubmitBtn');
+  const banner = document.getElementById('gateBanner');
+  banner.style.display = 'none';
+  const name = document.getElementById('wg-name').value.trim();
+  const code = document.getElementById('wg-code').value.trim();
+  if(!name || !code) return;
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/admin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, code })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.message || data.error || 'Login failed.');
+    setWalletSession(data.token, name);
+    closeWalletGate();
+    setWalletAdminUI(name);
+    await initWalletApp(); // first successful sign-in on a fresh load — this is what actually fetches wallet data
+    if(data.mustChangePin){
+      showBanner('warn', 'You\u2019re still on a temporary PIN — change it from the Admin console when you get a chance.');
+    }
+  }catch(err){
+    banner.style.display = 'flex'; banner.className = 'banner err'; banner.textContent = err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+});
+
+// Participant sign-in — posts to login.js (shared trip password +
+// pick-your-registered-name). This is the default/primary form on the
+// gate; most of the 12 participants aren't admins.
+document.getElementById('participantGateForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const btn = document.getElementById('pgSubmitBtn');
+  const banner = document.getElementById('gateBanner');
+  banner.style.display = 'none';
+  const name = document.getElementById('pg-name').value;
+  const password = document.getElementById('pg-password').value;
+  if(!name || !password) return;
+  const tripId = resolveTripIdFromUrl() || sessionStorage.getItem('goatrip:lastTrip');
+  if(!tripId){
+    banner.style.display = 'flex'; banner.className = 'banner err';
+    banner.textContent = 'Could not tell which trip this is — try opening the wallet link again.';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(tripId), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, password })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
+    setUserSession(data.token, data.name);
+    localStorage.setItem('goaWalletLastActor', data.name);
+    closeWalletGate();
+    await initWalletApp();
+  }catch(err){
+    banner.style.display = 'flex'; banner.className = 'banner err'; banner.textContent = err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+});
+
+document.getElementById('gateModeToggle').addEventListener('click', e=>{
+  e.preventDefault();
+  const currentlyAdmin = document.getElementById('walletLoginForm').style.display !== 'none';
+  setGateMode(currentlyAdmin ? 'participant' : 'admin');
+  document.getElementById('gateBanner').style.display = 'none';
+});
+
+document.getElementById('walletAdminSigninBtn')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  showWalletGate(null, 'admin');
+});
+
+document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  clearWalletSession();
+  location.reload();
+});
+
+// Pre-fills the participant name dropdown before anyone's signed in —
+// login.js's 'participants' action is intentionally public (no token)
+// for exactly this: populating a name picker on a locked page. Uses the
+// URL/last-visited trip id directly rather than window.TRIP, since
+// initTripContext() (which sets window.TRIP) isn't called until after
+// sign-in now.
+async function populateGateParticipants(){
+  const tripId = resolveTripIdFromUrl() || sessionStorage.getItem('goatrip:lastTrip');
+  const sel = document.getElementById('pg-name');
+  if(!tripId || !sel) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(tripId), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'participants' })
+    });
+    const data = await res.json();
+    const names = Array.isArray(data.participants) ? data.participants : [];
+    sel.innerHTML = names.map(p=>`<option value="${p}">${p}</option>`).join('');
+    const last = localStorage.getItem('goaWalletLastActor');
+    if(last && names.includes(last)) sel.value = last;
+  }catch(e){ /* gate stays usable — server still validates the typed name on submit */ }
+}
+
+// Mandatory gate: nothing wallet-related (initWalletApp -> pullFromSheet,
+// which is what actually fetches expenses/settlements/deposits/activity)
+// runs until a valid session — admin or participant — is confirmed. A
+// visitor who's never signed in sees only the gate; there is no
+// "continue without signing in" path anymore.
+(async function boot(){
+  document.body.style.overflow = 'hidden'; // gate is visible by default in the markup; keep the page locked behind it
+  await populateGateParticipants();
+
+  const adminName = await verifyWalletSession();
+  if(adminName){
+    setWalletAdminUI(adminName);
+    closeWalletGate();
+    await initWalletApp();
+    return;
+  }
+  clearWalletSession();
+  setWalletAdminUI(null);
+
+  if(getUserToken()){
+    // Trust the cached participant token optimistically — if it's
+    // actually expired/invalid, wallet.js will 401 on the very first
+    // request inside initWalletApp() and pullFromSheet() reopens the
+    // gate via showAccessGate() at that point.
+    closeWalletGate();
+    await initWalletApp();
+    return;
+  }
+
+  showWalletGate();
 })();
 
 /* ============================================================

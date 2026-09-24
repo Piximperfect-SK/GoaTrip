@@ -29,6 +29,8 @@ exports.handler = async (event) => {
       toname: r.to_station,
       date: r.journey_date,
       time: r.departure,
+      arrivaldate: r.arrival_date,
+      arrivaltime: r.arrival,
       trainno: r.train_no,
       trainname: r.train_name,
       cls: r.class,

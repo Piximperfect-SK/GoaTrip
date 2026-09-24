@@ -15,118 +15,111 @@
   h1,h2,h3,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
   .mono{ font-family:'Space Mono', monospace; }
 
-  /* ============ Split-screen gate — redesigned after the "Login V1"
-     reference (colivas/Codepen-style split card: photo/illustration
-     panel + tilt-on-hover, pill inputs with an inline icon, a glow
-     pulse on focus, diagonal gradient page backdrop, pill gradient
-     submit button). Re-themed into GoaTrip's own teal/mango/sand
-     palette and fonts rather than the reference's purple/green, so it
-     still reads as this site — same structure and motion, own colors. */
+  /* ============ Split-screen gate — redesigned after a "Create
+     account" split-card reference (flat solid-color illustration
+     panel on the left, plain white card on the right: small logo
+     lockup, big left-aligned serif heading, bordered rounded-rect
+     inputs with no inline icon, one solid full-width pill button,
+     small text links instead of a segmented switch). Re-themed into
+     GoaTrip's own mango/ink/paper palette and a bespoke Goa-trip
+     illustration rather than the reference's character/palette — same
+     structure and card mechanics, own colors and own artwork. */
   body{
     margin:0; min-height:100vh; color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased;
   }
   body.gate-mode{
     display:flex; align-items:center; justify-content:center; padding:24px 16px; position:relative; overflow-x:hidden;
-    background:#8a5a3f;
-    background:linear-gradient(-135deg, var(--mango) 0%, var(--azulejo) 52%, var(--teal-900) 100%);
-    background-attachment:fixed;
-  }
-  body.gate-mode::before{
-    content:''; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.4;
-    background-image:radial-gradient(rgba(255,255,255,.4) 1.5px, transparent 1.5px);
-    background-size:26px 26px;
+    background:radial-gradient(120% 100% at 15% 0%, rgba(255,107,74,.10), transparent 55%), var(--sand-2);
   }
   body.dash-mode{ background:#F3F6F5; }
 
   /* ---------- Split card ---------- */
-  .gate-wrap{ width:100%; max-width:900px; position:relative; z-index:1; }
+  .gate-wrap{ width:100%; max-width:880px; position:relative; z-index:1; }
   .gate-split{
-    background:var(--paper); border-radius:24px; overflow:hidden;
+    background:var(--paper); border-radius:28px; overflow:hidden;
     display:flex; align-items:stretch; flex-wrap:wrap;
-    box-shadow:0 40px 90px -28px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.4) inset;
-    border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 40px 90px -32px rgba(29,29,31,.35);
+    border:1px solid var(--line);
   }
 
-  /* left panel: illustration, tilts toward the cursor */
+  /* left panel: flat solid-color illustration, tilts toward the cursor */
   .gate-illustration{
     flex:1 1 300px; min-width:260px; display:flex; align-items:center; justify-content:center;
-    padding:40px; position:relative; perspective:900px;
-    background:radial-gradient(120% 100% at 25% 15%, rgba(255,122,69,.12), transparent 60%), linear-gradient(175deg, var(--sand), var(--sand-2));
+    padding:40px; position:relative; perspective:900px; overflow:hidden;
+    background:var(--mango);
   }
-  .gate-illustration .tilt-card{ width:100%; max-width:230px; transform-style:preserve-3d; transition:transform .2s ease-out; will-change:transform; }
-  .gate-illustration svg{ width:100%; height:auto; display:block; filter:drop-shadow(0 18px 30px rgba(15,38,34,.18)); }
+  .gate-illustration .tilt-card{ width:100%; max-width:250px; transform-style:preserve-3d; transition:transform .2s ease-out; will-change:transform; }
+  .gate-illustration svg{ width:100%; height:auto; display:block; }
   .gate-deco{ position:absolute; pointer-events:none; }
-  .gate-deco.d1{ top:13%; left:13%; width:9px; height:9px; border:2px solid var(--azulejo-2); border-radius:50%; }
-  .gate-deco.d2{ bottom:15%; right:13%; width:8px; height:8px; background:var(--mango); border-radius:50%; }
-  .gate-deco.d3{ top:10%; right:18%; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:9px solid var(--palm); opacity:.8; }
-  .gate-deco.d4{ bottom:12%; left:9%; width:9px; height:9px; border:2px solid var(--palm); transform:rotate(20deg); }
+  .gate-deco.d1{ top:13%; left:13%; width:9px; height:9px; border:2px solid rgba(255,255,255,.6); border-radius:50%; }
+  .gate-deco.d2{ bottom:16%; right:12%; width:8px; height:8px; background:var(--yellow); border-radius:50%; }
+  .gate-deco.d3{ top:11%; right:20%; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:9px solid rgba(255,255,255,.5); }
+  .gate-deco.d4{ bottom:13%; left:9%; width:9px; height:9px; border:2px solid var(--yellow); transform:rotate(20deg); }
 
-  /* right panel: the form */
-  .gate-card{ flex:1 1 320px; min-width:280px; padding:44px 40px 30px; display:flex; align-items:center; }
-  .gate-card-inner{ width:100%; max-width:290px; margin:0 auto; }
+  /* right panel: the form, left-aligned like the reference rather than centered */
+  .gate-card{ flex:1 1 340px; min-width:280px; padding:44px 44px 32px; display:flex; align-items:center; }
+  .gate-card-inner{ width:100%; max-width:320px; }
+  .gate-logo{ display:flex; align-items:center; gap:9px; margin:0 0 34px; }
   .gate-badge{
-    width:52px; height:52px; border-radius:16px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(155deg, var(--teal-800), var(--teal-900));
-    box-shadow:0 10px 22px -8px rgba(11,61,58,.55);
-    transition:transform .25s ease;
+    width:32px; height:32px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:var(--ink); transition:transform .25s ease;
   }
-  .gate-badge svg{ width:22px; height:22px; color:var(--sand); }
-  .gate-card h1{ font-size:1.5rem; margin:0 0 4px; color:var(--ink); text-align:center; }
-  .gate-sub{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--mango-2); margin:0 0 26px; text-align:center; }
+  .gate-badge svg{ width:16px; height:16px; color:var(--sand); }
+  .gate-logo-word{ font-family:'Space Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.02em; color:var(--ink); }
+  .gate-card h1{ font-size:2rem; line-height:1.08; margin:0 0 8px; color:var(--ink); }
+  .gate-sub{ font-size:13px; color:var(--teal-700); opacity:.75; margin:0 0 26px; line-height:1.5; }
 
-  .gate-switch{ display:flex; gap:4px; background:rgba(15,38,34,.06); border-radius:9999px; padding:4px; margin:0 0 24px; }
-  .gate-switch button{
-    flex:1; border:none; background:transparent; padding:9px 0; border-radius:9999px; font-size:12.5px; font-weight:600;
-    letter-spacing:.02em; color:var(--teal-700); cursor:pointer; transition:.2s;
-  }
-  .gate-switch button.active{ background:var(--ink); color:var(--paper); box-shadow:0 4px 10px -3px rgba(15,38,34,.35); }
+  /* small text-link toggle, in place of a segmented switch — the
+     switchRequest/switchLogin buttons still exist (setMode() toggles
+     their .active class) but stay visually hidden; these links call
+     the same setMode() and sit under each form like the reference's
+     "Have an account? Log in" line. */
+  .gate-switch{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .gate-toggle-line{ font-size:13px; color:var(--teal-700); opacity:.8; margin:16px 0 0; text-align:center; }
+  .gate-toggle-line a{ color:var(--mango-2); font-weight:600; cursor:pointer; text-decoration:none; }
+  .gate-toggle-line a:hover{ text-decoration:underline; }
 
-  /* pill inputs with an inline icon + a soft glow ring that pulses out
-     on focus — the two signature details from the reference form */
+  /* plain bordered rounded-rect inputs, no inline icon — matches the
+     reference's clean unornamented field style */
   .gate-field{ position:relative; width:100%; z-index:1; margin-bottom:12px; }
   .gate-row2{ display:flex; gap:10px; }
   .gate-row2 .gate-field{ flex:1; }
   .gate-field input{
-    font-family:inherit; font-size:14px; font-weight:600; line-height:1.4; color:var(--ink);
-    display:block; width:100%; background:var(--sand-2); border:1.5px solid transparent; height:48px; border-radius:9999px;
-    padding:0 18px; transition:background .25s ease, border-color .25s ease;
+    font-family:inherit; font-size:14px; font-weight:500; line-height:1.4; color:var(--ink);
+    display:block; width:100%; background:var(--paper); border:1.5px solid var(--line); height:50px; border-radius:14px;
+    padding:0 18px; transition:border-color .2s ease, box-shadow .2s ease;
   }
-  .gate-field.has-icon input{ padding-left:48px; }
-  .gate-field input::placeholder{ color:var(--teal-700); opacity:.5; font-weight:500; }
-  .gate-field input:focus{ outline:none; background:white; border-color:var(--mango); }
-  .gate-field .fglow{
-    display:block; position:absolute; border-radius:9999px; bottom:0; left:0; z-index:-1;
-    width:100%; height:100%; box-shadow:0 0 0 0; color:rgba(255,122,69,.6);
+  .gate-field input::placeholder{ color:var(--teal-700); opacity:.45; font-weight:500; }
+  .gate-field input:focus{ outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,107,74,.14); }
+  .gate-field.has-toggle input{ padding-right:46px; }
+  .gate-pin-toggle{
+    position:absolute; right:4px; top:50%; transform:translateY(-50%); width:38px; height:38px;
+    border:none; background:transparent; border-radius:9999px; display:flex; align-items:center; justify-content:center;
+    color:var(--teal-700); opacity:.55; cursor:pointer; transition:.2s;
   }
-  .gate-field input:focus + .fglow{ animation:gt-input-glow .5s ease-in-out forwards; }
-  @keyframes gt-input-glow{ to{ box-shadow:0 0 44px 16px; opacity:0; } }
-  .gate-field .ficon{
-    font-size:15px; display:flex; align-items:center; position:absolute; bottom:0; left:0; height:100%;
-    width:48px; justify-content:center; pointer-events:none; color:var(--teal-700); opacity:.6; transition:.25s;
-  }
-  .gate-field .ficon svg{ width:16px; height:16px; }
-  .gate-field input:focus ~ .ficon{ color:var(--mango-2); opacity:1; }
-  /* plain top label, used only where a field has no icon (e.g. the PIN-change modal) */
+  .gate-pin-toggle:hover{ opacity:1; background:var(--sand-2); }
+  .gate-pin-toggle svg{ width:18px; height:18px; }
+  /* plain top label, used only where a field wants one (e.g. the PIN-change modal) */
   .gate-field .flabel{
     display:block; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
     text-transform:uppercase; color:var(--azulejo); font-weight:700; margin-bottom:7px;
   }
 
   .gate-submit{
-    width:100%; border:none; border-radius:9999px; padding:14px 0; margin-top:6px;
-    background:linear-gradient(120deg, var(--mango), var(--mango-2)); color:white;
-    text-transform:uppercase; font-weight:700; font-size:12.5px; letter-spacing:.06em; cursor:pointer;
+    width:100%; border:none; border-radius:9999px; padding:15px 0; margin-top:6px;
+    background:var(--mango); color:white;
+    font-weight:700; font-size:14px; letter-spacing:.01em; cursor:pointer;
     display:flex; align-items:center; justify-content:center; gap:8px;
-    box-shadow:0 14px 26px -10px rgba(232,93,42,.55); transition:background .3s ease, transform .18s ease, box-shadow .3s ease;
+    box-shadow:0 14px 26px -10px rgba(255,107,74,.55); transition:background .2s ease, transform .18s ease, box-shadow .2s ease;
   }
-  .gate-submit:hover{ background:var(--ink); transform:translateY(-1px); box-shadow:0 16px 28px -10px rgba(15,38,34,.5); }
+  .gate-submit:hover{ background:var(--mango-2); transform:translateY(-1px); box-shadow:0 16px 28px -10px rgba(232,84,54,.5); }
   .gate-submit svg{ width:15px; height:15px; }
   .gate-submit:disabled{ opacity:.6; cursor:default; transform:none; }
 
   .gate-status{
     display:inline-flex; align-items:center; gap:7px; margin:18px auto 0; padding:8px 16px; border-radius:9999px;
-    background:rgba(251,246,236,.9); font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
-    text-transform:uppercase; color:var(--teal-800); box-shadow:0 4px 14px -6px rgba(0,0,0,.25);
+    background:rgba(255,255,255,.85); font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--teal-800); box-shadow:0 4px 14px -6px rgba(0,0,0,.12);
   }
   .gate-status .dot{ width:7px; height:7px; border-radius:50%; background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.25); }
 
@@ -135,7 +128,7 @@
   .gate-banner.ok{ background:rgba(62,124,89,.12); color:#2C5940; border:1px solid rgba(62,124,89,.25); }
   .gate-banner.bad{ background:rgba(232,93,42,.12); color:var(--mango-2); border:1px solid rgba(232,93,42,.25); }
 
-  .gate-back{ display:block; text-align:center; margin-top:18px; font-size:12px; color:var(--teal-700); opacity:.75; text-decoration:none; }
+  .gate-back{ display:block; text-align:left; margin-top:22px; font-size:12px; color:var(--teal-700); opacity:.75; text-decoration:none; }
   .gate-back:hover{ opacity:1; color:var(--mango-2); }
 
   @media (max-width:760px){
@@ -274,6 +267,8 @@
   .status-pill.Approved{ background:rgba(62,124,89,.15); color:#2C5940; }
   .status-pill.Pending{ background:rgba(201,162,39,.18); color:#8A6D14; }
   .status-pill.Rejected, .status-pill.Revoked{ background:rgba(232,93,42,.15); color:var(--mango-2); }
+  .status-pill.Draft{ background:rgba(91,100,114,.15); color:var(--bp-slate,#5B6472); }
+  .wallet-type-tag{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin-right:6px; }
   .row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
   .row-actions button{ font-size:11.5px; padding:6px 12px; }
   .search-field{ margin-bottom:14px; }
@@ -285,6 +280,30 @@
   .flag-meta .page{ font-size:11px; color:var(--teal-700); opacity:.7; margin-top:2px; }
   .flag-meta .page::before{ content:'▸ '; }
   .flag-meta .key{ font-family:'Space Mono',monospace; font-size:10px; opacity:.4; margin-top:2px; }
+
+  /* Grid card layout for the Feature toggles panel specifically — kept
+     separate from .flag-row above, which board members / crew rows still
+     use for their own plain list layout. */
+  #flagList{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+  .flag-card{
+    display:flex; flex-direction:column; gap:10px; padding:16px; border-radius:14px;
+    border:1.5px solid var(--line); background:var(--paper); transition:border-color .2s ease;
+  }
+  .flag-card.is-on{ border-color:rgba(62,124,89,.35); background:rgba(62,124,89,.04); }
+  .flag-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .flag-card .flag-meta .label{ font-weight:600; font-size:14px; line-height:1.3; }
+  .flag-card .flag-meta .page{ font-size:11px; color:var(--teal-700); opacity:.7; margin-top:4px; }
+  .flag-card .flag-meta .key{ font-family:'Space Mono',monospace; font-size:10px; opacity:.4; margin-top:4px; word-break:break-all; }
+  .flag-enforced{
+    display:inline-block; margin-top:6px; font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.04em;
+    padding:2px 7px; border-radius:6px;
+  }
+  .flag-enforced.server{ background:rgba(62,124,89,.12); color:var(--palm); }
+  .flag-enforced.client{ background:rgba(232,93,42,.1); color:var(--mango-2); }
+
+  .missing-flags{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; margin-bottom:18px; }
+  .flag-card.is-missing{ border-style:dashed; border-color:rgba(232,93,42,.4); background:rgba(232,93,42,.05); }
+  .flag-card.is-missing .flag-meta .label::before{ content:'⚠ '; }
 
   .toggle{ position:relative; width:46px; height:26px; border-radius:9999px; background:var(--sand-2); cursor:pointer; flex-shrink:0; transition:.2s; border:none; padding:0; }
   .toggle.on{ background:var(--palm); }
@@ -327,6 +346,52 @@
   .modal-card h3{ font-family:'Fraunces',serif; font-size:1.3rem; margin:0 0 6px; color:var(--ink); }
   .modal-card p.modal-sub{ font-size:12.5px; color:var(--teal-700); opacity:.8; margin:0 0 22px; line-height:1.5; }
   .modal-card .gate-field{ margin-bottom:14px; }
+  .modal-card label{ font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px; }
+
+  /* ============ Crew photo picker (add/edit crew modal) ============ */
+  .crew-photo-picker{ display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+  .crew-photo-preview{
+    width:84px; height:84px; border-radius:14px; flex-shrink:0; overflow:hidden;
+    background:var(--sand-2); border:1.5px dashed var(--line); display:flex; align-items:center;
+    justify-content:center; font-size:10.5px; color:var(--teal-700); opacity:.6; text-align:center; padding:4px;
+  }
+  .crew-photo-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .crew-photo-preview-img{ width:100%; height:100%; background-repeat:no-repeat; }
+  .crew-photo-preview.has-image{ border-style:solid; opacity:1; }
+  .crew-photo-status{ font-size:12px; color:var(--teal-700); opacity:.75; min-height:16px; }
+  .crew-photo-status.bad{ color:var(--mango-2); opacity:1; }
+  .crew-photo-status.ok{ color:var(--palm); opacity:1; }
+
+  /* Crew list rows in the admin dashboard get a small thumbnail; legacy
+     rows with no photo yet show a dashed placeholder + a "Photo required"
+     badge so it's obvious at a glance which ones still need one. */
+  .crew-row-thumb{
+    width:40px; height:40px; border-radius:10px; flex-shrink:0; overflow:hidden; background:var(--sand-2);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  }
+  .crew-row-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .crew-row-thumb.missing{ border-style:dashed; }
+  .crew-photo-required-badge{
+    display:inline-block; margin-top:3px; font-size:10.5px; font-weight:700; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--mango-2); background:rgba(232,93,42,.1);
+    border-radius:6px; padding:2px 7px;
+  }
+
+  /* ============ Crop / position picker ============ */
+  .crop-stage{
+    position:relative; width:100%; max-width:360px; aspect-ratio:1/1; margin:0 auto; background:var(--teal-900);
+    border-radius:12px; overflow:hidden; user-select:none; touch-action:none;
+  }
+  .crop-stage img{ position:absolute; left:0; top:0; display:block; max-width:none; pointer-events:none; }
+  .crop-box{
+    position:absolute; border:2px solid var(--mango); box-shadow:0 0 0 9999px rgba(11,15,15,.55); cursor:grab;
+    box-sizing:border-box;
+  }
+  .crop-box.is-dragging{ cursor:grabbing; }
+  .crop-box-handle{
+    position:absolute; right:-8px; bottom:-8px; width:18px; height:18px; border-radius:9999px;
+    background:var(--mango); border:2px solid white; cursor:nwse-resize; box-shadow:0 2px 6px rgba(0,0,0,.3);
+  }
 
   /* ============ Themed loading spinner (auth actions) ============ */
   @keyframes gt-spin{ to{ transform:rotate(360deg); } }
@@ -349,6 +414,73 @@
     0%{ box-shadow:0 0 0 0 rgba(255,122,69,.45); }
     100%{ box-shadow:0 0 0 14px rgba(255,122,69,0); }
   }
+
+  /* ============ Page content — redesigned to match itinerary.html's
+     day-tab / timeline-card language: a pill tab strip to switch
+     sections instead of one long scroll, each section as its own
+     card, a live mini hero preview, and mono char-counters on the
+     length-limited fields. Pure presentation — same #contentForm,
+     data-key attributes and submit handler as before. ============ */
+  .content-tabs{ display:flex; gap:8px; overflow-x:auto; padding:2px 2px 4px; margin-bottom:18px; scrollbar-width:none; }
+  .content-tabs::-webkit-scrollbar{ display:none; }
+  .content-tab{
+    flex:0 0 auto; display:flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9999px;
+    border:1.5px solid var(--line); background:white; cursor:pointer; transition:.18s;
+    font-size:12.5px; font-weight:600; color:var(--teal-700);
+  }
+  .content-tab:hover{ border-color:rgba(15,38,34,.3); }
+  .content-tab.active{ border-color:var(--ink); background:var(--ink); color:white; box-shadow:0 10px 22px -12px rgba(15,38,34,.5); }
+  .content-tab .ct-count{ font-family:'Space Mono',monospace; font-size:10px; opacity:.55; }
+
+  .content-section{ display:none; }
+  .content-section.active{ display:block; animation:dpIn .25s ease; }
+
+  /* ---------- Banner tab: checkbox rows + pill-style radio groups ---------- */
+  .check-row{ display:flex; align-items:center; gap:9px; padding:10px 0; }
+  .check-row input[type="checkbox"]{ width:17px; height:17px; accent-color:var(--mango); cursor:pointer; flex-shrink:0; }
+  .check-row label{ font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer; margin:0; }
+  .check-row .check-hint{ display:block; font-size:11.5px; font-weight:400; opacity:.55; margin-top:2px; }
+  .pill-radio-group{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .pill-radio-group input[type="radio"]{ position:absolute; opacity:0; width:0; height:0; }
+  .pill-radio-group .pill-radio-opt{
+    display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); border-radius:9999px;
+    padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; background:white; color:var(--ink);
+  }
+  .pill-radio-group .pill-radio-opt:hover{ border-color:rgba(15,38,34,.3); }
+  .pill-radio-group input[type="radio"]:checked + .pill-radio-opt{ border-color:var(--mango); background:var(--mango); color:white; }
+  .pill-radio-group input[type="radio"]:focus-visible + .pill-radio-opt{ outline:2px solid var(--mango); outline-offset:2px; }
+  .content-card{
+    background:var(--sand-2); border:1px solid var(--line); border-radius:14px;
+    padding:18px 18px 16px; margin-bottom:16px;
+  }
+  .content-card h4{ font-family:'Fraunces',serif; font-size:.95rem; margin:0 0 4px; display:flex; align-items:center; gap:8px; }
+  .content-card > p{ font-size:12px; opacity:.55; margin:0 0 14px; }
+
+  .field-row{ position:relative; }
+  .char-count{
+    position:absolute; right:2px; top:0; font-family:'Space Mono',monospace; font-size:10px; opacity:.4;
+  }
+  .field-row textarea ~ .char-count{ top:auto; bottom:8px; right:10px; }
+
+  /* Live hero mini-preview: same gradient/type language as index.html's
+     hero, scaled down, so an editor can see roughly what they're
+     about to publish without switching tabs to the live site. */
+  .hero-preview{
+    border-radius:16px; padding:26px 22px; margin-bottom:18px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 140% at 10% 0%, rgba(255,107,74,.16), transparent 55%),
+      radial-gradient(120% 140% at 90% 100%, rgba(46,111,242,.14), transparent 55%),
+      var(--paper);
+    border:1px solid var(--line);
+  }
+  .hero-preview .hp-eyebrow{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; opacity:.5; margin-bottom:8px; }
+  .hero-preview .hp-title{ font-family:'Fraunces',serif; font-weight:600; font-size:clamp(1.4rem,3vw,2.1rem); line-height:1.06; margin:0 0 8px; }
+  .hero-preview .hp-sub{ font-size:12.5px; opacity:.6; max-width:440px; line-height:1.5; margin:0 0 12px; }
+  .hero-preview .hp-ctas{ display:flex; gap:8px; }
+  .hero-preview .hp-cta{ font-size:11px; font-weight:600; padding:7px 14px; border-radius:9999px; }
+  .hero-preview .hp-cta.primary{ background:var(--mango); color:white; }
+  .hero-preview .hp-cta.ghost{ border:1.5px solid var(--ink); }
+  .hero-preview .hp-tag{ font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; opacity:.4; position:absolute; top:14px; right:16px; }
 </style>
 </head>
 <body class="gate-mode">
@@ -369,26 +501,39 @@
       <span class="gate-deco d3"></span>
       <span class="gate-deco d4"></span>
       <div class="tilt-card" id="gateTilt">
-        <svg viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="160" cy="146" r="132" fill="var(--sand)"/>
-          <rect x="88" y="86" width="152" height="104" rx="10" fill="var(--teal-800)"/>
-          <rect x="99" y="97" width="130" height="82" rx="4" fill="var(--teal-900)"/>
-          <circle cx="164" cy="126" r="17" stroke="var(--sand)" stroke-width="3" fill="none"/>
-          <path d="M139 165c0-15 11-24 25-24s25 9 25 24" stroke="var(--sand)" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <rect x="73" y="190" width="182" height="13" rx="6.5" fill="var(--sand-2)"/>
-          <rect x="143" y="203" width="42" height="6" rx="3" fill="var(--sand-2)"/>
+        <!-- Original flat illustration — someone planning the Goa run:
+             palm tree, sun, a laptop on a low table, a packed bag.
+             One held motif (mango-flat + sand/ink linework) rather
+             than a busy scene, matching the rest of the site. -->
+        <svg viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="196" cy="56" r="30" fill="var(--yellow)" opacity=".9"/>
+          <path d="M92 150c0-38 4-70 8-92" stroke="var(--teal-900)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M100 62c-16-8-34-6-44 4 14 8 30 8 44-4Z" fill="var(--palm)"/>
+          <path d="M100 62c-10-16-26-22-40-18 8 14 22 22 40 18Z" fill="var(--palm)"/>
+          <path d="M100 62c16-10 34-10 46-2-12 10-30 12-46 2Z" fill="var(--palm)"/>
+          <path d="M100 62c6-16 20-26 36-26-4 16-18 28-36 26Z" fill="var(--palm)"/>
+          <rect x="30" y="176" width="200" height="8" rx="4" fill="rgba(29,29,31,.18)"/>
+          <rect x="118" y="120" width="70" height="46" rx="6" fill="var(--sand)"/>
+          <rect x="126" y="128" width="54" height="30" rx="3" fill="var(--teal-900)"/>
+          <rect x="108" y="166" width="90" height="8" rx="4" fill="var(--sand)"/>
+          <rect x="46" y="150" width="46" height="34" rx="6" fill="var(--sand)" stroke="var(--teal-900)" stroke-width="2.5"/>
+          <rect x="58" y="140" width="22" height="14" rx="4" fill="var(--sand)" stroke="var(--teal-900)" stroke-width="2.5"/>
+          <circle cx="69" cy="167" r="3" fill="var(--mango-2)"/>
         </svg>
       </div>
     </div>
 
     <div class="gate-card">
       <div class="gate-card-inner">
-        <div class="gate-badge" id="gateBadge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div class="gate-logo">
+          <div class="gate-badge" id="gateBadge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <span class="gate-logo-word">GoaTrip Admin</span>
         </div>
-        <h1>Admin Gate</h1>
-        <p class="gate-sub" id="gateSub">GoaTrip · Authorized crew only</p>
 
+        <!-- switchRequest/switchLogin kept (setMode() toggles their
+             .active class) but visually hidden — see .gate-switch -->
         <div class="gate-switch">
           <button type="button" class="active" id="switchRequest" onclick="setMode('request')">Request access</button>
           <button type="button" id="switchLogin" onclick="setMode('login')">Log in</button>
@@ -398,40 +543,39 @@
 
         <!-- ---- Request access form ---- -->
         <form id="requestForm">
-          <div class="gate-field has-icon">
+          <h1>Request<br/>access.</h1>
+          <p class="gate-sub" id="gateSub">GoaTrip · authorized crew only. Ask an admin for a PIN once approved.</p>
+          <div class="gate-field">
             <input id="r-name" placeholder="Full name" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           </div>
-          <div class="gate-field has-icon">
+          <div class="gate-field">
             <input id="r-email" type="email" placeholder="Email" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg></span>
           </div>
           <button type="submit" class="gate-submit" id="requestSubmitBtn">
             <span class="btn-label">Request access</span>
             <span class="btn-spinner"></span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
+          <p class="gate-toggle-line">Already approved? <a onclick="setMode('login')">Log in</a></p>
         </form>
 
         <!-- ---- Login form ---- -->
         <form id="loginForm" class="hidden">
-          <div class="gate-field has-icon">
+          <h1>Welcome<br/>back.</h1>
+          <p class="gate-sub">Log in with your name and the 6-digit PIN you were given.</p>
+          <div class="gate-field">
             <input id="l-name" placeholder="Name" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
           </div>
-          <div class="gate-field has-icon">
-            <input id="l-code" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
-            <span class="fglow"></span>
-            <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <div class="gate-field has-toggle">
+            <input id="l-code" type="password" placeholder="6-digit PIN" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="off"/>
+            <button type="button" class="gate-pin-toggle" id="lCodeToggle" onclick="togglePinVisibility()" aria-label="Show PIN">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
           <button type="submit" class="gate-submit" id="loginSubmitBtn">
             <span class="btn-label">Log in</span>
             <span class="btn-spinner"></span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
           </button>
+          <p class="gate-toggle-line">New crew member? <a onclick="setMode('request')">Request access</a></p>
         </form>
 
         <a href="index.html" class="gate-back">← Back to trip site</a>
@@ -507,9 +651,18 @@
         Cancellations
         <span class="sb-badge-count" id="sbCancelBadge" style="display:none;">0</span>
       </button>
+      <button type="button" class="dash-tab sb-link" data-tab="wallet">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg></span>
+        Wallet approvals
+        <span class="sb-badge-count" id="sbWalletBadge" style="display:none;">0</span>
+      </button>
       <button type="button" class="dash-tab sb-link" data-tab="crew">
         <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><circle cx="18" cy="7" r="3"/><path d="M22 21v-1a4 4 0 0 0-3-3.87"/></svg></span>
         Team / Crew
+      </button>
+      <button type="button" class="dash-tab sb-link" data-tab="content">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+        Page content
       </button>
     </nav>
 
@@ -533,6 +686,7 @@
       <div class="tb-right">
         <div class="tb-who">Logged in as<br><b id="whoName"></b></div>
         <div class="tb-avatar" id="tbAvatar">A</div>
+        <button class="btn-ghost" id="changePinBtn" type="button">Change PIN</button>
         <button class="btn-ghost" id="logoutBtn" type="button">Log out</button>
       </div>
     </header>
@@ -559,6 +713,7 @@
         <div class="sec-card">
           <h3>Feature toggles</h3>
           <p class="cardsub">Toggle any feature off to restrict it site-wide — regular visitors won't see or be able to use it. Turning it back on restores access instantly.</p>
+          <div id="missingFlagsWrap"></div>
           <div id="flagList"></div>
 
           <div class="subhead">
@@ -583,7 +738,7 @@
         </div>
         <div class="sec-card">
           <h3>All admins</h3>
-          <p class="cardsub">Approve, revoke, restore access, or clear a login lockout. You can't revoke your own account.</p>
+          <p class="cardsub">Approve, revoke, restore access, clear a login lockout, or permanently delete an account. You can't revoke or delete your own account.</p>
           <div id="adminList"></div>
         </div>
       </div>
@@ -630,6 +785,24 @@
           <div id="cancellationList"></div>
         </div>
       </div>
+
+      <!-- ---- Wallet approvals ---- -->
+      <div class="dash-panel hidden" id="panel-wallet">
+        <div class="sec-card">
+          <h3>Pending wallet submissions</h3>
+          <p class="cardsub">Expenses, settlements and deposits participants have submitted, waiting on an admin decision. Everyone can already see anything already approved — this is only the queue.</p>
+          <div class="search-field" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <select id="walletFilter" onchange="renderWalletApprovals()" style="width:auto; min-width:180px;">
+              <option value="pending_approval">Pending approval</option>
+              <option value="">All statuses</option>
+              <option value="draft">Draft (not yet submitted)</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div id="walletApprovalList"></div>
+        </div>
+      </div>
     </div>
       <!-- ---- Team / Crew ---- -->
       <div class="dash-panel hidden" id="panel-crew">
@@ -639,13 +812,228 @@
           <div id="crewList"></div>
           <div class="subhead">
             <h4>Add a crew member</h4>
-            <form id="addCrewForm" class="row">
-              <div class="field-row"><label>Name</label><input id="cm-name" placeholder="e.g. Shubham Kumar" required maxlength="120"/></div>
-              <div class="field-row"><label>Position / Role</label><input id="cm-role" placeholder="e.g. Website Developer and Advisor" required maxlength="120"/></div>
-              <div class="field-row" style="flex:2 1 220px;"><label>Note (optional)</label><input id="cm-note" placeholder="Short line shown under the role" maxlength="300"/></div>
-              <div style="flex:0 0 auto;"><button type="submit" class="btn-ghost">Add</button></div>
-            </form>
+            <p class="cardsub" style="margin-top:-4px;">A photo is required — the new crew cards show the real photo, not initials.</p>
+            <button type="button" class="btn-ghost" id="openAddCrewBtn">+ Add crew member</button>
           </div>
+        </div>
+      </div>
+
+      <!-- ---- Crew member editor (add + edit share this modal) ---- -->
+      <div class="modal-overlay hidden" id="crewModalOverlay">
+        <div class="modal-card" style="max-width:460px; text-align:left;">
+          <h3 id="crewModalTitle">Add a crew member</h3>
+          <p class="modal-sub">Photos live in <code>pictures/crew/</code> in the repo, not uploaded here — type the filename of an image already deployed there.</p>
+          <div class="gate-banner" id="crewModalBanner"></div>
+
+          <label>Photo *</label>
+          <p class="cardsub" style="margin-top:-6px; margin-bottom:10px;">Upload the image to <code>pictures/crew/</code> in the repo first (via git/deploy), then type its filename here — e.g. <code>shubham.jpg</code>. This field does not upload anything itself.</p>
+          <div class="crew-photo-picker" id="crewPhotoPicker">
+            <div class="crew-photo-preview" id="crewPhotoPreview"><span id="crewPhotoPlaceholder">No filename yet</span></div>
+            <div style="display:flex; flex-direction:column; gap:8px; flex:1; min-width:0;">
+              <input type="text" id="crewf-photofile" maxlength="120" placeholder="e.g. shubham.jpg"/>
+              <button type="button" class="btn-ghost" id="crewAdjustCropBtn" style="padding:8px 14px; font-size:12.5px; display:none;">Adjust crop / position</button>
+              <div class="crew-photo-status" id="crewPhotoStatus"></div>
+            </div>
+          </div>
+
+          <div class="gate-field"><label>Name *</label><input id="crewf-name" maxlength="120" placeholder="e.g. Shubham Kumar"/></div>
+          <div class="gate-field"><label>Position / Role *</label><input id="crewf-role" maxlength="120" placeholder="e.g. Website Developer and Advisor"/></div>
+          <div class="gate-field"><label>Note</label><input id="crewf-note" maxlength="300" placeholder="Short line shown when the card is hovered / tapped"/></div>
+
+          <div style="display:flex; gap:10px; margin-top:6px;">
+            <button type="button" class="btn-ghost" id="crewModalCancelBtn" style="flex:1;">Cancel</button>
+            <button type="button" class="btn-primary" id="crewModalSaveBtn" style="flex:1;">Save crew member</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Crop / position picker for the crew photo ----
+           A free-form crop, not just a focal point: drag the box to pan,
+           drag the corner handle to zoom (resize keeps the card's aspect
+           ratio locked so whatever's inside the box is exactly what the
+           public card will show — no separate image processing needed,
+           the public site reproduces this with a plain CSS
+           background-size/position pair computed from the same numbers
+           stored here). -->
+      <div class="modal-overlay hidden" id="cropModalOverlay">
+        <div class="modal-card" style="max-width:420px; text-align:left;">
+          <h3>Adjust crop / position</h3>
+          <p class="modal-sub">Drag to pan, drag the corner handle to zoom. This matches exactly what the crew card will show.</p>
+          <div class="crop-stage" id="cropStage">
+            <img id="cropStageImg" alt="" draggable="false"/>
+            <div class="crop-box" id="cropBox">
+              <div class="crop-box-handle" id="cropBoxHandle"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn-ghost" id="cropCancelBtn" style="flex:1;">Cancel</button>
+            <button type="button" class="btn-primary" id="cropConfirmBtn" style="flex:1;">Confirm crop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Page content ---- -->
+      <div class="dash-panel hidden" id="panel-content">
+        <div class="sec-card">
+          <h3>Page content</h3>
+          <p class="cardsub">Edits the copy shown on the public site's homepage (index.html) — hero text, the countdown, and the footer/social links. Leave a field blank to fall back to the site's built-in default rather than showing nothing. Changes apply the next time a visitor loads or refreshes the page.</p>
+
+          <div class="hero-preview" id="heroPreview">
+            <span class="hp-tag">Live preview</span>
+            <p class="hp-eyebrow" id="hpEyebrow">2–5 October · Pune to Goa</p>
+            <h5 class="hp-title" id="hpTitle">Twelve tickets.<br>One Goa.</h5>
+            <p class="hp-sub" id="hpSub">An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide.</p>
+            <div class="hp-ctas">
+              <span class="hp-cta primary" id="hpCtaPrimary">Explore the trip</span>
+              <span class="hp-cta ghost" id="hpCtaSecondary">Reserve a seat</span>
+            </div>
+          </div>
+
+          <div class="content-tabs" id="contentTabs">
+            <div class="content-tab active" data-section="hero">🏖️ Hero</div>
+            <div class="content-tab" data-section="countdown">⏱️ Countdown</div>
+            <div class="content-tab" data-section="crew">🧑‍🤝‍🧑 Crew section</div>
+            <div class="content-tab" data-section="footer">📌 Footer</div>
+            <div class="content-tab" data-section="social">🔗 Social links</div>
+            <div class="content-tab" data-section="banner">📣 Banner</div>
+          </div>
+
+          <form id="contentForm">
+            <div class="content-section active" data-section="hero">
+              <div class="content-card">
+                <h4>Eyebrow &amp; headline</h4>
+                <p>The small line above the headline, then the two headline lines shown on their own rows in the hero.</p>
+                <div class="field-row"><label>Eyebrow line</label><input data-key="hero.eyebrow" maxlength="120" placeholder="2–5 October · Pune to Goa"/><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Headline — line 1</label><input data-key="hero.titleLine1" maxlength="60" placeholder="Twelve tickets."/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Headline — line 2</label><input data-key="hero.titleLine2" maxlength="60" placeholder="One Goa."/><span class="char-count"></span></div>
+                </div>
+              </div>
+              <div class="content-card">
+                <h4>Subtext &amp; buttons</h4>
+                <p>The short paragraph under the headline, and the two CTA button labels.</p>
+                <div class="field-row"><label>Subtext</label><textarea data-key="hero.subtext" maxlength="400" rows="3" placeholder="An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide."></textarea><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Primary button label</label><input data-key="hero.ctaPrimary" maxlength="40" placeholder="Explore the trip"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Secondary button label</label><input data-key="hero.ctaSecondary" maxlength="40" placeholder="Reserve a seat"/><span class="char-count"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="countdown">
+              <div class="content-card">
+                <h4>⏱️ Countdown timer</h4>
+                <p>What the hero's countdown counts down to, and the small caption underneath it.</p>
+                <div class="row">
+                  <div class="field-row"><label>Counts down to (local date &amp; time)</label><input type="datetime-local" data-key="hero.countdownTarget" /></div>
+                  <div class="field-row"><label>Caption under the timer</label><input data-key="hero.countdownCaption" maxlength="60" placeholder="Until wheels-up from Pune"/><span class="char-count"></span></div>
+                </div>
+              </div>
+              <div class="content-card">
+                <h4>🏁 Trip end / return</h4>
+                <p>Once departure passes, the site automatically switches into "ongoing" mode — the countdown flips to counting down to this instead, and the departure board's status pill switches from "Boarding soon" to "Ongoing". After this time passes too, everything switches to "Completed" on its own. Leave blank to use the built-in default (end of day, 5 Oct).</p>
+                <div class="field-row"><label>Trip ends / return leg (local date &amp; time)</label><input type="datetime-local" data-key="hero.tripEndTarget" /></div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="crew">
+              <div class="content-card">
+                <h4>🧑‍🤝‍🧑 Crew section heading</h4>
+                <p>The label and headline above the crew cards. Add the crew members themselves from the "Team / Crew" tab — this only edits the section's copy.</p>
+                <div class="row">
+                  <div class="field-row"><label>Eyebrow label</label><input data-key="team.eyebrow" maxlength="60" placeholder="Who's running this"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Headline</label><input data-key="team.heading" maxlength="60" placeholder="The crew."/><span class="char-count"></span></div>
+                </div>
+                <div class="field-row"><label>Subtext (optional)</label><textarea data-key="team.subtext" maxlength="200" rows="2" placeholder="Leave blank to hide this line entirely."></textarea><span class="char-count"></span></div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="footer">
+              <div class="content-card">
+                <h4>📌 Footer</h4>
+                <p>Shown at the bottom of every page.</p>
+                <div class="field-row"><label>Tagline</label><input data-key="footer.tagline" maxlength="200" placeholder="🫧 Pune → Londa → Goa · built for the crew, edit freely."/><span class="char-count"></span></div>
+                <div class="field-row"><label>Credit name (shown as "D&amp;D by ___")</label><input data-key="footer.credit" maxlength="80" placeholder="Shubham Kumar"/><span class="char-count"></span></div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="social">
+              <div class="content-card">
+                <h4>🔗 Social links</h4>
+                <p>Leave any of these blank to keep that icon in place but unlinked.</p>
+                <div class="row">
+                  <div class="field-row"><label>GitHub</label><input data-key="social.github" maxlength="300" placeholder="https://github.com/…"/></div>
+                  <div class="field-row"><label>Instagram</label><input data-key="social.instagram" maxlength="300" placeholder="https://instagram.com/…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>X / Twitter</label><input data-key="social.twitter" maxlength="300" placeholder="https://x.com/…"/></div>
+                  <div class="field-row"><label>LinkedIn</label><input data-key="social.linkedin" maxlength="300" placeholder="https://linkedin.com/in/…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>WhatsApp</label><input data-key="social.whatsapp" maxlength="300" placeholder="https://wa.me/…"/></div>
+                  <div class="field-row"><label>YouTube</label><input data-key="social.youtube" maxlength="300" placeholder="https://youtube.com/@…"/></div>
+                </div>
+                <div class="row">
+                  <div class="field-row"><label>Facebook</label><input data-key="social.facebook" maxlength="300" placeholder="https://facebook.com/…"/></div>
+                  <div class="field-row"><label>Email</label><input data-key="social.email" maxlength="300" placeholder="mailto:you@example.com"/></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-section" data-section="banner">
+              <div class="content-card">
+                <h4>📣 Announcement banner</h4>
+                <p>The strip shown above the nav on the homepage (e.g. "Train reservation chart has been prepared…"). Leave text blank to use the built-in default wording.</p>
+                <div class="check-row">
+                  <input type="checkbox" id="bannerEnabled" data-key="banner.enabled"/>
+                  <label for="bannerEnabled">Show the announcement banner<span class="check-hint">Uncheck to hide it site-wide, without losing the saved text/settings below.</span></label>
+                </div>
+                <div class="field-row"><label>Message text</label><textarea data-key="banner.text" maxlength="300" rows="2" placeholder="Train reservation chart has been prepared and shared on the WhatsApp group — please check it there, or"></textarea><span class="char-count"></span></div>
+                <div class="row">
+                  <div class="field-row"><label>Link label</label><input data-key="banner.linkText" maxlength="60" placeholder="contact the management"/><span class="char-count"></span></div>
+                  <div class="field-row"><label>Link target</label><input data-key="banner.linkUrl" maxlength="300" placeholder="#team"/><span class="char-count"></span></div>
+                </div>
+              </div>
+              <div class="content-card">
+                <h4>🎞️ Marquee (scrolling) effect</h4>
+                <p>Controls whether the banner text scrolls, and how.</p>
+                <div class="check-row">
+                  <input type="checkbox" id="bannerMarqueeEnabled" data-key="banner.marqueeEnabled"/>
+                  <label for="bannerMarqueeEnabled">Enable scrolling (marquee)<span class="check-hint">Unchecked = the text stays still, centered in the banner.</span></label>
+                </div>
+
+                <div class="field-row">
+                  <label>Direction</label>
+                  <div class="pill-radio-group" id="bannerDirectionGroup">
+                    <input type="radio" name="banner.direction" id="bdirLeft" value="left"/><label class="pill-radio-opt" for="bdirLeft">⬅️ Left</label>
+                    <input type="radio" name="banner.direction" id="bdirRight" value="right"/><label class="pill-radio-opt" for="bdirRight">➡️ Right</label>
+                    <input type="radio" name="banner.direction" id="bdirUp" value="up"/><label class="pill-radio-opt" for="bdirUp">⬆️ Up</label>
+                    <input type="radio" name="banner.direction" id="bdirDown" value="down"/><label class="pill-radio-opt" for="bdirDown">⬇️ Down</label>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <label>Speed</label>
+                  <div class="pill-radio-group" id="bannerSpeedGroup">
+                    <input type="radio" name="banner.speed" id="bspeedSlow" value="slow"/><label class="pill-radio-opt" for="bspeedSlow">🐢 Slow</label>
+                    <input type="radio" name="banner.speed" id="bspeedMedium" value="medium"/><label class="pill-radio-opt" for="bspeedMedium">🚶 Medium</label>
+                    <input type="radio" name="banner.speed" id="bspeedFast" value="fast"/><label class="pill-radio-opt" for="bspeedFast">🐇 Fast</label>
+                  </div>
+                </div>
+
+                <div class="check-row">
+                  <input type="checkbox" id="bannerPauseOnHover" data-key="banner.pauseOnHover"/>
+                  <label for="bannerPauseOnHover">Stop at mouse collision<span class="check-hint">Checked = scrolling pauses while the cursor is over the banner. Unchecked = it never stops.</span></label>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:8px; display:flex; gap:10px; align-items:center;">
+              <button type="submit" class="btn-primary">Save changes</button>
+              <span class="sync-dot" id="contentSyncDot"></span>
+              <span class="mono" id="contentSaveStatus" style="font-size:12px; opacity:.6;"></span>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -671,14 +1059,29 @@
   </div>
 </div>
 
-<!-- ============ PIN CHANGE MODAL (forced on first login after approval) ============ -->
+<!-- ============ WALLET REJECT REASON MODAL ============ -->
+<div class="modal-overlay hidden" id="walletRejectModalOverlay">
+  <div class="modal-card" style="max-width:420px; text-align:left;">
+    <h3>Reject this record?</h3>
+    <p class="modal-sub" id="walletRejectModalSub"></p>
+    <div class="gate-banner" id="walletRejectModalBanner"></div>
+    <div class="gate-field"><label>Reason (optional, shown to the submitter)</label><textarea id="wr-reason" rows="3" maxlength="300" placeholder="e.g. Receipt missing / amount doesn't match"></textarea></div>
+    <div style="display:flex; gap:10px; margin-top:6px;">
+      <button type="button" class="btn-ghost" id="walletRejectCancelBtn" style="flex:1;">Cancel</button>
+      <button type="button" class="btn-danger" id="walletRejectConfirmBtn" style="flex:1;">Reject record</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PIN CHANGE MODAL (forced on first login after approval, or
+     opened voluntarily any time via the "Change PIN" button) ============ -->
 <div class="modal-overlay hidden" id="pinModalOverlay">
   <div class="modal-card">
     <div class="gate-badge" style="width:52px;height:52px;border-radius:16px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h3>Set your PIN</h3>
-    <p class="modal-sub">You logged in with a temporary PIN. Choose a permanent 6-digit PIN — you'll use it to log in from now on.</p>
+    <h3 id="pinModalTitle">Set your PIN</h3>
+    <p class="modal-sub" id="pinModalSub">You logged in with a temporary PIN. Choose a permanent 6-digit PIN — you'll use it to log in from now on.</p>
     <div class="gate-banner" id="pinModalBanner"></div>
     <form id="pinChangeForm">
       <div class="gate-field">
@@ -694,6 +1097,7 @@
         <span class="btn-spinner"></span>
         <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
+      <button type="button" class="btn-ghost hidden" id="pinChangeCancelBtn" style="width:100%; margin-top:8px;">Cancel</button>
     </form>
   </div>
 </div>
@@ -709,10 +1113,36 @@ async function callGet(params){
 }
 async function callPost(body){
   const res = await fetch(FUNCTIONS_BASE + '/admin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  return res.json();
+  const data = await res.json();
+  // A 401, or an explicit "session expired" message from the server, means
+  // this admin's token is no longer valid (12h TTL, or revoked). Previously
+  // each call site just showed the error text in a banner and left the
+  // dashboard visible — every next action would fail the same way with no
+  // path back to login. Handle it once, here, for every caller.
+  const looksExpired = res.status === 401 || /session expired|invalid.*log in again/i.test(data && data.error || '');
+  if(looksExpired && body.action !== 'login' && body.action !== 'requestAdmin'){
+    clearSession();
+    showLoggedOut();
+    setMode('login');
+    showGateBanner('bad', 'Your session expired — please log in again.');
+  }
+  return data;
 }
 async function callRegistrationPost(body){
   const url = FUNCTIONS_BASE + '/registration?tripId=' + encodeURIComponent(currentTripId || '');
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
+// wallet.js takes tripId as a query param on both GET and POST (see its
+// handler — params.tripId, not something read out of the body), so both
+// helpers below build the URL the same way callRegistrationPost does.
+async function callWalletGet(params){
+  const url = FUNCTIONS_BASE + '/wallet?' + new URLSearchParams({ ...params, tripId: currentTripId || '' }).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function callWalletPost(body){
+  const url = FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(currentTripId || '');
   const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   return res.json();
 }
@@ -742,6 +1172,8 @@ function showLoggedIn(name){
   loadCancellations();
   loadBoardMembers();
   loadCrew();
+  loadContent();
+  loadWalletApprovals();
 }
 
 /* ---------- mobile sidebar toggle ---------- */
@@ -761,7 +1193,9 @@ const TAB_TITLES = {
   admins: ['Console', 'Admins & security'],
   registrations: ['Console', 'Registrations'],
   cancellations: ['Console', 'Cancellations'],
+  wallet: ['Console', 'Wallet approvals'],
   crew: ['Console', 'Team / Crew'],
+  content: ['Console', 'Page content'],
 };
 document.querySelectorAll('.dash-tab').forEach(tab=>{
   tab.addEventListener('click', ()=>{
@@ -794,15 +1228,35 @@ let currentTripId = null;
 async function populateTripPicker(){
   const sel = el('tripPicker');
   if(!sel) return;
-  const res = await fetch(FUNCTIONS_BASE + '/trips').then(r=>r.json());
-  const trips = res.trips || [];
-  sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
-  currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
-  if(currentTripId) sel.value = currentTripId;
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); });
+  // Wrapped defensively: this is awaited directly inside the boot() IIFE
+  // below, which has no top-level catch of its own. If this fetch throws
+  // (network hiccup, cold start, non-JSON error body) without being
+  // caught here, boot() rejects and everything after this call — the
+  // getToken()/whoAmI check that decides whether to show the dashboard
+  // or the login gate — never runs, leaving a returning admin stuck on
+  // a half-initialized page with no error shown.
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/trips').then(r=>r.json());
+    const trips = res.trips || [];
+    sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
+    currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
+    if(currentTripId) sel.value = currentTripId;
+  }catch(err){
+    console.warn('populateTripPicker failed — trip list unavailable, continuing boot anyway.', err);
+  }
+  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); loadWalletApprovals(); });
 }
 
 /* ---------- gate mode switch ---------- */
+function togglePinVisibility(){
+  const input = el('l-code'), btn = el('lCodeToggle');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.setAttribute('aria-label', showing ? 'Show PIN' : 'Hide PIN');
+  btn.innerHTML = showing
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.4 20.4 0 0 1 4.22-5.94M9.9 4.24A10.6 10.6 0 0 1 12 4c7 0 11 8 11 8a20.5 20.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+}
 function setMode(mode){
   const isReq = mode === 'request';
   el('switchRequest').classList.toggle('active', isReq);
@@ -872,17 +1326,36 @@ el('loginForm').addEventListener('submit', async e=>{
   finally{ setBtnLoading(btn, false); el('gateBadge').classList.remove('is-loading'); }
 });
 
-el('logoutBtn').addEventListener('click', ()=>{ clearSession(); showLoggedOut(); setMode('login'); });
+el('logoutBtn').addEventListener('click', ()=>{
+  const token = getToken();
+  clearSession(); showLoggedOut(); setMode('login');
+  // Best-effort: invalidate the token server-side too, so it can't still
+  // be used (e.g. if it leaked) for the rest of its 12h TTL after logout.
+  // Fire-and-forget — the UI has already logged the user out regardless.
+  if(token) callPost({ action:'logout', token }).catch(()=>{});
+});
 
-/* ---------- forced PIN change (first login after approval) ---------- */
-function showPinModal(){
-  el('dashboardWrap').classList.add('hidden');
-  el('gateWrap').classList.add('hidden');
+/* ---------- PIN change: forced on first login after approval, or
+   voluntary any time via the dashboard's "Change PIN" button ---------- */
+let pinModalVoluntary = false;
+function showPinModal(voluntary){
+  pinModalVoluntary = !!voluntary;
+  if(!voluntary){
+    el('dashboardWrap').classList.add('hidden');
+    el('gateWrap').classList.add('hidden');
+  }
+  el('pinModalTitle').textContent = voluntary ? 'Change your PIN' : 'Set your PIN';
+  el('pinModalSub').textContent = voluntary
+    ? 'Choose a new 6-digit PIN — you\u2019ll use it to log in from now on.'
+    : 'You logged in with a temporary PIN. Choose a permanent 6-digit PIN — you\u2019ll use it to log in from now on.';
+  el('pinChangeCancelBtn').classList.toggle('hidden', !voluntary);
   el('pinModalOverlay').classList.remove('hidden');
   el('pinModalBanner').className = 'gate-banner';
   el('pinChangeForm').reset();
 }
 function hidePinModal(){ el('pinModalOverlay').classList.add('hidden'); }
+el('changePinBtn').addEventListener('click', ()=> showPinModal(true));
+el('pinChangeCancelBtn').addEventListener('click', ()=> hidePinModal());
 
 el('pinChangeForm').addEventListener('submit', async e=>{
   e.preventDefault();
@@ -899,7 +1372,8 @@ el('pinChangeForm').addEventListener('submit', async e=>{
     const res = await callPost({ action:'changePin', token:getToken(), newPin });
     if(!res.ok) throw new Error(res.message || 'Could not set PIN.');
     hidePinModal();
-    showLoggedIn(sessionStorage.getItem('goaAdminName'));
+    if(pinModalVoluntary){ showDashBanner('ok', 'PIN updated.'); }
+    else{ showLoggedIn(sessionStorage.getItem('goaAdminName')); }
   }catch(err){
     banner.className = 'gate-banner show bad';
     banner.textContent = err.message;
@@ -907,15 +1381,50 @@ el('pinChangeForm').addEventListener('submit', async e=>{
 });
 
 /* ---------- flags dashboard ---------- */
+// Every data-feature="…" key actually present in the site's HTML,
+// kept in sync by hand whenever a new one gets tagged in code. `server`
+// marks the handful with real backend enforcement (registration.js /
+// itinerary.js / wallet.js all call isFeatureEnabled()-equivalent
+// checks, or in wallet.locked's case a dedicated column) — the rest
+// (wallet.viewParticipants etc., boardingPass.*, cancellation.*) are
+// front-end-only: turning them off hides the control, but nothing
+// stops a direct API call, since those endpoints don't check the flag
+// themselves. Both kinds are worth having a toggle for, but an admin
+// should know which kind they're flipping.
+const KNOWN_FEATURE_KEYS = [
+  { featureKey:'index.registration',        label:'Registration form',           page:'index.html',        server:true },
+  { featureKey:'itinerary.editing',         label:'Itinerary editing',           page:'itinerary.html',    server:true },
+  { featureKey:'wallet.locked',             label:'Lock wallet (final submission)', page:'goa-wallet.html', server:true },
+  { featureKey:'wallet.viewParticipants',   label:'Participants & Balances',     page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.activityLog',        label:'Activity Log',                page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.refresh',            label:'Refresh',                     page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.addExpense',         label:'Add expense',                 page:'goa-wallet.html',   server:false },
+  { featureKey:'wallet.settlements',        label:'Record a settlement',         page:'goa-wallet.html',   server:false },
+  { featureKey:'boardingPass.lookup',       label:'Boarding pass lookup',        page:'boarding-pass.html', server:false },
+  { featureKey:'boardingPass.download',     label:'Boarding pass download',      page:'boarding-pass.html', server:false },
+  { featureKey:'cancellation.submitRequest',label:'Submit cancellation request', page:'cancellation.html', server:false },
+  { featureKey:'cancellation.checkStatus',  label:'Check cancellation status',   page:'cancellation.html', server:false },
+];
+function enforcementBadge(featureKey){
+  const known = KNOWN_FEATURE_KEYS.find(k => k.featureKey === featureKey);
+  if(!known) return '';
+  return known.server
+    ? '<span class="flag-enforced server">🛡 server-enforced</span>'
+    : '<span class="flag-enforced client">👁 front-end only</span>';
+}
+
 function renderFlags(flags){
   el('flagList').innerHTML = flags.map(f => `
-    <div class="flag-row">
-      <div class="flag-meta">
-        <div class="label">${escapeHtml(f.label)}</div>
-        <div class="page">${escapeHtml(f.page || '')}</div>
-        <div class="key">${escapeHtml(f.featureKey)}</div>
+    <div class="flag-card ${f.enabled ? 'is-on':''}">
+      <div class="flag-card-top">
+        <div class="flag-meta">
+          <div class="label">${escapeHtml(f.label)}</div>
+          <div class="page">${escapeHtml(f.page || '')}</div>
+          <div class="key">${escapeHtml(f.featureKey)}</div>
+          ${enforcementBadge(f.featureKey)}
+        </div>
+        <button class="toggle ${f.enabled ? 'on':''}" data-key="${escapeHtml(f.featureKey)}" data-label="${escapeHtml(f.label)}" data-page="${escapeHtml(f.page||'')}" data-enabled="${f.enabled}"></button>
       </div>
-      <button class="toggle ${f.enabled ? 'on':''}" data-key="${escapeHtml(f.featureKey)}" data-label="${escapeHtml(f.label)}" data-page="${escapeHtml(f.page||'')}" data-enabled="${f.enabled}"></button>
     </div>`).join('');
   document.querySelectorAll('.toggle').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -925,10 +1434,51 @@ function renderFlags(flags){
         const res = await callPost({ action:'updateFlag', token:getToken(), tripId: currentTripId, featureKey:btn.dataset.key, enabled:newVal, label:btn.dataset.label, page:btn.dataset.page });
         if(res.error) throw new Error(res.error);
         renderFlags(res.flags);
+        renderMissingFlags(res.flags);
       }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
     });
   });
 }
+
+function renderMissingFlags(flags){
+  const wrap = el('missingFlagsWrap');
+  if(!wrap) return;
+  const existingKeys = new Set((flags || []).map(f => f.featureKey));
+  const missing = KNOWN_FEATURE_KEYS.filter(k => !existingKeys.has(k.featureKey));
+  if(!missing.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <h4 style="margin:2px 0 10px;">Not set up yet</h4>
+    <p style="font-size:12.5px; color:var(--teal-700); opacity:.8; margin:0 0 12px;">These are already wired into the site's code but don't have a toggle here yet — they default to enabled for everyone until you add one.</p>
+    <div class="missing-flags">
+      ${missing.map(k => `
+        <div class="flag-card is-missing">
+          <div class="flag-meta">
+            <div class="label">${escapeHtml(k.label)}</div>
+            <div class="page">${escapeHtml(k.page)}</div>
+            <div class="key">${escapeHtml(k.featureKey)}</div>
+            ${k.server ? '<span class="flag-enforced server">🛡 server-enforced</span>' : '<span class="flag-enforced client">👁 front-end only</span>'}
+          </div>
+          <button type="button" class="btn-ghost" data-add-key="${escapeHtml(k.featureKey)}" data-add-label="${escapeHtml(k.label)}" data-add-page="${escapeHtml(k.page)}">+ Add toggle</button>
+        </div>`).join('')}
+    </div>`;
+  wrap.querySelectorAll('button[data-add-key]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true; btn.textContent = 'Adding…';
+      try{
+        const res = await callPost({
+          action:'updateFlag', token:getToken(), tripId: currentTripId,
+          featureKey: btn.dataset.addKey, enabled:true,
+          label: btn.dataset.addLabel, page: btn.dataset.addPage,
+        });
+        if(res.error) throw new Error(res.error);
+        renderFlags(res.flags);
+        renderMissingFlags(res.flags);
+        showDashBanner('ok', `${btn.dataset.addLabel} now has a toggle.`);
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; btn.textContent = '+ Add toggle'; }
+    });
+  });
+}
+
 
 /* ---------- pending admin requests (fallback for when the email fails) ---------- */
 async function loadPendingAdmins(){
@@ -966,8 +1516,122 @@ function renderPendingAdmins(pending){
   });
 }
 
+/* ---------- wallet approvals ---------- */
+let currentWalletState = { expenses: [], settlements: [], deposits: [] };
+function walletStatusPillHtml(status){
+  const cls = status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected'
+    : status === 'pending_approval' ? 'Pending' : 'Draft';
+  const label = status === 'pending_approval' ? 'pending approval' : (status || 'draft');
+  return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
+}
+async function loadWalletApprovals(){
+  if(!currentTripId) return;
+  try{
+    const res = await callWalletGet({ token: getToken() });
+    if(res.error) throw new Error(res.error);
+    currentWalletState = res;
+    renderWalletApprovals();
+    const pending = ['expenses','settlements','deposits']
+      .reduce((sum, k) => sum + (res[k] || []).filter(r => r.status === 'pending_approval').length, 0);
+    const badge = el('sbWalletBadge');
+    if(badge){
+      if(pending > 0){ badge.textContent = pending; badge.style.display = 'inline-block'; badge.classList.add('warn'); }
+      else{ badge.style.display = 'none'; }
+    }
+  }catch(err){ console.warn('loadWalletApprovals failed', err); }
+}
+// Flattens the three record types into one list with a shared shape for
+// rendering — each record already carries its own status/submittedBy/
+// approvedBy/etc from wallet.js's approvalFields(), just under different
+// field names per type (createdBy vs actor vs loggedBy for "who"), so
+// this is mainly picking the right label/who/amount out of each shape.
+function flattenWalletRecords(){
+  const expenses = (currentWalletState.expenses || []).map(r => ({
+    recordType: 'expense', id: r.id, label: r.title, who: r.createdBy, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  const settlements = (currentWalletState.settlements || []).map(r => ({
+    recordType: 'settlement', id: r.id, label: `${r.from} → ${r.to}`, who: r.actor, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  const deposits = (currentWalletState.deposits || []).map(r => ({
+    recordType: 'deposit', id: r.id, label: `${r.person} (${r.type})`, who: r.loggedBy, amount: r.amount,
+    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
+    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+  }));
+  return [...expenses, ...settlements, ...deposits];
+}
+function renderWalletApprovals(){
+  const box = el('walletApprovalList');
+  if(!box) return;
+  const filterVal = el('walletFilter') ? el('walletFilter').value : 'pending_approval';
+  let records = flattenWalletRecords();
+  if(filterVal) records = records.filter(r => r.status === filterVal);
+  if(!records.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">Nothing here right now.</p>'; return; }
+  box.innerHTML = records.map(r => `
+    <div class="flag-row">
+      <div class="flag-meta">
+        <div class="label"><span class="wallet-type-tag">${escapeHtml(r.recordType)}</span>${escapeHtml(r.label)} ${walletStatusPillHtml(r.status)}</div>
+        <div class="page">Rs.${escapeHtml(String(r.amount))} · by ${escapeHtml(r.who || '—')}${r.status === 'rejected' && r.rejectionReason ? ' · ' + escapeHtml(r.rejectionReason) : ''}</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        ${r.status === 'pending_approval' ? `
+          <button class="btn-ghost" data-approve data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Approve</button>
+          <button class="btn-danger" data-reject data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Reject</button>
+        ` : ''}
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('button[data-approve]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        const res = await callWalletPost({ action:'approveRecord', token:getToken(), payload:{ recordType: btn.dataset.type, id: btn.dataset.id } });
+        if(res.error) throw new Error(res.error);
+        showDashBanner('ok', 'Record approved.');
+        loadWalletApprovals();
+      }catch(err){ showDashBanner('bad', err.message); btn.disabled = false; }
+    });
+  });
+  box.querySelectorAll('button[data-reject]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openWalletRejectModal(btn.dataset.type, btn.dataset.id));
+  });
+}
+let walletRejectTarget = null;
+function openWalletRejectModal(recordType, id){
+  walletRejectTarget = { recordType, id };
+  el('walletRejectModalBanner').className = 'gate-banner';
+  el('wr-reason').value = '';
+  el('walletRejectModalSub').textContent = `${recordType} ${id}`;
+  el('walletRejectModalOverlay').classList.remove('hidden');
+}
+function closeWalletRejectModal(){ el('walletRejectModalOverlay').classList.add('hidden'); walletRejectTarget = null; }
+el('walletRejectCancelBtn').addEventListener('click', closeWalletRejectModal);
+el('walletRejectConfirmBtn').addEventListener('click', async ()=>{
+  if(!walletRejectTarget) return;
+  const btn = el('walletRejectConfirmBtn');
+  btn.disabled = true;
+  try{
+    const res = await callWalletPost({
+      action:'rejectRecord', token:getToken(),
+      payload:{ recordType: walletRejectTarget.recordType, id: walletRejectTarget.id, reason: el('wr-reason').value.trim() },
+    });
+    if(res.error) throw new Error(res.error);
+    closeWalletRejectModal();
+    showDashBanner('ok', 'Record rejected.');
+    loadWalletApprovals();
+  }catch(err){
+    el('walletRejectModalBanner').className = 'gate-banner show bad';
+    el('walletRejectModalBanner').textContent = err.message;
+  }finally{ btn.disabled = false; }
+});
+
 /* ---------- admins & security ---------- */
 let currentAdmins = [];
+// The one account that can never be revoked or deleted — by anyone,
+// including itself. Matched case-insensitively like isSelf already is.
+const MASTER_ADMIN_NAME = 'Shubham Kumar';
 async function loadAdminList(){
   try{
     const res = await callPost({ action:'listAdmins', token:getToken() });
@@ -983,6 +1647,7 @@ function renderAdminList(){
   if(!currentAdmins.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No admins yet.</p>'; return; }
   box.innerHTML = currentAdmins.map(a => {
     const isSelf = myName && a.name.toLowerCase() === myName.toLowerCase();
+    const isMaster = a.name.trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase();
     const flags = [];
     if(a.isLocked) flags.push('🔒 locked');
     else if(a.failedAttempts > 0) flags.push(`⚠ ${a.failedAttempts} failed attempt${a.failedAttempts===1?'':'s'}`);
@@ -990,18 +1655,30 @@ function renderAdminList(){
     return `
     <div class="data-row">
       <div class="data-meta">
-        <div class="label">${escapeHtml(a.name)} <span class="status-pill ${a.status}">${a.status}</span></div>
+        <div class="label">${escapeHtml(a.name)} <span class="status-pill ${a.status}">${a.status}</span>${isMaster ? ' <span class="status-pill" style="background:rgba(29,29,31,.08); color:var(--ink);">★ Master admin</span>' : ''}</div>
         <div class="sub">${escapeHtml(a.email)}${flags.length ? ' · ' + flags.join(' · ') : ''}</div>
       </div>
       <div class="row-actions">
-        ${a.status === 'Approved' && !isSelf ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
+        ${a.status === 'Approved' && !isSelf && !isMaster ? `<button class="btn-ghost" data-action="revoke" data-name="${escapeHtml(a.name)}">Revoke</button>` : ''}
         ${(a.status === 'Revoked' || a.status === 'Rejected') ? `<button class="btn-ghost" data-action="reinstate" data-name="${escapeHtml(a.name)}">Restore</button>` : ''}
         ${(a.isLocked || a.failedAttempts > 0) ? `<button class="btn-ghost" data-action="unlock" data-name="${escapeHtml(a.name)}">Unlock</button>` : ''}
+        ${!isSelf && !isMaster ? `<button class="btn-danger" data-action="delete" data-name="${escapeHtml(a.name)}">Delete</button>` : ''}
       </div>
     </div>`;
   }).join('');
   box.querySelectorAll('button[data-action]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
+      // Belt-and-braces: the buttons are already hidden for the master
+      // admin above, but never trust rendering alone — refuse here too.
+      if((btn.dataset.action === 'delete' || btn.dataset.action === 'revoke')
+        && btn.dataset.name.trim().toLowerCase() === MASTER_ADMIN_NAME.toLowerCase()){
+        showDashBanner('bad', `${MASTER_ADMIN_NAME} is the master admin and can't be revoked or deleted.`);
+        return;
+      }
+      if(btn.dataset.action === 'delete'){
+        const sure = confirm(`Permanently delete admin "${btn.dataset.name}"? This removes their account entirely and can't be undone — they'd need to request access again from scratch.`);
+        if(!sure) return;
+      }
       btn.disabled = true;
       try{
         const res = await callPost({ action: btn.dataset.action + 'Admin', token:getToken(), name:btn.dataset.name });
@@ -1060,6 +1737,7 @@ async function loadFlags(){
     const res = await callGet({ action:'flags', tripId: currentTripId });
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
+    renderMissingFlags(res.flags);
   }catch(err){ showDashBanner('bad', err.message); }
 }
 
@@ -1091,15 +1769,444 @@ async function loadCrew(){
 function renderCrew(){
   const box = el('crewList'); if(!box) return;
   if(!currentCrew.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">No crew members added yet — the Crew section on the site will show empty until you add some.</p>'; return; }
-  box.innerHTML = currentCrew.map((m,i)=>`<div class="flag-row" data-id="${Number(m.id)}"><div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}</div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`).join('');
+  box.innerHTML = currentCrew.map((m,i)=>{
+    const hasPhoto = !!m.photoUrl;
+    const thumb = hasPhoto
+      ? `<div class="crew-row-thumb"><div style="width:100%;height:100%;background-repeat:no-repeat;${crewCropStyle(m.photoUrl, m.crop)}"></div></div>`
+      : `<div class="crew-row-thumb missing" title="No photo uploaded yet">🖼️</div>`;
+    return `<div class="flag-row" data-id="${Number(m.id)}"><div style="display:flex; gap:12px; align-items:center; min-width:0;">${thumb}<div class="flag-meta"><div class="label">${escapeHtml(m.name||'')}</div><div class="page">${escapeHtml(m.role||'')}</div>${m.note?`<div class="key" style="text-transform:none; letter-spacing:normal; opacity:.7;">${escapeHtml(m.note)}</div>`:''}${!hasPhoto?'<div class="crew-photo-required-badge">Photo required — hidden on site</div>':''}</div></div><div style="display:flex; gap:6px; align-items:center;"><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="up" ${i===0?'disabled':''} title="Move up">↑</button><button class="btn-icon" style="border-color:var(--line); color:var(--ink); background:white;" data-act="down" ${i===currentCrew.length-1?'disabled':''} title="Move down">↓</button><button class="btn-ghost" data-act="edit" style="padding:7px 14px; font-size:12.5px;">Edit</button><button class="btn-ghost" data-act="remove" style="padding:7px 14px; font-size:12.5px; border-color:rgba(232,93,42,.35); color:var(--mango-2);">Remove</button></div></div>`;
+  }).join('');
   box.querySelectorAll('[data-act]').forEach(btn=>btn.addEventListener('click',async()=>{
     const row=btn.closest('[data-id]'), id=Number(row.dataset.id), act=btn.dataset.act, idx=currentCrew.findIndex(m=>Number(m.id)===id); if(idx<0)return;
     if(act==='remove'){ if(!confirm('Remove this crew member from the site?'))return; btn.disabled=true; const res=await callCrewPost({action:'remove',token:getToken(),tripId:currentTripId,id}); if(res.error){showDashBanner('bad',res.error);btn.disabled=false;return;} currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member removed.');return; }
-    if(act==='edit'){ const m=currentCrew[idx]; const name=prompt('Name',m.name||'');if(name===null)return;const role=prompt('Position / Role',m.role||'');if(role===null)return;const note=prompt('Note (optional)',m.note||'');if(note===null)return;if(!name.trim()||!role.trim()){showDashBanner('bad','Name and role are required.');return;}const res=await callCrewPost({action:'update',token:getToken(),tripId:currentTripId,id,payload:{name:name.trim(),role:role.trim(),note:note.trim()}});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew member updated.');return; }
+    if(act==='edit'){ openCrewModal(currentCrew[idx]); return; }
     const swap=act==='up'?idx-1:idx+1;if(swap<0||swap>=currentCrew.length)return;const order=currentCrew.map(m=>Number(m.id));[order[idx],order[swap]]=[order[swap],order[idx]];const res=await callCrewPost({action:'reorder',token:getToken(),tripId:currentTripId,order});if(res.error){showDashBanner('bad',res.error);return;}currentCrew=res.crew||[];renderCrew();showDashBanner('ok','Crew order updated.');
   }));
 }
-el('addCrewForm')?.addEventListener('submit',async e=>{e.preventDefault();if(!currentTripId){showDashBanner('bad','Select a trip first.');return;}try{const res=await callCrewPost({action:'add',token:getToken(),tripId:currentTripId,payload:{name:el('cm-name').value.trim(),role:el('cm-role').value.trim(),note:el('cm-note').value.trim()}});if(res.error)throw new Error(res.error);currentCrew=res.crew||[];renderCrew();el('addCrewForm').reset();showDashBanner('ok','Crew member added.');}catch(err){showDashBanner('bad',err.message);}});
+
+/* ---------- crew photo field: a typed filename resolved under pictures/crew/ ----------
+   No upload here — the image itself has to be added to the repo (via
+   git/deploy) under pictures/crew/ first, same as the existing
+   pictures/seal.png asset. This just records the filename and shows a
+   live preview by pointing an <img> at it, so a typo or a not-yet-
+   deployed file is obvious before saving rather than after. */
+const SAFE_FILENAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(jpg|jpeg|png|webp|gif|avif)$/i;
+
+// Locked to the public crew card's own aspect ratio (see .crew-card in
+// shared.css) so whatever's inside the crop box here is pixel-for-pixel
+// what the card shows — no separate resize/export step needed.
+const CREW_CARD_ASPECT = 4 / 5; // width / height
+
+// Builds the background-image CSS that reproduces a given crop exactly.
+// With no crop, falls back to a plain centered cover — same look the
+// site had before crop existed, so uncropped legacy entries still
+// render sensibly.
+function crewCropStyle(url, crop){
+  if(!url) return '';
+  if(!crop){
+    return `background-image:url('${url}'); background-size:cover; background-position:center 22%;`;
+  }
+  const w = Math.max(crop.w, 0.0001), h = Math.max(crop.h, 0.0001);
+  const sizeW = 100 / w, sizeH = 100 / h;
+  const posX = (1 - w) > 0.0001 ? (crop.x / (1 - w)) * 100 : 0;
+  const posY = (1 - h) > 0.0001 ? (crop.y / (1 - h)) * 100 : 0;
+  return `background-image:url('${url}'); background-size:${sizeW}% ${sizeH}%; background-position:${posX}% ${posY}%;`;
+}
+
+function updateCrewPhotoPreview(){
+  const raw = el('crewf-photofile').value.trim();
+  const preview = el('crewPhotoPreview');
+  const status = el('crewPhotoStatus');
+  const adjustBtn = el('crewAdjustCropBtn');
+  // Typing a new filename invalidates any crop picked for the old one —
+  // it was chosen against a different photo and won't line up.
+  if(crewModalPhotoFile !== raw) crewModalCrop = null;
+  crewModalPhotoFile = raw;
+  if(!raw){
+    preview.innerHTML = '<span id="crewPhotoPlaceholder">No filename yet</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status';
+    status.textContent = '';
+    adjustBtn.style.display = 'none';
+    return;
+  }
+  if(!SAFE_FILENAME_RE.test(raw)){
+    preview.innerHTML = '<span>Invalid filename</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status bad';
+    status.textContent = 'Use a plain filename like shubham.jpg — no folders or URLs.';
+    adjustBtn.style.display = 'none';
+    return;
+  }
+  const url = 'pictures/crew/' + encodeURIComponent(raw);
+  status.className = 'crew-photo-status';
+  status.textContent = 'Checking…';
+  adjustBtn.style.display = 'none';
+  const img = new Image();
+  img.onload = ()=>{
+    preview.innerHTML = `<div class="crew-photo-preview-img" style="${crewCropStyle(url, crewModalCrop)}"></div>`;
+    preview.classList.add('has-image');
+    status.className = 'crew-photo-status ok';
+    status.textContent = 'Found in pictures/crew/.';
+    adjustBtn.style.display = 'inline-block';
+  };
+  img.onerror = ()=>{
+    preview.innerHTML = '<span>Not found</span>';
+    preview.classList.remove('has-image');
+    status.className = 'crew-photo-status bad';
+    status.textContent = 'No file at pictures/crew/' + raw + ' yet — add it to the repo and redeploy, or check the spelling.';
+    adjustBtn.style.display = 'none';
+  };
+  img.src = url;
+}
+el('crewf-photofile')?.addEventListener('input', updateCrewPhotoPreview);
+
+/* ---------- crop / position picker ----------
+   A free-form crop: drag the box to pan, drag the corner handle to
+   zoom (resize is aspect-locked to CREW_CARD_ASPECT so the box always
+   represents exactly what the card will show). Coordinates are tracked
+   in on-screen stage pixels while dragging, then converted to 0..1
+   fractions of the image's natural size on confirm — those fractions
+   are what gets sent to crew.js and stored. */
+let cropStageState = null; // {dispW, dispH, offX, offY, stageSize}
+let cropBoxRect = null;    // {x,y,w,h} in stage px, x/y relative to stage origin (includes offX/offY)
+let cropDrag = null;       // {mode:'move'|'resize', startX, startY, orig:{...}}
+
+function cropDefaultBox(state){
+  const { dispW, dispH, offX, offY } = state;
+  let w, h;
+  if(dispW / dispH > CREW_CARD_ASPECT){ h = dispH; w = h * CREW_CARD_ASPECT; }
+  else { w = dispW; h = w / CREW_CARD_ASPECT; }
+  return { x: offX + (dispW - w) / 2, y: offY + (dispH - h) / 2, w, h };
+}
+
+function cropRectFromFraction(state, crop){
+  const { dispW, dispH, offX, offY } = state;
+  return { x: offX + crop.x * dispW, y: offY + crop.y * dispH, w: crop.w * dispW, h: crop.h * dispH };
+}
+
+function renderCropBox(){
+  const boxEl = el('cropBox');
+  boxEl.style.left = cropBoxRect.x + 'px';
+  boxEl.style.top = cropBoxRect.y + 'px';
+  boxEl.style.width = cropBoxRect.w + 'px';
+  boxEl.style.height = cropBoxRect.h + 'px';
+}
+
+function openCropModal(){
+  const raw = crewModalPhotoFile;
+  if(!raw || !SAFE_FILENAME_RE.test(raw)) return;
+  const url = 'pictures/crew/' + encodeURIComponent(raw);
+  const stageImg = el('cropStageImg');
+  const stage = el('cropStage');
+
+  stageImg.onload = ()=>{
+    const stageSize = stage.clientWidth; // square stage (see CSS aspect-ratio:1/1)
+    const scale = Math.min(stageSize / stageImg.naturalWidth, stageSize / stageImg.naturalHeight);
+    const dispW = stageImg.naturalWidth * scale, dispH = stageImg.naturalHeight * scale;
+    const offX = (stageSize - dispW) / 2, offY = (stageSize - dispH) / 2;
+    stageImg.style.width = dispW + 'px';
+    stageImg.style.height = dispH + 'px';
+    stageImg.style.left = offX + 'px';
+    stageImg.style.top = offY + 'px';
+    cropStageState = { dispW, dispH, offX, offY, stageSize };
+    cropBoxRect = crewModalCrop ? cropRectFromFraction(cropStageState, crewModalCrop) : cropDefaultBox(cropStageState);
+    renderCropBox();
+  };
+  stageImg.src = url;
+  el('cropModalOverlay').classList.remove('hidden');
+}
+function closeCropModal(){ el('cropModalOverlay').classList.add('hidden'); }
+el('crewAdjustCropBtn')?.addEventListener('click', openCropModal);
+el('cropCancelBtn')?.addEventListener('click', closeCropModal);
+
+el('cropConfirmBtn')?.addEventListener('click', ()=>{
+  if(!cropStageState || !cropBoxRect) { closeCropModal(); return; }
+  const { dispW, dispH, offX, offY } = cropStageState;
+  crewModalCrop = {
+    x: Math.min(Math.max((cropBoxRect.x - offX) / dispW, 0), 1),
+    y: Math.min(Math.max((cropBoxRect.y - offY) / dispH, 0), 1),
+    w: Math.min(Math.max(cropBoxRect.w / dispW, 0.02), 1),
+    h: Math.min(Math.max(cropBoxRect.h / dispH, 0.02), 1),
+  };
+  closeCropModal();
+  updateCrewPhotoPreview();
+});
+
+(function setupCropPointerHandling(){
+  const boxEl = el('cropBox');
+  const handleEl = el('cropBoxHandle');
+  if(!boxEl || !handleEl) return;
+
+  function clampMove(x, y){
+    const { dispW, dispH, offX, offY } = cropStageState;
+    return {
+      x: Math.min(Math.max(x, offX), offX + dispW - cropBoxRect.w),
+      y: Math.min(Math.max(y, offY), offY + dispH - cropBoxRect.h),
+    };
+  }
+  function clampResize(w){
+    const { dispW, dispH, offX, offY } = cropStageState;
+    const minW = 30;
+    const maxWByWidth = offX + dispW - cropBoxRect.x;
+    const maxWByHeight = (offY + dispH - cropBoxRect.y) * CREW_CARD_ASPECT;
+    return Math.min(Math.max(w, minW), maxWByWidth, maxWByHeight);
+  }
+
+  boxEl.addEventListener('pointerdown', e=>{
+    if(e.target === handleEl) return;
+    boxEl.classList.add('is-dragging');
+    boxEl.setPointerCapture(e.pointerId);
+    cropDrag = { mode:'move', startX:e.clientX, startY:e.clientY, orig:{...cropBoxRect} };
+  });
+  handleEl.addEventListener('pointerdown', e=>{
+    e.stopPropagation();
+    handleEl.setPointerCapture(e.pointerId);
+    cropDrag = { mode:'resize', startX:e.clientX, startY:e.clientY, orig:{...cropBoxRect} };
+  });
+  window.addEventListener('pointermove', e=>{
+    if(!cropDrag || !cropStageState) return;
+    const dx = e.clientX - cropDrag.startX, dy = e.clientY - cropDrag.startY;
+    if(cropDrag.mode === 'move'){
+      const pos = clampMove(cropDrag.orig.x + dx, cropDrag.orig.y + dy);
+      cropBoxRect.x = pos.x; cropBoxRect.y = pos.y;
+    }else{
+      const newW = clampResize(cropDrag.orig.w + dx);
+      cropBoxRect.w = newW; cropBoxRect.h = newW / CREW_CARD_ASPECT;
+    }
+    renderCropBox();
+  });
+  window.addEventListener('pointerup', ()=>{ cropDrag = null; boxEl.classList.remove('is-dragging'); });
+})();
+
+let crewModalMode = 'add'; // 'add' | 'edit'
+let crewModalEditingId = null;
+let crewModalPhotoFile = '';
+let crewModalCrop = null; // {x,y,w,h} fractions of the natural image, or null for default cover
+
+function openCrewModal(member){
+  crewModalMode = member ? 'edit' : 'add';
+  crewModalEditingId = member ? member.id : null;
+  crewModalPhotoFile = member ? (member.photoFile || '') : '';
+  crewModalCrop = member && member.crop ? member.crop : null;
+
+  el('crewModalTitle').textContent = member ? 'Edit crew member' : 'Add a crew member';
+  el('crewf-name').value = member ? (member.name||'') : '';
+  el('crewf-role').value = member ? (member.role||'') : '';
+  el('crewf-note').value = member ? (member.note||'') : '';
+  el('crewf-photofile').value = crewModalPhotoFile;
+  updateCrewPhotoPreview();
+
+  el('crewModalBanner').className = 'gate-banner';
+  el('crewModalBanner').textContent = '';
+  el('crewModalOverlay').classList.remove('hidden');
+}
+function closeCrewModal(){ el('crewModalOverlay').classList.add('hidden'); }
+el('openAddCrewBtn')?.addEventListener('click', ()=>{
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  openCrewModal(null);
+});
+el('crewModalCancelBtn')?.addEventListener('click', closeCrewModal);
+
+el('crewModalSaveBtn')?.addEventListener('click', async ()=>{
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  const name = el('crewf-name').value.trim();
+  const role = el('crewf-role').value.trim();
+  const note = el('crewf-note').value.trim();
+  const photoFile = el('crewf-photofile').value.trim();
+  const banner = el('crewModalBanner');
+  if(!name || !role){ banner.className='gate-banner bad'; banner.textContent='Name and role are required.'; return; }
+  if(photoFile && !SAFE_FILENAME_RE.test(photoFile)){
+    banner.className='gate-banner bad'; banner.textContent='Photo filename must be a plain image filename (e.g. shubham.jpg).'; return;
+  }
+  if(crewModalMode === 'add' && !photoFile){
+    banner.className='gate-banner bad'; banner.textContent='A photo filename is required to add a crew member.'; return;
+  }
+  const btn = el('crewModalSaveBtn');
+  btn.disabled = true;
+  try{
+    const payload = { name, role, note };
+    // Always send photoFile on add. On edit, only send it if the field
+    // actually has a value — crew.js treats an omitted key as "keep the
+    // existing photo" so clearing name/role doesn't accidentally wipe it.
+    if(crewModalMode === 'add' || photoFile) payload.photoFile = photoFile;
+    // Same logic for crop: only send it when one's actually been picked
+    // this session, so an edit that never opened the crop tool doesn't
+    // clobber a crop chosen earlier.
+    if(crewModalCrop) payload.crop = crewModalCrop;
+    const body = crewModalMode === 'edit'
+      ? { action:'update', token:getToken(), tripId:currentTripId, id:crewModalEditingId, payload }
+      : { action:'add', token:getToken(), tripId:currentTripId, payload };
+    const res = await callCrewPost(body);
+    if(res.error) throw new Error(res.error);
+    currentCrew = res.crew || [];
+    renderCrew();
+    closeCrewModal();
+    showDashBanner('ok', crewModalMode==='edit' ? 'Crew member updated.' : 'Crew member added.');
+  }catch(err){
+    banner.className='gate-banner bad'; banner.textContent = err.message || 'Could not save — try again.';
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+/* ---------- page content (index.html hero/footer/socials) ---------- */
+async function callContentGet(params){
+  const url = FUNCTIONS_BASE + '/content?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function callContentPost(body){
+  const res = await fetch(FUNCTIONS_BASE + '/content', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  return res.json();
+}
+// hero.countdownTarget is stored as a plain ISO string ("2026-10-02T01:50:00")
+// but <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" with no seconds
+// or timezone suffix — trim/pad between the two formats at the edges only,
+// so the stored value stays a normal ISO string everywhere else (index.html
+// feeds it straight into `new Date(...)`).
+function isoToLocalInput(iso){
+  if(!iso) return '';
+  return String(iso).slice(0, 16);
+}
+function localInputToIso(val){
+  if(!val) return '';
+  return val.length === 16 ? val + ':00' : val;
+}
+// Keys that store an ISO datetime string but are edited via a plain
+// <input type="datetime-local">, which needs the "no seconds/timezone"
+// local format — isoToLocalInput/localInputToIso convert at the edges.
+const DATETIME_KEYS = new Set(['hero.countdownTarget', 'hero.tripEndTarget']);
+// 'true'/'false' string values edited via a checkbox instead of a text field.
+const BOOLEAN_KEYS = new Set(['banner.enabled', 'banner.marqueeEnabled', 'banner.pauseOnHover']);
+// Content keys backed by a same-name radio group ([data-key] doesn't apply
+// to these — the group of <input type="radio" name="banner.direction">
+// is looked up by `name` instead) rather than a single field.
+const RADIO_GROUP_KEYS = ['banner.direction', 'banner.speed'];
+const RADIO_GROUP_DEFAULTS = { 'banner.direction': 'left', 'banner.speed': 'medium' };
+
+async function loadContent(){
+  if(!currentTripId) return;
+  try{
+    const res = await callContentGet({ action:'get', tripId: currentTripId });
+    if(res.error) throw new Error(res.error);
+    const content = res.content || {};
+    document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
+      const key = field.dataset.key;
+      const value = content[key] || '';
+      if(BOOLEAN_KEYS.has(key)){
+        field.checked = value ? value === 'true' : true; // unset = on by default (banner shown, marquee on, pause-on-hover on)
+      } else {
+        field.value = DATETIME_KEYS.has(key) ? isoToLocalInput(value) : value;
+      }
+    });
+    RADIO_GROUP_KEYS.forEach(key=>{
+      const chosen = content[key] || RADIO_GROUP_DEFAULTS[key];
+      document.querySelectorAll(`#contentForm input[type="radio"][name="${key}"]`).forEach(radio=>{
+        radio.checked = radio.value === chosen;
+      });
+    });
+  }catch(err){ console.warn('loadContent failed', err); }
+}
+el('contentForm')?.addEventListener('submit', async e=>{
+  e.preventDefault();
+  if(!currentTripId){ showDashBanner('bad','Select a trip first.'); return; }
+  const status = el('contentSaveStatus');
+  const dot = el('contentSyncDot');
+  if(dot) dot.className = 'sync-dot pending';
+  const fields = {};
+  document.querySelectorAll('#contentForm [data-key]').forEach(field=>{
+    const key = field.dataset.key;
+    if(BOOLEAN_KEYS.has(key)){
+      fields[key] = field.checked ? 'true' : 'false';
+    } else {
+      fields[key] = DATETIME_KEYS.has(key) ? localInputToIso(field.value.trim()) : field.value.trim();
+    }
+  });
+  RADIO_GROUP_KEYS.forEach(key=>{
+    const checked = document.querySelector(`#contentForm input[type="radio"][name="${key}"]:checked`);
+    fields[key] = checked ? checked.value : RADIO_GROUP_DEFAULTS[key];
+  });
+  if(status) status.textContent = 'Saving…';
+  try{
+    const res = await callContentPost({ action:'updateContentBatch', token:getToken(), tripId:currentTripId, fields });
+    if(res.error) throw new Error(res.error);
+    showDashBanner('ok','Page content saved.');
+    if(status) status.textContent = 'Saved just now.';
+    if(dot) dot.className = 'sync-dot ok';
+  }catch(err){
+    showDashBanner('bad', err.message);
+    if(status) status.textContent = '';
+    if(dot) dot.className = 'sync-dot bad';
+  }
+});
+
+/* ---------- content tabs, char counters, live hero preview ----------
+   Presentation only — reads the same [data-key] fields the save
+   handler above already uses, touches nothing else about how the
+   form loads or saves. */
+(function initContentTabsAndPreview(){
+  const tabs = document.querySelectorAll('#contentTabs .content-tab');
+  const sections = document.querySelectorAll('#contentForm .content-section');
+  tabs.forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      tabs.forEach(t=>t.classList.remove('active'));
+      sections.forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      const match = document.querySelector(`#contentForm .content-section[data-section="${tab.dataset.section}"]`);
+      if(match) match.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('#contentForm [data-key][maxlength]').forEach(field=>{
+    const counter = field.parentElement.querySelector('.char-count');
+    if(!counter) return;
+    const update = ()=> counter.textContent = `${field.value.length}/${field.getAttribute('maxlength')}`;
+    field.addEventListener('input', update);
+    update();
+  });
+
+  const previewMap = {
+    'hero.eyebrow': v=>{ const el=document.getElementById('hpEyebrow'); if(el) el.textContent = v || '2–5 October · Pune to Goa'; },
+    'hero.titleLine1': updateHeroPreviewTitle,
+    'hero.titleLine2': updateHeroPreviewTitle,
+    'hero.subtext': v=>{ const el=document.getElementById('hpSub'); if(el) el.textContent = v || 'An overnight train out of Pune, a drive through the fog of the Western Ghats, and four days where the only itinerary is the tide.'; },
+    'hero.ctaPrimary': v=>{ const el=document.getElementById('hpCtaPrimary'); if(el) el.textContent = v || 'Explore the trip'; },
+    'hero.ctaSecondary': v=>{ const el=document.getElementById('hpCtaSecondary'); if(el) el.textContent = v || 'Reserve a seat'; },
+  };
+  function updateHeroPreviewTitle(){
+    const l1 = document.querySelector('[data-key="hero.titleLine1"]');
+    const l2 = document.querySelector('[data-key="hero.titleLine2"]');
+    const el = document.getElementById('hpTitle');
+    if(!el) return;
+    el.innerHTML = `${escapeHtml((l1 && l1.value) || 'Twelve tickets.')}<br>${escapeHtml((l2 && l2.value) || 'One Goa.')}`;
+  }
+  function syncContentPreview(){
+    Object.keys(previewMap).forEach(key=>{
+      const field = document.querySelector(`#contentForm [data-key="${key}"]`);
+      if(field) previewMap[key](field.value);
+    });
+    document.querySelectorAll('#contentForm [data-key][maxlength]').forEach(field=>{
+      const counter = field.parentElement.querySelector('.char-count');
+      if(counter) counter.textContent = `${field.value.length}/${field.getAttribute('maxlength')}`;
+    });
+  }
+  Object.keys(previewMap).forEach(key=>{
+    const field = document.querySelector(`#contentForm [data-key="${key}"]`);
+    if(!field) return;
+    field.addEventListener('input', ()=> previewMap[key](field.value));
+  });
+  // loadContent() (defined above) populates fields via field.value = ... —
+  // a property set, which input listeners don't fire for — so wrap it to
+  // re-sync the preview/counters right after it finishes populating.
+  if(typeof loadContent === 'function'){
+    const _origLoadContent = loadContent;
+    loadContent = async function(...args){
+      await _origLoadContent(...args);
+      syncContentPreview();
+    };
+  }
+})();
 
 async function loadCancellations(){
   try{
@@ -1284,6 +2391,7 @@ el('addFlagForm').addEventListener('submit', async e=>{
     });
     if(res.error) throw new Error(res.error);
     renderFlags(res.flags);
+    renderMissingFlags(res.flags);
     el('addFlagForm').reset();
     showDashBanner('ok', 'Feature added.');
   }catch(err){ showDashBanner('bad', err.message); }

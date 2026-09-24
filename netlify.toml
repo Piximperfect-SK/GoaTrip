@@ -41,11 +41,27 @@
 # (smooth scroll) from unpkg.com via a <script> tag; CSP enforces
 # connect-src for that fetch, not just script-src, so without this the
 # script request itself gets blocked even though script-src allows it.
+#
+# font-src picks up 'self' and data: — the Tailwind CDN build (loaded
+# for script-src above) injects its own @font-face rules that reference
+# fonts as inline base64 data: URIs rather than fetching from
+# fonts.gstatic.com, so font-src needs to allow those directly or the
+# browser blocks every one of them.
+#
+# Circuit map (test_itenary.html) additions — Leaflet is already
+# script-src-allowed via unpkg.com (itinerary.html's Lenis load added
+# that earlier), but its own stylesheet is a separate <link> tag, which
+# style-src enforces independently, so unpkg.com needed adding there
+# too. img-src picks up *.tile.openstreetmap.org and
+# *.basemaps.cartocdn.com — Leaflet's tile layer requests map tile
+# images from whichever CDN subdomain it's configured with ({s} in the
+# tile URL template), so both need to stay wildcarded rather than
+# pinned to one subdomain.
 # ============================================================
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://*.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://*.wikimedia.org https://maps.gstatic.com https://maps.googleapis.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com; media-src 'self'; connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com https://prod.spline.design; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

@@ -67,7 +67,10 @@ body{
   color:var(--ink);
   font-family:'Space Grotesk', sans-serif;
   -webkit-font-smoothing:antialiased;
-  overscroll-behavior-y:none;
+  /* Deliberately NOT overscroll-behavior-y:none — that's the exact CSS
+     property that also disables Chrome/Android's native pull-to-refresh
+     gesture, and this site has no custom pull-to-refresh of its own to
+     replace it with. Leave it at the default (auto) so the gesture works. */
 }
 
 ::-webkit-scrollbar{ width:8px; height:8px; }
@@ -131,6 +134,27 @@ input:focus, textarea:focus, select:focus{
   outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,0.14);
 }
 
+/* ---------- Field tooltip (inline validation / hints on any input) ----------
+   Generic — not tied to the registration wizard. Positioned by shared.js's
+   showFieldTooltip()/hideFieldTooltip() relative to whatever input it's
+   attached to, so any form on the site can use it. */
+.field-tooltip-anchor{ position:relative; }
+.field-tooltip{
+  position:absolute; z-index:60; max-width:260px; font-size:12.5px; line-height:1.45;
+  padding:9px 13px; border-radius:10px; font-weight:500; color:white;
+  box-shadow:0 12px 26px -10px rgba(0,0,0,.35);
+  opacity:0; transform:translateY(-4px); pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.field-tooltip.show{ opacity:1; transform:translateY(0); }
+.field-tooltip::before{
+  content:''; position:absolute; left:16px; top:-5px; width:10px; height:10px;
+  transform:rotate(45deg); background:inherit; border-radius:2px;
+}
+.field-tooltip.bad{ background:var(--mango-2); }
+.field-tooltip.ok{ background:var(--palm); }
+.field-tooltip.info{ background:var(--azulejo); }
+
 /* ---------- Status banners ---------- */
 .banner{ border-radius:12px; padding:12px 16px; font-size:13.5px; font-weight:500; }
 .banner.ok{ background:rgba(62,124,89,.10); color:var(--palm); border:1px solid rgba(62,124,89,.25); }
@@ -155,6 +179,80 @@ input:focus, textarea:focus, select:focus{
 @keyframes seal-spin-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.6; } }
 @media (prefers-reduced-motion:reduce){
   .seal-spin{ animation:seal-spin-pulse 1.8s ease-in-out infinite; }
+}
+
+/* ---------- Crew photo cards (index.html "The crew." section) ----------
+   Native HTML/CSS/JS port of the visual/interaction idea behind Framer's
+   "Team Card Hover" marketplace component (photo fills the card, a
+   gradient + detail panel rises on hover) — no Framer runtime, no React,
+   nothing loaded off-origin; just transform/opacity on a real <img>,
+   consistent with the rest of this self-contained, CSP-locked site.
+   Every card requires a real uploaded photo (see admin.html's crew
+   editor) — there is no initials-avatar fallback here, so index.html's
+   renderTeam() simply skips any crew member with no photo rather than
+   rendering a card for them. */
+.crew-card{
+  position:relative; aspect-ratio:4/5; border-radius:16px; overflow:hidden; cursor:default;
+  background:var(--teal-900); box-shadow:0 1px 2px rgba(29,29,31,.06);
+}
+.crew-card.has-note{ cursor:pointer; }
+.crew-card-photo{
+  position:absolute; inset:0; width:100%; height:100%; background-repeat:no-repeat;
+  transform:scale(1.04); transition:transform .6s cubic-bezier(.2,.7,.2,1);
+}
+.crew-card.is-active .crew-card-photo{ transform:scale(1.1); }
+@media (hover:hover){ .crew-card:hover .crew-card-photo{ transform:scale(1.1); } }
+
+/* Base gradient always present (keeps name/role legible over any photo);
+   a second, taller gradient fades in on hover/active to carry the note. */
+.crew-card-scrim{
+  position:absolute; inset:0; background:linear-gradient(to top, rgba(11,15,15,.88) 0%, rgba(11,15,15,.35) 42%, rgba(11,15,15,0) 68%);
+  transition:opacity .35s ease;
+}
+.crew-card-scrim-hover{
+  position:absolute; inset:0; background:linear-gradient(to top, rgba(11,15,15,.94) 0%, rgba(11,15,15,.7) 55%, rgba(11,15,15,0) 100%);
+  opacity:0; transition:opacity .35s ease;
+}
+.crew-card.is-active .crew-card-scrim-hover{ opacity:1; }
+@media (hover:hover){ .crew-card:hover .crew-card-scrim-hover{ opacity:1; } }
+
+.crew-card-body{
+  position:absolute; left:0; right:0; bottom:0; padding:14px 14px 13px; color:var(--sand);
+  transform:translateY(0); transition:transform .4s cubic-bezier(.2,.7,.2,1);
+}
+.crew-card-name{ font-family:'Fraunces',serif; font-size:0.95rem; font-weight:600; line-height:1.2; margin:0; }
+.crew-card-role{
+  font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--mango); opacity:.95; margin:4px 0 0;
+}
+.crew-card-note{
+  font-size:11.5px; line-height:1.5; color:var(--sand); opacity:0; max-height:0; margin-top:0;
+  transition:opacity .3s ease .05s, max-height .4s ease, margin-top .3s ease;
+}
+.crew-card.has-note.is-active .crew-card-note{ opacity:.88; max-height:120px; margin-top:7px; }
+.crew-card.has-note.is-active .crew-card-body{ transform:translateY(-2px); }
+@media (hover:hover){
+  .crew-card.has-note:hover .crew-card-note{ opacity:.88; max-height:120px; margin-top:7px; }
+  .crew-card.has-note:hover .crew-card-body{ transform:translateY(-2px); }
+}
+
+.crew-flip-hint{
+  position:absolute; top:10px; right:10px; width:22px; height:22px; border-radius:9999px;
+  background:rgba(251,251,253,.16); border:1px solid rgba(251,251,253,.3);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--sand);
+  opacity:0; transition:opacity .25s ease;
+}
+.crew-card.has-note.is-active .crew-flip-hint{ opacity:.85; }
+@media (hover:hover){ .crew-card.has-note:hover .crew-flip-hint{ opacity:.85; } }
+
+@media (prefers-reduced-motion:reduce){
+  .crew-card-photo, .crew-card-scrim-hover, .crew-card-body, .crew-card-note, .crew-flip-hint{ transition:opacity .15s linear; }
+  .crew-card.is-active .crew-card-photo{ transform:none; }
+  .crew-card-body, .crew-card.is-active .crew-card-body{ transform:none; }
+  @media (hover:hover){
+    .crew-card:hover .crew-card-photo{ transform:none; }
+    .crew-card:hover .crew-card-body{ transform:none; }
+  }
 }
 
 /* ---------- Top bar (sticky/fixed header used on itinerary & boarding-pass) ---------- */

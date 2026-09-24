@@ -49,9 +49,12 @@
 </head>
 <body>
   <div class="card" id="card">
-    <div class="seal-spin" style="margin:0 auto 18px;"></div>
-    <h1 id="title">Working…</h1>
-    <p class="sub" id="sub">Contacting the admin backend.</p>
+    <div class="badge" id="confirmBadge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+    </div>
+    <h1 id="title">Confirm this action</h1>
+    <p class="sub" id="sub">Checking the link…</p>
+    <button type="button" id="confirmBtn" class="btn-primary" style="display:none; margin-top:18px;" onclick="runAction()"></button>
   </div>
 
 <script src="shared.js"></script>
@@ -73,23 +76,45 @@ function render(kind, title, sub){
   `;
 }
 
-(async function run(){
+// IMPORTANT: this page deliberately does NOT fire the approve/reject
+// request automatically on load. Mail/security link scanners (Outlook
+// Safe Links, corporate proxies, Gmail's own prefetching, etc.) visit
+// every URL in an email before a human ever opens it — if the action
+// fired on load, a scanner bot could silently approve or reject the
+// request before the real approver sees it. Instead, the request only
+// fires from an explicit click on the confirm button below.
+function runAction(){
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Working…';
+  document.getElementById('sub').textContent = 'Contacting the admin backend.';
+  fetch(FUNCTIONS_BASE + '/approve?' + new URLSearchParams({ action, token }).toString())
+    .then(res => res.json())
+    .then(data => {
+      render(
+        data.ok ? 'ok' : 'bad',
+        data.ok ? (action === 'approve' ? 'Approved' : 'Rejected') : 'Notice',
+        data.message || 'Something went wrong — please try again.'
+      );
+    })
+    .catch(() => {
+      render('bad', 'Could not reach the backend', 'Check your connection and try again.');
+    });
+}
+
+(function init(){
   if(!action || !token || (action !== 'approve' && action !== 'reject')){
     render('bad', 'Invalid link', 'This link is missing required information.');
     return;
   }
-  try{
-    const url = FUNCTIONS_BASE + '/approve?' + new URLSearchParams({ action, token }).toString();
-    const res = await fetch(url);
-    const data = await res.json();
-    render(
-      data.ok ? 'ok' : 'bad',
-      data.ok ? (action === 'approve' ? 'Approved' : 'Rejected') : 'Notice',
-      data.message || 'Something went wrong — please try again.'
-    );
-  }catch(err){
-    render('bad', 'Could not reach the backend', 'Check your connection and try again.');
-  }
+  const verb = action === 'approve' ? 'Approve' : 'Reject';
+  document.getElementById('title').textContent = `${verb} this admin request?`;
+  document.getElementById('sub').textContent = action === 'approve'
+    ? 'This will grant admin access and email a temporary PIN to the requester.'
+    : 'This will deny the request. It can\u2019t be undone from this link.';
+  const btn = document.getElementById('confirmBtn');
+  btn.textContent = `${verb} request`;
+  btn.style.display = 'inline-block';
 })();
 </script>
 </body>

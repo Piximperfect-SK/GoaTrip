@@ -40,13 +40,30 @@ function signPayload(payloadB64) {
   return crypto.createHmac('sha256', getSessionSecret()).update(payloadB64).digest('base64url');
 }
 
-function createSessionToken(name) {
-  const payload = JSON.stringify({ name, exp: Date.now() + SESSION_TTL_MS });
+function createSessionToken(name, role) {
+  // role defaults to 'admin' so every existing call site — admin.js's
+  // login flow calls this with just a name — keeps minting admin
+  // sessions exactly as before. login.js (user login) is the only
+  // caller that will ever pass role='user'.
+  const payload = JSON.stringify({ name, role: role || 'admin', exp: Date.now() + SESSION_TTL_MS });
   const payloadB64 = base64url(payload);
   return `${payloadB64}.${signPayload(payloadB64)}`;
 }
 
+// Unchanged contract: returns the name string for any validly-signed,
+// unexpired token, admin or user alike, or null. Every existing caller
+// (admin.js, wallet.js's old code, trips.js, registration.js, itinerary.js)
+// only ever needed "is this session valid, and whose is it" — this keeps
+// answering exactly that, so none of them need touching for this change.
 function verifySessionToken(token) {
+  const full = verifySessionTokenFull(token);
+  return full ? full.name : null;
+}
+
+// New: for code that also needs to know WHICH role the session holds —
+// e.g. wallet.js gating admin-only actions now that both admins and
+// regular users hold valid session tokens, not just admins.
+function verifySessionTokenFull(token) {
   if (!token || typeof token !== 'string' || token.indexOf('.') === -1) return null;
   const [payloadB64, sig] = token.split('.');
   const expected = signPayload(payloadB64);
@@ -60,7 +77,11 @@ function verifySessionToken(token) {
     return null;
   }
   if (!payload || !payload.exp || Date.now() > payload.exp) return null;
-  return payload.name;
+  // Tokens minted before this change have no role field at all — treat
+  // those as 'admin' too, since createSessionToken was admin-only before
+  // today, so every pre-existing token in the wild really was an admin
+  // session regardless of it never having said so explicitly.
+  return { name: payload.name, role: payload.role || 'admin', exp: payload.exp };
 }
 
 module.exports = {
@@ -70,4 +91,6 @@ module.exports = {
   generateTempPin,
   createSessionToken,
   verifySessionToken,
+  verifySessionTokenFull,
+  SESSION_TTL_MS,
 };

@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com https://*.wikimedia.org; media-src 'self'; connect-src 'self' https://unpkg.com https://en.wikipedia.org https://commons.wikimedia.org https://api.unsplash.com; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
+<!-- CSP is set via the [[headers]] block in netlify.toml (site-wide) —
+     see the matching comment in index.html for why this isn't
+     duplicated as a meta tag. This exact tag had drifted out of sync
+     with netlify.toml — narrower style-src (no unpkg.com, so Leaflet's
+     stylesheet on test_itenary.html would've been blocked if this
+     page's copy had leaked there) and narrower img-src (no Google
+     Maps domains at all). -->
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
 /* Lenis smooth scroll CSS, inlined (unpkg.com isn't in style-src) */
 html.lenis, html.lenis body{ height:auto; }
@@ -23,86 +30,148 @@ html.lenis, html.lenis body{ height:auto; }
 .lenis [data-lenis-prevent-horizontal]{ overscroll-behavior:contain; }
 .lenis.lenis-smooth iframe{ pointer-events:none; }
 .lenis.lenis-autoToggle{ transition-property:overflow; transition-duration:1ms; transition-behavior:allow-discrete; }
-:root{
-  --ink:#1D1D1F; --teal-900:#1D1D1F; --teal-800:#28282B; --teal-700:#3A3A3D;
-  --sand:#FBFBFD; --sand-2:#F2F1ED; --paper:#FBFBFD; --mango:#FF6B4A; --mango-2:#E85436;
-  --azulejo:#2E6FF2; --palm:#2E8B57; --line: #E6E6E9;
-  --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
-}
+
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-body{margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased;}
+body{margin:0; background:var(--paper); color:var(--ink); font-family:'Space Grotesk', sans-serif; -webkit-font-smoothing:antialiased; position:relative;}
 h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .mono{font-family:'Space Mono', monospace;}
 #topbar{position:sticky; top:0; z-index:30; background:rgba(251,251,253,.92); -webkit-backdrop-filter:blur(14px) saturate(160%); backdrop-filter:blur(14px) saturate(160%); color:var(--ink); padding:calc(14px + var(--sat)) 20px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border-bottom:1px solid var(--line);}
 .btn-icon{width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1.5px solid var(--line); background:white; color:var(--ink); text-decoration:none; flex-shrink:0;}
+/* shared.css's #topbar a{color:var(--sand)} targets the OLD dark topbar and
+   otherwise wins on specificity (ID beats class) over .btn-icon/.btn-ghost
+   here, painting topbar links near-white — invisible on this light topbar. */
+#topbar a.btn-icon, #topbar a.btn-ghost{ color:var(--ink); opacity:1; }
 .btn-icon:hover{background:var(--sand-2); border-color:var(--ink);}
-.btn-primary{background:linear-gradient(135deg, var(--mango), var(--mango-2)); color:white; font-weight:600; border-radius:9999px; padding:10px 20px; transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; border:none; cursor:pointer; font-size:14px; box-shadow:0 8px 18px -8px rgba(232,93,42,.5);}
-.btn-primary:hover{filter:brightness(1.05); transform:translateY(-1px); box-shadow:0 12px 22px -8px rgba(232,93,42,.6);}
-.btn-primary:active{transform:scale(.97);}
 .btn-primary:disabled{opacity:.5; cursor:not-allowed; transform:none; box-shadow:none;}
-.btn-ghost{border:1.5px solid var(--line); border-radius:9999px; padding:9px 18px; font-weight:600; background:white; color:var(--ink); cursor:pointer; transition:.2s; font-size:13.5px;}
-.btn-ghost:hover{border-color:var(--ink);}
-.btn-ghost:active{transform:scale(.97);}
-.btn-danger{border:1.5px solid rgba(232,93,42,.35); color:var(--mango-2); border-radius:9999px; padding:7px 14px; font-weight:600; background:white; cursor:pointer; font-size:12.5px; transition:.2s;}
-.btn-danger:hover{background:rgba(232,93,42,.08);}
 .btn-danger:active{transform:scale(.96);}
-.card{background:white; border:1px solid var(--line); border-radius:16px; transition:box-shadow .2s ease;}
-@media (hover:hover){ .day-editor.card:hover{box-shadow:0 18px 36px -26px rgba(15,38,34,.4);} }
 @media (max-width:640px){ input, select, textarea{font-size:16px;} }
-label{font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px;}
-input[type="text"], input[type="date"], input:not([type]), select, textarea{
+label{font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--teal-700); opacity:.85; display:block; margin-bottom:6px;}
+input[type="text"], input[type="date"], input[type="time"], input:not([type]), select, textarea{
   width:100%; border:1.5px solid var(--line); border-radius:12px;
-  padding:12px 14px; background:white; color:var(--ink);
-  font-family:'Space Grotesk',sans-serif; font-size:14px; line-height:1.3;
+  padding:11px 13px; background:white; color:var(--ink);
+  font-family:'Space Grotesk',sans-serif; font-size:13.5px; line-height:1.3;
   outline:none; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
-  box-shadow:0 1px 2px rgba(15,38,34,.03);
 }
 input::placeholder, textarea::placeholder{color:var(--ink); opacity:.35;}
-input:hover:not(:focus):not(:disabled), select:hover:not(:focus):not(:disabled){border-color:rgba(15,38,34,.28);}
-input:focus, select:focus, textarea:focus{
-  border-color:var(--mango); background:white;
-  box-shadow:0 0 0 4px rgba(255,122,69,.14);
-}
-select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:38px; cursor:pointer;
+input:focus, select:focus, textarea:focus{ border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,.14); }
+select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:34px; cursor:pointer;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%231D1D1F' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round' opacity='0.55'/></svg>");
-  background-repeat:no-repeat; background-position:right 14px center;
+  background-repeat:no-repeat; background-position:right 12px center;
 }
-.field-row{display:flex; flex-direction:column; gap:6px;}
-.day-editor{position:relative; overflow:hidden;}
-.item-row{display:flex; align-items:center; gap:8px;}
-.place-row{display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; padding:8px 10px; background:var(--sand-2);}
-.place-thumb{width:44px; height:44px; border-radius:8px; object-fit:cover; flex-shrink:0; background:var(--sand-2);}
-.place-thumb.empty{display:flex; align-items:center; justify-content:center; font-size:16px; opacity:.4;}
-.place-row input{flex:1; min-width:0;}
-.place-status{font-size:11px; white-space:nowrap; flex-shrink:0;}
-.place-status.ok{color:var(--palm);}
-.place-status.bad{color:var(--mango-2);}
-.place-status.pending{color:#C9A227;}
+.banner{border-radius:12px; padding:12px 16px; font-size:13px;}
+.banner.err{background:#FBEAE4; color:#8A2E12; border:1px solid #F0BCA7;}
+.banner.ok{background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4;}
+.banner.warn{background:#FBF3DC; color:#7A5A05; border:1px solid #EFD98C;}
 .sync-dot{width:9px; height:9px; border-radius:9999px; display:inline-block;}
 .sync-dot.ok{background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18);}
 .sync-dot.bad{background:var(--mango-2); box-shadow:0 0 0 3px rgba(232,93,42,.18);}
 .sync-dot.pending{background:#C9A227; animation:pulse 1.1s infinite;}
 @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
-.banner{border-radius:12px; padding:12px 16px; font-size:13px;}
-.banner.err{background:#FBEAE4; color:#8A2E12; border:1px solid #F0BCA7;}
-.banner.ok{background:#E9F3EC; color:#1F5136; border:1px solid #B9DBC4;}
-.banner.warn{background:#FBF3DC; color:#7A5A05; border:1px solid #EFD98C;}
-body{background:var(--paper); position:relative;}
+
 .itin-page-content{position:relative; z-index:1;}
-.itin-hero{position:relative; padding:72px 20px 36px; color:var(--ink); text-align:left;}
-.itin-hero .itin-hero-text{position:relative; z-index:2;}
+.itin-hero{position:relative; padding:64px 20px 8px; color:var(--ink); text-align:left;}
 .itin-hero .itin-hero-text p{margin:0;}
 .itin-hero .itin-hero-text p:first-child{font-size:11px; letter-spacing:.14em; opacity:.5; margin-bottom:10px;}
 .itin-hero .hero-eyebrow-rule{width:34px; height:2px; background:var(--mango); display:inline-block; vertical-align:middle; margin-right:10px;}
-.itin-hero .itin-hero-text p:last-child{font-family:'Fraunces',serif; font-weight:600; font-size:clamp(28px,5vw,42px); line-height:1.08;}
-@media(max-width:640px){.itin-hero{padding:52px 20px 26px;}}
+.itin-hero .itin-hero-text p:last-child{font-family:'Fraunces',serif; font-weight:600; font-size:clamp(26px,5vw,38px); line-height:1.08;}
+@media(max-width:640px){.itin-hero{padding:48px 20px 6px;}}
+
+.page-gradient{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; background:var(--paper);}
+.pg-blob{position:absolute; width:56vw; height:56vw; max-width:760px; max-height:760px; border-radius:50%; filter:blur(120px) saturate(130%); opacity:.4; mix-blend-mode:multiply; will-change:transform, background; transition:background 1.1s ease-out;}
+.pg-blob-1{top:-14%; left:-12%; animation:pgDriftA 30s ease-in-out infinite;}
+.pg-blob-2{top:32%; right:-16%; animation:pgDriftB 34s ease-in-out infinite;}
+.pg-blob-3{bottom:-18%; left:22%; animation:pgDriftC 38s ease-in-out infinite;}
+@keyframes pgDriftA{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(4vw,3vh) scale(1.08);}}
+@keyframes pgDriftB{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-3vw,4vh) scale(1.1);}}
+@keyframes pgDriftC{0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(3vw,-3vh) scale(1.06);}}
+@media (max-width:640px){ .pg-blob{ width:85vw; height:85vw; opacity:.32; } }
+@media (prefers-reduced-motion:reduce){ .pg-blob{ animation:none; transition:background 1.1s ease-out; } }
+
+/* ---------- Day tabs (horizontal scroller) ---------- */
+.day-tabs{ display:flex; gap:8px; overflow-x:auto; padding:4px 2px 14px; scrollbar-width:none; }
+.day-tabs::-webkit-scrollbar{ display:none; }
+.day-tab{
+  flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+  padding:9px 16px; border-radius:16px; border:1.5px solid var(--line); background:white; cursor:pointer;
+  transition:.18s; min-width:92px;
+}
+.day-tab:hover{ border-color:rgba(15,38,34,.3); }
+.day-tab.active{ border-color:var(--ink); background:var(--ink); color:white; box-shadow:0 10px 22px -12px rgba(15,38,34,.5); }
+.day-tab .dt-label{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; opacity:.6; }
+.day-tab.active .dt-label{ opacity:.75; }
+.day-tab .dt-date{ font-weight:700; font-size:13.5px; }
+.day-tab.tbd{ border-style:dashed; }
+.day-tab-add{
+  flex:0 0 auto; width:40px; height:40px; border-radius:16px; border:1.5px dashed var(--line);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--teal-700); opacity:.6;
+  transition:.18s; align-self:center;
+}
+.day-tab-add:hover{ opacity:1; border-color:var(--ink); }
+
+/* ---------- Day header card ---------- */
+.day-head{ padding:18px 20px; margin-bottom:22px; }
+.tag-chip{ display:inline-flex; align-items:center; gap:5px; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; padding:5px 12px; border-radius:9999px; cursor:pointer; border:1.5px solid var(--line); background:white; transition:.15s; }
+.tag-chip.active{ background:var(--ink); color:white; border-color:var(--ink); }
+.tag-row{ display:flex; gap:7px; flex-wrap:wrap; }
+
+/* ---------- Timeline ---------- */
+.timeline{ position:relative; padding-left:34px; }
+.timeline::before{ content:''; position:absolute; left:13px; top:6px; bottom:6px; width:2px; background:linear-gradient(var(--line), var(--line)); border-radius:2px; }
+.tl-item{ position:relative; margin-bottom:16px; }
+.tl-node{
+  position:absolute; left:-34px; top:14px; width:28px; height:28px; border-radius:50%;
+  background:white; border:2px solid var(--mango); display:flex; align-items:center; justify-content:center;
+  font-size:13px; z-index:2; box-shadow:0 0 0 4px var(--paper);
+}
+.tl-card{ padding:16px; }
+.tl-top-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; }
+.tod-chip{
+  font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  padding:4px 10px; border-radius:9999px; border:1.5px solid var(--line); background:var(--sand-2); cursor:pointer; transition:.15s;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.tod-chip.active{ background:var(--mango); border-color:var(--mango); color:white; }
+.time-pill{ font-family:'Space Mono',monospace; font-size:11.5px; padding:5px 10px; border-radius:9999px; background:var(--sand-2); border:1px solid var(--line); display:inline-flex; align-items:center; gap:6px; }
+.time-pill input{ border:none; background:transparent; padding:0; width:74px; font-size:11.5px; }
+.time-pill input:focus{ box-shadow:none; }
+.activity-title-input{ font-family:'Fraunces',serif; font-weight:600; font-size:17px; border:none; padding:2px 0; background:transparent; }
+.activity-title-input:focus{ box-shadow:none; border-bottom:1.5px solid var(--mango); border-radius:0; }
+.icon-select{ width:52px; text-align:center; font-size:17px; padding:8px 4px; flex-shrink:0; }
+.place-row{ display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:12px; padding:8px 10px; background:var(--sand-2); margin-top:10px; }
+.place-thumb{ width:42px; height:42px; border-radius:8px; object-fit:cover; flex-shrink:0; background:white; }
+.place-thumb.empty{ display:flex; align-items:center; justify-content:center; font-size:15px; opacity:.4; }
+.place-row input{ flex:1; min-width:0; background:white; }
+.place-status{ font-size:10.5px; white-space:nowrap; flex-shrink:0; }
+.place-status.ok{ color:var(--palm); }
+.place-status.bad{ color:var(--mango-2); }
+.place-status.pending{ color:#C9A227; }
+.note-toggle{ font-size:11.5px; opacity:.55; cursor:pointer; margin-top:8px; display:inline-block; }
+.note-toggle:hover{ opacity:.85; }
+.activity-note{ margin-top:6px; font-size:13px; min-height:56px; }
+.tl-actions{ display:flex; gap:6px; margin-top:10px; justify-content:flex-end; }
+.tl-mini-btn{ font-size:11.5px; padding:5px 10px; border-radius:9999px; border:1px solid var(--line); background:white; cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:4px; }
+.tl-mini-btn:hover{ border-color:var(--ink); }
+.tl-mini-btn.danger{ color:var(--mango-2); border-color:rgba(232,93,42,.35); }
+.tl-mini-btn.danger:hover{ background:rgba(232,93,42,.08); }
+
+.add-activity-card{ border:1.5px dashed var(--line); border-radius:16px; padding:16px; background:rgba(255,255,255,.5); text-align:center; }
+.add-activity-btn{ width:100%; background:transparent; border:none; padding:14px; font-weight:600; font-size:13.5px; color:var(--teal-700); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.add-activity-btn:hover{ color:var(--mango-2); }
+
+.empty-state{ text-align:center; padding:48px 20px; opacity:.5; font-size:13.5px; }
 </style>
 </head>
 <body>
 
+<div class="page-gradient" id="pageGradient" aria-hidden="true">
+  <div class="pg-blob pg-blob-1" id="pgBlob1"></div>
+  <div class="pg-blob pg-blob-2" id="pgBlob2"></div>
+  <div class="pg-blob pg-blob-3" id="pgBlob3"></div>
+</div>
+
 <div id="topbar">
   <div class="flex items-center gap-3">
-    <a href="index.html" class="btn-icon" title="Back to trip site">⌂</a>
+    <a href="index.html" class="btn-icon" title="Back to trip site"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></a>
     <div>
       <p class="mono text-[10px] tracking-widest opacity-50" id="itinSubtitle">ITINERARY</p>
       <h1 class="display text-lg font-semibold leading-tight">Itinerary Planner</h1>
@@ -110,8 +179,9 @@ body{background:var(--paper); position:relative;}
   </div>
   <div class="flex items-center gap-3">
     <span class="mono text-xs flex items-center gap-2 opacity-70"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
-    <button class="btn-ghost" onclick="pullItinerary(true)">Reload</button>
-    <button class="btn-primary" onclick="saveItinerary()">Save changes</button>
+    <a href="test_itenary.html" id="mapViewLink" class="btn-ghost" style="display:inline-flex; align-items:center; gap:7px;" title="Split-screen map view"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map view</a>
+    <button class="btn-ghost" data-feature="itinerary.editing" onclick="pullItinerary(true)">Reload</button>
+    <button class="btn-primary" data-feature="itinerary.editing" onclick="saveItinerary()">Save changes</button>
   </div>
 </div>
 
@@ -124,35 +194,55 @@ body{background:var(--paper); position:relative;}
   </div>
 
   <div class="max-w-4xl mx-auto px-5 md:px-8 pb-28">
-  <div id="bannerZone" class="mb-5"></div>
+  <div id="bannerZone" class="mb-4"></div>
 
-  <p class="max-w-xl mb-6 text-sm" style="color:var(--ink); opacity:.6;">
-    Add, remove or reorder days and bullet items here. Hit <b>Save changes</b> to push to the shared backend —
-    the homepage itinerary section reads from the same place, so it updates for everyone automatically.
-  </p>
+  <div class="day-tabs" id="dayTabs"></div>
 
-  <div id="daysWrap" class="space-y-6"></div>
-
-  <button class="btn-ghost mt-2" onclick="addDay()">+ Add day</button>
+  <div id="dayBody"></div>
   </div>
 </div>
 
 <script src="shared.js"></script>
 <script>
 /* ============================================================
+   PAGE GRADIENT — same treatment as index.html
+=============================================================*/
+const PG_PALETTE = ['#FF6B4A', '#F5B942', '#F26FA0', '#2E6FF2', '#2E8B57'];
+function pgHexToRgb(hex){ const v = hex.replace('#',''); return [parseInt(v.slice(0,2),16), parseInt(v.slice(2,4),16), parseInt(v.slice(4,6),16)]; }
+const PG_PALETTE_RGB = PG_PALETTE.map(pgHexToRgb);
+function pgColorAt(t){
+  const n = PG_PALETTE_RGB.length;
+  const scaled = ((t % 1) + 1) % 1 * n;
+  const i = Math.floor(scaled) % n; const j = (i + 1) % n; const f = scaled - Math.floor(scaled);
+  const a = PG_PALETTE_RGB[i], b = PG_PALETTE_RGB[j];
+  return `${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)}`;
+}
+const pgBlobEls = [document.getElementById('pgBlob1'), document.getElementById('pgBlob2'), document.getElementById('pgBlob3')];
+function updatePageGradient(frac){
+  if(!pgBlobEls[0]) return;
+  const offsets = [0, 0.33, 0.66];
+  pgBlobEls.forEach((el, i) => { if(!el) return; const rgb = pgColorAt(frac*1.4+offsets[i]); el.style.background = `radial-gradient(circle, rgba(${rgb},1) 0%, rgba(${rgb},0) 72%)`; });
+}
+(function(){
+  let ticking = false;
+  function onScroll(){ const max = document.body.scrollHeight - window.innerHeight; const frac = max>0 ? Math.min(1,Math.max(0,window.scrollY/max)) : 0; updatePageGradient(frac); ticking=false; }
+  onScroll();
+  window.addEventListener('scroll', () => { if(!ticking){ requestAnimationFrame(onScroll); ticking=true; } }, { passive:true });
+  window.addEventListener('resize', onScroll);
+})();
+</script>
+<script>
+/* ============================================================
    CONFIG — Netlify Functions backend, scoped to the resolved trip
 =============================================================*/
-function loadLocal(){
-  try{ return JSON.parse(localStorage.getItem('goaItineraryDraft')) || null; }
-  catch(e){ return null; }
-}
+function loadLocal(){ try{ return JSON.parse(localStorage.getItem('goaItineraryDraft')) || null; }catch(e){ return null; } }
 function persistLocal(){ localStorage.setItem('goaItineraryDraft', JSON.stringify(days)); }
 
 let days = loadLocal() || [];
+let activeDayIndex = 0;
 
 function setSyncStatus(state, meta){
-  const dot = document.getElementById('syncDot');
-  const label = document.getElementById('syncLabel');
+  const dot = document.getElementById('syncDot'); const label = document.getElementById('syncLabel');
   dot.className = 'sync-dot ' + (state==='ok'?'ok':state==='bad'?'bad':'pending');
   label.textContent = state==='ok' ? 'Synced' : state==='bad' ? 'Offline — local draft' : 'Syncing…';
   if(meta) label.title = meta;
@@ -162,6 +252,62 @@ function showBanner(kind, html){
   if(kind==='ok'){ clearTimeout(showBanner._t); showBanner._t = setTimeout(()=>{ if(document.querySelector('.banner.ok')) showBanner(); }, 4000); }
 }
 
+/* ============================================================
+   DATA MODEL MIGRATION
+   Old shape: { day, date, title, tag, tbd, items:[string], places:[{name,photo,...}] }
+   New shape: { day, date, title, tag, tbd, activities:[{
+     id, timeOfDay, icon, title, startTime, endTime, place, note
+   }] }
+   Old itinerary blobs (already saved to the backend, or the site's
+   hardcoded default) are converted the first time they're touched here
+   so nothing existing breaks — old items become title-only activities,
+   zipped with whatever place was at the same index.
+=============================================================*/
+function genId(){ return 'a' + Math.random().toString(36).slice(2,9); }
+function guessTimeOfDay(text){
+  const s = String(text||'').toLowerCase();
+  if(/\b(morning|breakfast|sunrise)\b/.test(s)) return 'morning';
+  if(/\b(afternoon|lunch|noon)\b/.test(s)) return 'afternoon';
+  if(/\b(evening|dinner|sunset)\b/.test(s)) return 'evening';
+  if(/\b(night|late)\b/.test(s)) return 'night';
+  return null;
+}
+function guessIcon(text){
+  const s = String(text||'').toLowerCase();
+  if(/\bbeach|shore|coast\b/.test(s)) return '🏖️';
+  if(/\bbreakfast|lunch|dinner|food|restaurant|cafe|eat\b/.test(s)) return '🍽️';
+  if(/\bfort|temple|church|basilica|heritage|museum\b/.test(s)) return '🏛️';
+  if(/\bshop|market|bazaar\b/.test(s)) return '🛍️';
+  if(/\bcab|train|flight|drive|transfer|board|airport|station\b/.test(s)) return '🚗';
+  if(/\bparty|club|dj|night\b/.test(s)) return '🎉';
+  if(/\bcruise|boat|kayak|water\b/.test(s)) return '🚤';
+  if(/\bcheck.?in|hotel|villa|resort\b/.test(s)) return '🏡';
+  return '📍';
+}
+function migrateDay(d){
+  if(Array.isArray(d.activities)) return d;
+  const items = d.items || [];
+  const places = d.places || [];
+  const activities = items.map((text, i) => ({
+    id: genId(), timeOfDay: guessTimeOfDay(text) || (i===0?'morning':i===items.length-1?'evening':'afternoon'),
+    icon: guessIcon(text), title: (text||'').trim() || 'Untitled activity',
+    startTime:'', endTime:'', place: places[i] ? {...places[i]} : null, note:'',
+  }));
+  for(let i=items.length;i<places.length;i++){
+    activities.push({ id: genId(), timeOfDay:'morning', icon: guessIcon(places[i].name), title: places[i].name || 'Place', startTime:'', endTime:'', place: places[i], note:'' });
+  }
+  return { day:d.day, date:d.date, title:d.title, tag:d.tag, tbd:d.tbd, activities };
+}
+function migrateAll(list){ return (list||[]).map(migrateDay); }
+
+const TOD_META = {
+  morning:   { label:'Morning',   icon:'🌅' },
+  afternoon: { label:'Afternoon', icon:'☀️' },
+  evening:   { label:'Evening',   icon:'🌇' },
+  night:     { label:'Night',     icon:'🌙' },
+};
+const ICON_CHOICES = ['📍','🏖️','🍽️','🏛️','🛍️','🚗','🎉','🚤','🏡','⛰️','🎭','📸'];
+
 async function pullItinerary(manual){
   if(!window.TRIP){ setSyncStatus('bad'); render(); return; }
   setSyncStatus('pending');
@@ -169,29 +315,61 @@ async function pullItinerary(manual){
     const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(TRIP.id));
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-    if(Array.isArray(data.days) && data.days.length){ days = data.days; persistLocal(); }
-    else if(!days.length && Array.isArray(TRIP.defaultItinerary)){ days = JSON.parse(JSON.stringify(TRIP.defaultItinerary)); }
+    if(Array.isArray(data.days) && data.days.length){ days = migrateAll(data.days); persistLocal(); }
+    else if(!days.length && Array.isArray(TRIP.defaultItinerary)){ days = migrateAll(JSON.parse(JSON.stringify(TRIP.defaultItinerary))); }
+    else{ days = migrateAll(days); }
+    if(activeDayIndex >= days.length) activeDayIndex = 0;
     setSyncStatus('ok');
     showBanner('ok', manual ? 'Reloaded from the backend.' : '');
     if(!manual) showBanner();
   }catch(err){
     setSyncStatus('bad');
+    days = migrateAll(days);
     showBanner('err', `Couldn't reach the backend. Working from the last local draft. ${err.message}`);
   }
   render();
+  backfillMissingPhotos();
+}
+
+// Places saved before photo-matching existed are stuck at status:'ok'
+// with photo:null forever — resolveActivityPlace() only ever runs on
+// blur/Enter of the name field, so nothing would ever ask for their
+// photo again on its own. This runs once per itinerary load, quietly
+// re-resolves just those places (their name/coords are already known,
+// so it's a cheap cache-hit + photo-match round trip, not a full
+// re-geocode), and saves the result so index.html's carousel — which
+// only ever reads what's already stored, never calls /places itself —
+// picks the photos up on its next load too.
+async function backfillMissingPhotos(){
+  let changed = false;
+  for(const d of days){
+    for(const a of (d.activities||[])){
+      const p = a.place;
+      if(!p || p.status !== 'ok' || p.lat == null || p.photo) continue;
+      try{
+        const resolved = await resolvePlace(p.resolvedName || p.name);
+        if(resolved && resolved.photo){
+          p.photo = resolved.photo; p.caption = resolved.photoTitle || resolved.name;
+          p.source = resolved.photoSource; p.photoCandidates = resolved.photoCandidates || [];
+          changed = true;
+        }
+      }catch(e){ /* leave it — will just retry on next load */ }
+    }
+  }
+  if(changed){
+    render();
+    persistLocal();
+    if(window.TRIP) saveItinerary();
+  }
 }
 
 async function saveItinerary(){
   persistLocal();
-  if(!window.TRIP){
-    showBanner('warn', 'Trip not resolved yet — try reloading the page.');
-    return;
-  }
+  if(!window.TRIP){ showBanner('warn', 'Trip not resolved yet — try reloading the page.'); return; }
   setSyncStatus('pending');
   try{
     const res = await fetch(FUNCTIONS_BASE + '/itinerary?tripId=' + encodeURIComponent(TRIP.id), {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({action:'saveItinerary', payload:{days}, ts:new Date().toISOString()})
     });
     const data = await res.json();
@@ -211,142 +389,224 @@ async function saveItinerary(){
   if(sub) sub.textContent = trip.shortDates ? `${trip.name.toUpperCase()} · ${trip.shortDates}` : trip.name.toUpperCase();
   const route = document.getElementById('itinRoute');
   if(route) route.textContent = `ROUTE · ${(trip.origin||'').toUpperCase()} → ${(trip.waypoint||'').toUpperCase()} → ${(trip.destination||'').toUpperCase()}`;
+  const mapLink = document.getElementById('mapViewLink');
+  if(mapLink) mapLink.href = withTrip('test_itenary.html');
+  // Fetched once and cached rather than calling applyFeatureFlags() again
+  // on every edit — the day/activity list re-renders on almost every
+  // keystroke (updateActivity, updateDay, …), and re-fetching the flag
+  // list from the network that often would be wasteful. reapplyFeatureFlags()
+  // below re-applies this same cached result to whatever's newly in the DOM.
+  // Key is 'itinerary.editing' to match the server-side check in
+  // itinerary.js's POST handler — this client-side tag is a courtesy
+  // (hides the controls before someone wastes a click); the real
+  // enforcement is server-side either way.
+  cachedFeatureFlags = await applyFeatureFlags(trip.id);
   await pullItinerary();
 })();
 
 /* ============================================================
-   RENDER + EDIT
+   RENDER — day tabs + the active day's timeline
 =============================================================*/
-const daysWrap = document.getElementById('daysWrap');
-
-function render(){
-  daysWrap.innerHTML = days.map((d,di)=>`
-    <div class="card day-editor p-5">
-      <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-[260px]">
-          <div class="field-row"><label>Day label</label><input value="${escAttr(d.day)}" oninput="update(${di},'day',this.value)"/></div>
-          <div class="field-row"><label>Date</label><input value="${escAttr(d.date)}" oninput="update(${di},'date',this.value)"/></div>
-          <div class="field-row sm:col-span-2"><label>Tag</label>
-            <select onchange="update(${di},'tag',this.value)">
-              <option value="TRAVEL" ${d.tag==='TRAVEL'?'selected':''}>TRAVEL</option>
-              <option value="TBD" ${d.tag==='TBD'?'selected':''}>TBD</option>
-              <option value="ACTIVITY" ${d.tag==='ACTIVITY'?'selected':''}>ACTIVITY</option>
-              <option value="FREE" ${d.tag==='FREE'?'selected':''}>FREE</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn-danger" onclick="removeDay(${di})">Remove day</button>
-      </div>
-      <div class="field-row mb-4"><label>Title</label><input value="${escAttr(d.title)}" oninput="update(${di},'title',this.value)"/></div>
-      <label>Plan items</label>
-      <div class="space-y-2 mb-2">
-        ${(d.items||[]).map((it,ii)=>`
-          <div class="item-row">
-            <input value="${escAttr(it)}" oninput="updateItem(${di},${ii},this.value)"/>
-            <button class="btn-danger" onclick="removeItem(${di},${ii})">✕</button>
-          </div>`).join('')}
-      </div>
-      <button class="btn-ghost text-xs mb-4" onclick="addItem(${di})">+ Add item</button>
-
-      <label>Places <span class="opacity-50 normal-case font-normal" style="letter-spacing:normal;">— type a name, we pull a real photo automatically for the homepage carousel</span></label>
-      <div class="space-y-2 mb-2">
-        ${(d.places||[]).map((p,pi)=>`
-          <div class="place-row">
-            ${p.photo ? `<img class="place-thumb" src="${escAttr(p.photo)}" alt="${escAttr(p.name)}"/>` : `<span class="place-thumb empty">🖼</span>`}
-            <input value="${escAttr(p.name)}" placeholder="e.g. Palolem Beach" oninput="updatePlaceName(${di},${pi},this.value)" onblur="fetchPlacePhoto(${di},${pi})" onkeydown="if(event.key==='Enter'){event.preventDefault(); fetchPlacePhoto(${di},${pi});}"/>
-            <span class="place-status ${p.status||''}" id="placeStatus-${di}-${pi}">${placeStatusLabel(p)}</span>
-            <button class="btn-danger" onclick="removePlace(${di},${pi})">✕</button>
-          </div>`).join('')}
-      </div>
-      <button class="btn-ghost text-xs" onclick="addPlace(${di})">+ Add place</button>
-    </div>`).join('') || '<p class="text-sm opacity-50">No days yet — add one below.</p>';
-}
+const dayTabsEl = document.getElementById('dayTabs');
+const dayBodyEl = document.getElementById('dayBody');
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-function update(di, key, val){ days[di][key] = val; }
-function updateItem(di, ii, val){ days[di].items[ii] = val; }
-function addItem(di){ days[di].items = days[di].items || []; days[di].items.push(''); render(); }
-function removeItem(di, ii){ days[di].items.splice(ii,1); render(); }
+let cachedFeatureFlags = {};
+function reapplyFeatureFlags(){
+  document.querySelectorAll('[data-feature]').forEach(node => {
+    if(cachedFeatureFlags[node.dataset.feature] === false){
+      if(['INPUT','BUTTON','SELECT','TEXTAREA'].includes(node.tagName)){
+        node.setAttribute('disabled', 'disabled');
+        node.title = 'This feature is currently restricted.';
+      }else{
+        node.style.display = 'none';
+      }
+      node.classList.add('feature-restricted');
+    }
+  });
+}
+
+function fmtDateShort(iso){
+  if(!iso) return 'No date';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+}
+
+function render(){
+  if(!days.length){
+    dayTabsEl.innerHTML = '';
+    dayBodyEl.innerHTML = `<div class="empty-state">No days yet — add your first one to start planning.</div>
+      <div class="text-center mt-3"><button class="btn-primary" data-feature="itinerary.editing" onclick="addDay()">+ Add day</button></div>`;
+    reapplyFeatureFlags();
+    return;
+  }
+  if(activeDayIndex >= days.length) activeDayIndex = days.length - 1;
+
+  dayTabsEl.innerHTML = days.map((d,di)=>`
+    <div class="day-tab ${di===activeDayIndex?'active':''} ${d.tbd?'tbd':''}" onclick="setActiveDay(${di})">
+      <span class="dt-label">${escAttr(d.day||('Day '+(di+1)))}</span>
+      <span class="dt-date">${d.date ? fmtDateShort(d.date) : (d.tbd ? 'TBD' : '—')}</span>
+    </div>`).join('')
+    + `<div class="day-tab-add" data-feature="itinerary.editing" onclick="addDay()" title="Add day">+</div>`;
+
+  const d = days[activeDayIndex];
+  const di = activeDayIndex;
+  const acts = d.activities || [];
+
+  dayBodyEl.innerHTML = `
+    <div class="card day-head">
+      <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-[260px]">
+          <div><label>Day label</label><input value="${escAttr(d.day)}" oninput="updateDay(${di},'day',this.value)"/></div>
+          <div><label>Date</label><input type="date" value="${/^\d{4}-\d{2}-\d{2}$/.test(d.date||'') ? d.date : ''}" onchange="updateDay(${di},'date',this.value)"/></div>
+          <div class="sm:col-span-2"><label>Status</label>
+            <div class="tag-row">
+              ${['TRAVEL','ACTIVITY','FREE','TBD'].map(t=>`<span class="tag-chip ${d.tag===t?'active':''}" onclick="updateDay(${di},'tag','${t}')">${t}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <button class="btn-danger" data-feature="itinerary.editing" onclick="removeDay(${di})">Remove day</button>
+      </div>
+      <label>Title</label>
+      <input value="${escAttr(d.title)}" oninput="updateDay(${di},'title',this.value)" placeholder="e.g. Beach day & sunset cruise"/>
+    </div>
+
+    <div class="timeline">
+      ${acts.map((a,ai)=>renderActivity(d, di, a, ai)).join('') || ''}
+    </div>
+    ${!acts.length ? `<div class="empty-state">No activities yet for this day.</div>` : ''}
+
+    <div class="add-activity-card">
+      <button class="add-activity-btn" data-feature="itinerary.editing" onclick="addActivity(${di})">
+        <span style="font-size:16px;">＋</span> Add Activity
+      </button>
+    </div>
+  `;
+  reapplyFeatureFlags();
+}
+
+function renderActivity(d, di, a, ai){
+  const tod = TOD_META[a.timeOfDay] || TOD_META.morning;
+  const p = a.place;
+  const directionsUrl = (p && p.lat!=null && p.lng!=null && window.TRIP && TRIP.villaLat!=null)
+    ? mapsDirectionsUrl({lat:TRIP.villaLat,lng:TRIP.villaLng},{lat:p.lat,lng:p.lng})
+    : (p && p.lat!=null ? `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}` : null);
+  return `
+    <div class="tl-item">
+      <div class="tl-node">${a.icon || '📍'}</div>
+      <div class="card tl-card">
+        <div class="tl-top-row">
+          <select class="icon-select" onchange="updateActivity(${di},${ai},'icon',this.value)" title="Icon">
+            ${ICON_CHOICES.map(ic=>`<option ${a.icon===ic?'selected':''}>${ic}</option>`).join('')}
+          </select>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${Object.keys(TOD_META).map(key=>`
+              <span class="tod-chip ${a.timeOfDay===key?'active':''}" onclick="updateActivity(${di},${ai},'timeOfDay','${key}')">
+                ${TOD_META[key].icon} ${TOD_META[key].label}
+              </span>`).join('')}
+          </div>
+          <span class="time-pill">🕙 <input type="time" value="${escAttr(a.startTime)}" onchange="updateActivity(${di},${ai},'startTime',this.value)"/> – <input type="time" value="${escAttr(a.endTime)}" onchange="updateActivity(${di},${ai},'endTime',this.value)"/></span>
+        </div>
+
+        <input class="activity-title-input" value="${escAttr(a.title)}" placeholder="What's happening?" oninput="updateActivity(${di},${ai},'title',this.value)"/>
+
+        <div class="place-row">
+          ${p && p.photo ? `<img class="place-thumb" src="${escAttr(p.photo)}" alt="${escAttr(p.name)}"/>` : `<span class="place-thumb empty">🖼</span>`}
+          <input value="${escAttr(p ? p.name : '')}" placeholder="📍 Location (e.g. Palolem Beach)"
+            oninput="updateActivityPlaceName(${di},${ai},this.value)"
+            onblur="resolveActivityPlace(${di},${ai})"
+            onkeydown="if(event.key==='Enter'){event.preventDefault(); resolveActivityPlace(${di},${ai});}"/>
+          <span class="place-status ${p?p.status||'':''}">${placeStatusLabel(p)}</span>
+        </div>
+
+        <div onclick="toggleNote(${di},${ai})" class="note-toggle">${a.note ? '📝 Edit note' : '📝 Add note'}</div>
+        ${a._noteOpen || a.note ? `<textarea class="activity-note" rows="2" placeholder="Optional note…" oninput="updateActivity(${di},${ai},'note',this.value)">${escAttr(a.note)}</textarea>` : ''}
+
+        <div class="tl-actions">
+          ${directionsUrl ? `<a class="tl-mini-btn" href="${directionsUrl}" target="_blank" rel="noopener">🧭 Directions</a>` : ''}
+          ${ai>0 ? `<button class="tl-mini-btn" data-feature="itinerary.editing" onclick="moveActivity(${di},${ai},-1)" title="Move up">↑</button>` : ''}
+          ${ai < (d.activities.length-1) ? `<button class="tl-mini-btn" data-feature="itinerary.editing" onclick="moveActivity(${di},${ai},1)" title="Move down">↓</button>` : ''}
+          <button class="tl-mini-btn danger" data-feature="itinerary.editing" onclick="removeActivity(${di},${ai})">✕ Remove</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setActiveDay(di){ activeDayIndex = di; render(); }
+
+function updateDay(di, key, val){ days[di][key] = val; if(key==='tag') render(); }
+function addDay(){
+  days.push({ day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, activities:[] });
+  activeDayIndex = days.length - 1;
+  render();
+}
+function removeDay(di){
+  if(!confirm('Remove this day from the itinerary?')) return;
+  days.splice(di,1);
+  if(activeDayIndex >= days.length) activeDayIndex = Math.max(0, days.length-1);
+  render();
+}
+
+function addActivity(di){
+  days[di].activities = days[di].activities || [];
+  const count = days[di].activities.length;
+  const rotation = ['morning','afternoon','evening','night'];
+  days[di].activities.push({
+    id: genId(), timeOfDay: rotation[count % rotation.length], icon:'📍',
+    title:'', startTime:'', endTime:'', place:null, note:'',
+  });
+  render();
+}
+function updateActivity(di, ai, key, val){ days[di].activities[ai][key] = val; render(); }
+function toggleNote(di, ai){ const a = days[di].activities[ai]; a._noteOpen = !a._noteOpen; render(); }
+function removeActivity(di, ai){ days[di].activities.splice(ai,1); render(); }
+function moveActivity(di, ai, dir){
+  const arr = days[di].activities;
+  const j = ai + dir;
+  if(j < 0 || j >= arr.length) return;
+  [arr[ai], arr[j]] = [arr[j], arr[ai]];
+  render();
+}
 
 /* ============================================================
-   PLACES — free photo lookup, no API key, no billing.
-   Primary source: Wikipedia's REST summary API — for a named
-   landmark/beach with its own article, this returns the actual
-   place's photo (not generic stock), and is public/CORS-friendly
-   with no key required at all.
-   Fallback: Unsplash (only if an access key is configured below) —
-   optional, since most Goa places you'll type already have a
-   Wikipedia page. Leave UNSPLASH_ACCESS_KEY blank to skip it.
+   PLACES — resolution + photo matching is now entirely server-side
+   (see /places function): it geocodes the name AND finds a matched,
+   coordinate-verified photo in one call. This page just displays
+   whatever comes back and shows a clean "unresolved" state otherwise.
 =============================================================*/
-const UNSPLASH_ACCESS_KEY = ""; // optional — paste a free Unsplash Access Key here to enable the fallback
-
 function placeStatusLabel(p){
+  if(!p) return '';
   if(p.status === 'pending') return 'Resolving…';
-  if(p.status === 'ok') return (p.lat!=null ? '📍 ' : '') + (p.source === 'wikipedia' ? 'Wikipedia' : p.source === 'commons' ? 'Commons' : p.source === 'unsplash' ? 'Unsplash' : 'Resolved');
+  if(p.status === 'ok') return (p.lat!=null ? '📍 ' : '') + (p.photoSource ? p.photoSource[0].toUpperCase()+p.photoSource.slice(1) : 'Resolved');
   if(p.status === 'bad') return 'Unresolved — check spelling';
   return '';
 }
-function addPlace(di){
-  days[di].places = days[di].places || [];
-  days[di].places.push({name:'', photo:null, caption:'', source:'', status:''});
-  render();
+function updateActivityPlaceName(di, ai, val){
+  const a = days[di].activities[ai];
+  if(!a.place) a.place = { name:'', photo:null, status:'' };
+  a.place.name = val;
 }
-function updatePlaceName(di, pi, val){ days[di].places[pi].name = val; }
-function removePlace(di, pi){ days[di].places.splice(pi,1); render(); }
-
-async function fetchPlacePhoto(di, pi){
-  const p = days[di] && days[di].places && days[di].places[pi];
-  if(!p) return;
+async function resolveActivityPlace(di, ai){
+  const a = days[di] && days[di].activities && days[di].activities[ai];
+  if(!a || !a.place) return;
+  const p = a.place;
   const rawName = (p.name||'').trim();
-  if(!rawName){ p.status=''; p.photo=null; p.lat=null; p.lng=null; p.resolvedName=null; render(); return; }
-  // Don't re-resolve if we already fully resolved this exact typed text.
-  if(p.status === 'ok' && p._fetchedFor === rawName) return;
+  if(!rawName){ a.place = null; render(); return; }
+  if(p.status === 'ok' && p._fetchedFor === rawName && p.photo) return;
   p.status = 'pending';
   render();
   try{
-    // 1. Resolve the free-typed text to a canonical real-world place —
-    //    this is the single source of truth. Everything else (photo,
-    //    map pin, directions) is derived from THIS result, so they can
-    //    never disagree with each other. No match => unresolved, never
-    //    a guess.
     const resolved = await resolvePlace(rawName);
     if(!resolved){
-      console.warn('Place resolution: no confident match for', JSON.stringify(rawName));
       p.photo = null; p.lat = null; p.lng = null; p.resolvedName = null; p.status = 'bad';
       render();
       return;
     }
     p.lat = resolved.lat; p.lng = resolved.lng;
-    p.resolvedName = resolved.name;
-    p.displayName = resolved.displayName;
-    p.placeType = resolved.type;
-
-    // 2. Photo lookup uses the CANONICAL resolved name (not the raw
-    //    typed text), so a lookup like "Aguada" resolves to "Fort
-    //    Aguada" first and the photo search is for that real title —
-    //    same reasoning chain the map pin already went through.
-    const lookupName = resolved.name || rawName;
-    let found = await fetchWikipediaPhoto(lookupName);
-    let source = 'wikipedia';
-
-    if(!found){
-      found = await fetchCommonsPhoto(lookupName);
-      source = 'commons';
-    }
-
-    if(!found && UNSPLASH_ACCESS_KEY){
-      found = await fetchUnsplashPhoto(lookupName);
-      source = 'unsplash';
-    }
-
-    if(found){
-      p.photo = found.photo; p.caption = found.title || lookupName; p.source = source;
-    }else{
-      // Coordinates resolved but no photo anywhere — still usable for
-      // map/directions; the carousel card falls back gracefully (see
-      // index.html renderGalleryCards) instead of breaking.
-      p.photo = null; p.source = '';
-    }
+    p.resolvedName = resolved.name; p.displayName = resolved.displayName; p.placeType = resolved.type;
+    p.photo = resolved.photo; p.caption = resolved.photoTitle || resolved.name; p.source = resolved.photoSource;
+    p.photoCandidates = resolved.photoCandidates || [];
     p.status = 'ok'; p._fetchedFor = rawName;
   }catch(err){
     console.warn('Place resolution failed for', JSON.stringify(rawName), err);
@@ -355,107 +615,10 @@ async function fetchPlacePhoto(di, pi){
   render();
 }
 
-// Searches Wikimedia Commons' File namespace directly for a bitmap image
-// matching the name — independent of whether English Wikipedia has an
-// article on the place at all. Free, no key, CORS-enabled (origin=*).
-async function fetchCommonsPhoto(name){
-  const url = 'https://commons.wikimedia.org/w/api.php?action=query&generator=search'
-    + '&gsrsearch=' + encodeURIComponent(name + ' filetype:bitmap')
-    + '&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url&iiurlwidth=1000&format=json&origin=*';
-  const res = await fetch(url);
-  if(!res.ok) return null;
-  const data = await res.json();
-  const pages = data.query && data.query.pages;
-  if(!pages) return null;
-  const first = Object.values(pages)[0];
-  const info = first && first.imageinfo && first.imageinfo[0];
-  const photo = info && (info.thumburl || info.url);
-  if(!photo) return null;
-  const title = (first.title || '').replace(/^File:/, '').replace(/\.[a-zA-Z0-9]+$/, '');
-  return { photo, title: title || name };
-}
-
-async function fetchWikipediaPhoto(name){
-  // Step 1: try the name as a literal Wikipedia article title first.
-  // This is what makes well-known landmarks that have nothing to do
-  // with Goa (Taj Mahal, Gateway of India, Dudhsagar Falls) resolve
-  // correctly — appending "Goa" to a search for these only drags the
-  // query away from the real article.
-  let summary = await fetchWikiSummary(name);
-
-  // Step 2: no exact article under that title (typo, loose phrasing,
-  // or a short name that collides with something more famous
-  // elsewhere) — fall back to Wikipedia's search endpoint. Try it
-  // plain first, then nudged with "Goa" only if that also comes up
-  // empty, so the regional bias only kicks in when it's actually
-  // needed for disambiguation, not on every lookup.
-  if(!summary){
-    let title = await resolveWikipediaTitle(name, false);
-    if(!title) title = await resolveWikipediaTitle(name, true);
-    if(title) summary = await fetchWikiSummary(title);
-  }
-  return summary;
-}
-
-async function fetchWikiSummary(title){
-  const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title), {
-    headers: { 'Accept': 'application/json' }
-  });
-  if(!res.ok) return null;
-  const data = await res.json();
-  if(data.type === 'disambiguation') return null;
-  // Use the URLs exactly as Wikipedia returns them — no rewriting the
-  // width in the path. Wikipedia's thumbnail URLs now carry tracking
-  // query params (?utm_source=...), and asking the thumb generator for
-  // a size it hasn't already rendered WHILE those params are attached
-  // returns a 400 Bad Request instead of the image. originalimage (the
-  // real full-resolution photo) is preferred when present; thumbnail
-  // is the fallback — both used as-is.
-  const photo = (data.originalimage && data.originalimage.source) || (data.thumbnail && data.thumbnail.source);
-  if(!photo) return null;
-  return { photo, title: data.title };
-}
-
-// Uses Wikipedia's own search endpoint (the same one that powers the
-// search box on wikipedia.org) to turn a rough/misspelled/loosely typed
-// name into the closest real article title. withRegion appends "Goa" to
-// nudge ambiguous local names (e.g. a beach that shares a name with
-// somewhere else) toward the right regional result — only used as a
-// second-pass fallback now, not on every lookup.
-async function resolveWikipediaTitle(name, withRegion){
-  const query = withRegion ? name + ' Goa' : name;
-  const url = 'https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&format=json&origin=*&srsearch=' + encodeURIComponent(query);
-  const res = await fetch(url);
-  if(!res.ok) return null;
-  const data = await res.json();
-  const hit = data.query && data.query.search && data.query.search[0];
-  return hit ? hit.title : null;
-}
-async function fetchUnsplashPhoto(query){
-  const res = await fetch('https://api.unsplash.com/search/photos?per_page=1&query=' + encodeURIComponent(query + ' Goa'), {
-    headers: { 'Authorization': 'Client-ID ' + UNSPLASH_ACCESS_KEY }
-  });
-  if(!res.ok) return null;
-  const data = await res.json();
-  const hit = data.results && data.results[0];
-  if(!hit) return null;
-  return { photo: hit.urls.regular };
-}
-function addDay(){
-  days.push({day:`Day ${days.length+1}`, date:'', title:'New day', tag:'TBD', tbd:true, items:[''], places:[]});
-  render();
-}
-function removeDay(di){
-  if(!confirm('Remove this day from the itinerary?')) return;
-  days.splice(di,1); render();
-}
-
 render();
 </script>
 <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
 <script>
-// Lenis honors prefers-reduced-motion itself (locks lerp to 1), so
-// no extra reduced-motion check is needed here.
 if(typeof Lenis !== 'undefined'){ new Lenis({ autoRaf: true, autoToggle: true }); }
 </script>
 </body>
