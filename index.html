@@ -251,28 +251,38 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
    edge, matching the iOS tab bar pattern. */
 #mobileTabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:45;
-  display:flex; align-items:stretch;
-  padding:6px calc(6px + var(--sar)) calc(6px + var(--sab)) calc(6px + var(--sal));
+  display:flex; align-items:stretch; gap:2px;
+  padding:8px calc(10px + var(--sar)) calc(8px + var(--sab)) calc(10px + var(--sal));
   background:
-    linear-gradient(0deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 60%),
-    rgba(251,251,253,.82);
-  -webkit-backdrop-filter:blur(18px) saturate(180%); backdrop-filter:blur(18px) saturate(180%);
-  border-top:1px solid rgba(255,255,255,.7);
-  box-shadow:0 -10px 30px -14px rgba(29,29,31,.18);
+    linear-gradient(0deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,0) 60%),
+    rgba(251,251,253,.86);
+  -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+  border-top:1px solid rgba(29,29,31,.06);
+  box-shadow:0 -12px 32px -16px rgba(29,29,31,.16);
 }
 #mobileTabbar .tabbar-item{
-  flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:3px; padding:6px 2px; border:none; border-bottom:none !important;
+  position:relative; flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; padding:7px 2px 6px; border:none; border-bottom:none !important; border-radius:14px;
   color:var(--teal-700); text-decoration:none; font-family:'Space Grotesk',sans-serif;
-  font-size:10.5px; font-weight:600; letter-spacing:.01em; text-transform:none; opacity:.65;
-  -webkit-tap-highlight-color:transparent; transition:color .15s ease, opacity .15s ease, transform .15s ease;
+  font-size:10px; font-weight:600; letter-spacing:.02em; text-transform:none; opacity:.5;
+  -webkit-tap-highlight-color:transparent; transition:color .2s ease, opacity .2s ease, background .2s ease;
 }
-#mobileTabbar .tabbar-item .tabbar-icon{ font-size:19px; line-height:1; }
+#mobileTabbar .tabbar-icon{
+  display:flex; align-items:center; justify-content:center; width:23px; height:23px; margin-bottom:1px;
+}
+#mobileTabbar .tabbar-icon svg{ width:21px; height:21px; transition:transform .2s cubic-bezier(.34,1.4,.64,1); }
+#mobileTabbar .tabbar-label{ line-height:1; }
 #mobileTabbar .tabbar-item.active,
-#mobileTabbar .tabbar-item:active{ color:var(--mango); opacity:1; }
-#mobileTabbar .tabbar-item.active{ transform:translateY(-1px); }
+#mobileTabbar .tabbar-item:active{ color:var(--mango-2); opacity:1; }
+#mobileTabbar .tabbar-item.active{
+  background:rgba(255,107,74,.16);
+  box-shadow:inset 0 0 0 1px rgba(255,107,74,.22);
+}
+#mobileTabbar .tabbar-item.active .tabbar-icon svg{ transform:scale(1.08); }
+#mobileTabbar .tabbar-item.active .tabbar-label{ font-weight:700; }
+#mobileTabbar .tabbar-item.tabbar-wallet{ color:var(--teal-700); opacity:.5; }
 #mobileTabbar .tabbar-item.tabbar-wallet.active,
-#mobileTabbar .tabbar-item.tabbar-wallet{ color:var(--mango-2); opacity:1; }
+#mobileTabbar .tabbar-item.tabbar-wallet:active{ color:var(--mango-2); opacity:1; background:rgba(255,107,74,.16); box-shadow:inset 0 0 0 1px rgba(255,107,74,.22); }
 @media (min-width:768px){
   #mobileTabbar{ display:none !important; }
 }
@@ -1498,11 +1508,26 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 </div>
 
 <nav id="mobileTabbar" class="md:hidden" aria-label="Primary">
-  <span class="tabbar-item navlink" data-target="#gallery"><span class="tabbar-icon" aria-hidden="true">🖼️</span>Gallery</span>
-  <span class="tabbar-item navlink" data-target="#places"><span class="tabbar-icon" aria-hidden="true">📍</span>Places</span>
-  <span class="tabbar-item navlink" data-target="#itinerary"><span class="tabbar-icon" aria-hidden="true">🗓️</span>Itinerary</span>
-  <a class="tabbar-item tabbar-wallet" href="goa-wallet.html"><span class="tabbar-icon" aria-hidden="true">💰</span>Wallet</a>
-  <span class="tabbar-item" onclick="toggleMobileMenu()"><span class="tabbar-icon" aria-hidden="true">☰</span>Menu</span>
+  <span class="tabbar-item navlink" data-target="#gallery">
+    <span class="tabbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 16l4.5-4.5a2 2 0 0 1 2.8 0L15 15l1.2-1.2a2 2 0 0 1 2.8 0L20.5 15.3"/></svg></span>
+    <span class="tabbar-label">Gallery</span>
+  </span>
+  <span class="tabbar-item navlink" data-target="#places">
+    <span class="tabbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/></svg></span>
+    <span class="tabbar-label">Places</span>
+  </span>
+  <span class="tabbar-item navlink" data-target="#itinerary">
+    <span class="tabbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v3.2M16 3v3.2"/></svg></span>
+    <span class="tabbar-label">Itinerary</span>
+  </span>
+  <a class="tabbar-item tabbar-wallet" href="goa-wallet.html">
+    <span class="tabbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v1"/><path d="M4 7.5v9A2.5 2.5 0 0 0 6.5 19H18a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 1 4 7.5Z"/><circle cx="16" cy="13" r="1.3" fill="currentColor" stroke="none"/></svg></span>
+    <span class="tabbar-label">Wallet</span>
+  </a>
+  <span class="tabbar-item" onclick="toggleMobileMenu()">
+    <span class="tabbar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></svg></span>
+    <span class="tabbar-label">Menu</span>
+  </span>
 </nav>
 
 <!-- ============ HERO — minimal, Apple-style: quiet type, one gradient moment ============ -->
@@ -3515,6 +3540,12 @@ navlinks.forEach(l=>l.addEventListener('click', e=>{
 
 const sections = ['#gallery','#places','#journey','#itinerary','#register','#team'].map(id=>document.querySelector(id)).filter(Boolean);
 let lastY = window.scrollY;
+function updateActiveNav(){
+  let current = null;
+  sections.forEach(s=>{ if(s.getBoundingClientRect().top < 140) current = s.id; });
+  navlinks.forEach(l=> l.classList.toggle('active', current && l.dataset.target === '#'+current));
+  if(window.__railGlideToActive) window.__railGlideToActive();
+}
 window.addEventListener('scroll', ()=>{
   const y = window.scrollY;
   const nav = document.getElementById('topnav');
@@ -3523,11 +3554,13 @@ window.addEventListener('scroll', ()=>{
   if(window.innerWidth < 768 && y > lastY && y > 200){ nav.classList.add('hide'); } else { nav.classList.remove('hide'); }
   nav.classList.toggle('scrolled', y > 60);
   lastY = y;
-  let current = null;
-  sections.forEach(s=>{ if(s.getBoundingClientRect().top < 140) current = s.id; });
-  navlinks.forEach(l=> l.classList.toggle('active', current && l.dataset.target === '#'+current));
-  if(window.__railGlideToActive) window.__railGlideToActive();
+  updateActiveNav();
 });
+// Run once immediately so the mobile tab bar (and desktop rail) shows the
+// right selection state from first paint, not only after the first scroll
+// event — without this, nothing reads as "active" until the user nudges
+// the page at all.
+updateActiveNav();
 
 /* Google Maps loading state is now handled inline in toggleFlip(), since
    the maps iframes are lazy-loaded on first flip (see PLACES CAROUSEL
