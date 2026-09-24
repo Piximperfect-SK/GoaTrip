@@ -444,20 +444,38 @@
 </head>
 <body>
 
-<!-- ============ ADMIN LOGIN GATE ============
-     The whole wallet is now admin-gated: server-side, wallet.js
-     rejects both GET and POST without a valid session token (see
-     wallet.js); this overlay is the client-side login screen that
-     gets that token. It reuses the exact same sessionStorage key
-     and /admin login endpoint as admin.html, so logging in on either
-     page carries over to the other for the rest of this browser tab. -->
-<div id="walletGate" class="wallet-gate" style="display:none;">
+<!-- ============ ACCESS GATE (mandatory) ============
+     The wallet holds real financial data, so this is no longer an
+     optional "sign in if you want to make changes" overlay — wallet.js
+     now rejects GET and POST alike without a valid session token, and
+     boot() below never calls initWalletApp() (which is what actually
+     fetches/renders wallet data) until one of the two forms below
+     succeeds. There is deliberately no "continue without signing in"
+     option anymore. Participant sign-in posts to login.js (shared trip
+     password + pick-your-registered-name); admin sign-in reuses the
+     same /admin endpoint and sessionStorage key as admin.html, so
+     logging in on either page carries over to the other for the rest
+     of this browser tab. -->
+<div id="walletGate" class="wallet-gate" style="display:flex;">
   <div class="wallet-gate-card">
     <div class="wallet-gate-badge">🔒</div>
     <h1 class="display">Trip Wallet</h1>
-    <p class="wallet-gate-sub" id="gateSub">Admin sign-in</p>
+    <p class="wallet-gate-sub" id="gateSub">Sign in to view the wallet</p>
     <div id="gateBanner" class="banner err" style="display:none;"></div>
-    <form id="walletLoginForm">
+
+    <form id="participantGateForm">
+      <div class="field-row mb-3">
+        <label>Your name</label>
+        <select id="pg-name" required class="w-full"></select>
+      </div>
+      <div class="field-row mb-4">
+        <label>Trip password</label>
+        <input type="password" id="pg-password" placeholder="Trip password" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="btn-primary w-full" id="pgSubmitBtn">Sign in</button>
+    </form>
+
+    <form id="walletLoginForm" style="display:none;">
       <div class="field-row mb-3">
         <label>Name</label>
         <input type="text" id="wg-name" placeholder="Your admin name" autocomplete="username" required/>
@@ -468,8 +486,9 @@
       </div>
       <button type="submit" class="btn-primary w-full" id="wgSubmitBtn">Sign in</button>
     </form>
-    <p class="wallet-gate-note">Not an admin yet? <a href="admin.html">Request access →</a></p>
-    <p class="wallet-gate-note"><a href="#" id="wgCancelBtn">Continue without signing in →</a></p>
+
+    <p class="wallet-gate-note"><a href="#" id="gateModeToggle">Signing in as admin instead →</a></p>
+    <p class="wallet-gate-note">Not registered for this trip? <a href="admin.html">Request access →</a></p>
   </div>
 </div>
 
@@ -1440,10 +1459,22 @@ function setSyncStatus(state, meta){
 
 async function pullFromSheet(manual){
   if(!window.TRIP){ setSyncStatus('bad'); return; }
-  // GET is public now — no token required just to view the wallet.
+  // GET now requires a session too (admin or participant) — the wallet
+  // holds real financial data, so it's no longer publicly viewable.
+  const token = getSessionToken();
+  if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
+    if(res.status === 401){
+      // Session invalid/expired — clear whichever one we sent and force
+      // back through the gate rather than showing wallet data at all.
+      if(token === getWalletToken()) { clearWalletSession(); setWalletAdminUI(null); }
+      else clearUserSession();
+      setSyncStatus('bad');
+      showAccessGate('Your session has expired — please sign in again.');
+      return;
+    }
     const text = await res.text();
     let data;
     try{ data = JSON.parse(text); }
@@ -3466,7 +3497,15 @@ function renderAll(){
     try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
   });
 }
-try{ renderAll(); }catch(e){ console.error('Initial renderAll failed (continuing to sync anyway):', e); }
+// NOTE: this used to run unconditionally at load time, straight off
+// whatever `wallet` was seeded to via loadLocal() (localStorage — which
+// persists across visits/sessions, unlike the session tokens). On a
+// shared device that's real financial data from a previous sign-in,
+// rendered before boot() has even checked whether *this* visitor is
+// signed in — exactly what the mandatory gate exists to prevent. The
+// initial paint now happens inside boot()/initWalletApp(), only after a
+// session is confirmed; see pullFromSheet(), which calls renderAll()
+// itself once the (authenticated) fetch completes.
 async function initWalletApp(){
   const trip = await initTripContext();
   document.title = `Trip Wallet — ${trip.name}`;
@@ -3526,16 +3565,29 @@ function clearWalletSession(){
   sessionStorage.removeItem(WALLET_TOKEN_KEY);
   sessionStorage.removeItem(WALLET_NAME_KEY);
 }
-// Opens the sign-in overlay on demand (it no longer blocks the page by
-// default — see boot() below). `message` shows an error/info banner
-// inside it; used both for the "please sign in" flows and for a stale
-// admin session discovered mid-use.
-function showWalletGate(message){
+// Opens the sign-in overlay (mandatory now — see boot() below, which
+// never calls initWalletApp() until one of the two forms succeeds).
+// `message` shows an error/info banner inside it; `mode` ('admin' or
+// omitted/'participant') picks which of the two forms is active.
+function showWalletGate(message, mode){
   document.getElementById('walletGate').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   const b = document.getElementById('gateBanner');
   if(message){ b.style.display = 'flex'; b.className = 'banner err'; b.textContent = message; }
   else b.style.display = 'none';
+  if(mode === 'admin') setGateMode('admin');
+}
+function showAccessGate(message){ showWalletGate(message); }
+function setGateMode(mode){
+  const pForm = document.getElementById('participantGateForm');
+  const aForm = document.getElementById('walletLoginForm');
+  const toggle = document.getElementById('gateModeToggle');
+  const sub = document.getElementById('gateSub');
+  const admin = mode === 'admin';
+  aForm.style.display = admin ? 'block' : 'none';
+  pForm.style.display = admin ? 'none' : 'block';
+  toggle.textContent = admin ? 'Signing in as a participant instead →' : 'Signing in as admin instead →';
+  sub.textContent = admin ? 'Admin sign-in' : 'Sign in to view the wallet';
 }
 function closeWalletGate(){
   document.getElementById('walletGate').style.display = 'none';
@@ -3581,7 +3633,7 @@ function applyWalletLockUI(){
   if(settlementBtn) settlementBtn.style.display = readOnly ? 'none' : '';
   if(readOnly){
     showBanner('warn', 'The wallet is locked for final submission — you can still view everything, but changes need an admin. <a href="#" id="walletReadonlySignin" style="text-decoration:underline;">Sign in as admin →</a>');
-    document.getElementById('walletReadonlySignin')?.addEventListener('click', (e)=>{ e.preventDefault(); showWalletGate(); });
+    document.getElementById('walletReadonlySignin')?.addEventListener('click', (e)=>{ e.preventDefault(); showWalletGate(null, 'admin'); });
   } else if(WALLET_LOCKED && IS_WALLET_ADMIN){
     showBanner('info', 'The wallet is locked for final submission — as an admin you can still make changes.');
   } else {
@@ -3608,7 +3660,7 @@ document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
     setWalletSession(data.token, name);
     closeWalletGate();
     setWalletAdminUI(name);
-    applyWalletLockUI();
+    await initWalletApp(); // first successful sign-in on a fresh load — this is what actually fetches wallet data
     if(data.mustChangePin){
       showBanner('warn', 'You\u2019re still on a temporary PIN — change it from the Admin console when you get a chance.');
     }
@@ -3619,14 +3671,52 @@ document.getElementById('walletLoginForm').addEventListener('submit', async e=>{
   }
 });
 
-document.getElementById('wgCancelBtn')?.addEventListener('click', (e)=>{
+// Participant sign-in — posts to login.js (shared trip password +
+// pick-your-registered-name). This is the default/primary form on the
+// gate; most of the 12 participants aren't admins.
+document.getElementById('participantGateForm').addEventListener('submit', async e=>{
   e.preventDefault();
-  closeWalletGate();
+  const btn = document.getElementById('pgSubmitBtn');
+  const banner = document.getElementById('gateBanner');
+  banner.style.display = 'none';
+  const name = document.getElementById('pg-name').value;
+  const password = document.getElementById('pg-password').value;
+  if(!name || !password) return;
+  const tripId = resolveTripIdFromUrl() || sessionStorage.getItem('goatrip:lastTrip');
+  if(!tripId){
+    banner.style.display = 'flex'; banner.className = 'banner err';
+    banner.textContent = 'Could not tell which trip this is — try opening the wallet link again.';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(tripId), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'login', name, password })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || data.message || 'Sign-in failed.');
+    setUserSession(data.token, data.name);
+    localStorage.setItem('goaWalletLastActor', data.name);
+    closeWalletGate();
+    await initWalletApp();
+  }catch(err){
+    banner.style.display = 'flex'; banner.className = 'banner err'; banner.textContent = err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+});
+
+document.getElementById('gateModeToggle').addEventListener('click', e=>{
+  e.preventDefault();
+  const currentlyAdmin = document.getElementById('walletLoginForm').style.display !== 'none';
+  setGateMode(currentlyAdmin ? 'participant' : 'admin');
+  document.getElementById('gateBanner').style.display = 'none';
 });
 
 document.getElementById('walletAdminSigninBtn')?.addEventListener('click', (e)=>{
   e.preventDefault();
-  showWalletGate();
+  showWalletGate(null, 'admin');
 });
 
 document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
@@ -3635,11 +3725,59 @@ document.getElementById('walletLogoutBtn')?.addEventListener('click', (e)=>{
   location.reload();
 });
 
+// Pre-fills the participant name dropdown before anyone's signed in —
+// login.js's 'participants' action is intentionally public (no token)
+// for exactly this: populating a name picker on a locked page. Uses the
+// URL/last-visited trip id directly rather than window.TRIP, since
+// initTripContext() (which sets window.TRIP) isn't called until after
+// sign-in now.
+async function populateGateParticipants(){
+  const tripId = resolveTripIdFromUrl() || sessionStorage.getItem('goatrip:lastTrip');
+  const sel = document.getElementById('pg-name');
+  if(!tripId || !sel) return;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/login?tripId=' + encodeURIComponent(tripId), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'participants' })
+    });
+    const data = await res.json();
+    const names = Array.isArray(data.participants) ? data.participants : [];
+    sel.innerHTML = names.map(p=>`<option value="${p}">${p}</option>`).join('');
+    const last = localStorage.getItem('goaWalletLastActor');
+    if(last && names.includes(last)) sel.value = last;
+  }catch(e){ /* gate stays usable — server still validates the typed name on submit */ }
+}
+
+// Mandatory gate: nothing wallet-related (initWalletApp -> pullFromSheet,
+// which is what actually fetches expenses/settlements/deposits/activity)
+// runs until a valid session — admin or participant — is confirmed. A
+// visitor who's never signed in sees only the gate; there is no
+// "continue without signing in" path anymore.
 (async function boot(){
-  const name = await verifyWalletSession();
-  if(!name) clearWalletSession();
-  setWalletAdminUI(name);
-  await initWalletApp(); // pulls wallet data (incl. lock state) and calls applyWalletLockUI() itself
+  document.body.style.overflow = 'hidden'; // gate is visible by default in the markup; keep the page locked behind it
+  await populateGateParticipants();
+
+  const adminName = await verifyWalletSession();
+  if(adminName){
+    setWalletAdminUI(adminName);
+    closeWalletGate();
+    await initWalletApp();
+    return;
+  }
+  clearWalletSession();
+  setWalletAdminUI(null);
+
+  if(getUserToken()){
+    // Trust the cached participant token optimistically — if it's
+    // actually expired/invalid, wallet.js will 401 on the very first
+    // request inside initWalletApp() and pullFromSheet() reopens the
+    // gate via showAccessGate() at that point.
+    closeWalletGate();
+    await initWalletApp();
+    return;
+  }
+
+  showWalletGate();
 })();
 
 /* ============================================================

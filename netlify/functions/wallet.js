@@ -125,9 +125,9 @@ async function readState(tripId) {
     })),
     activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: r.actor, action: r.action, detail: r.detail })),
     participants: (trip.rows[0] && trip.rows[0].wallet_participants) || [],
-    // Everyone gets this back (GET is public now) so goa-wallet.html can
-    // switch itself into read-only mode client-side, on top of the real
-    // enforcement below on POST.
+    // Signed-in users (admin or participant) get this back so
+    // goa-wallet.html can switch itself into read-only mode client-side,
+    // on top of the real enforcement below on POST.
     locked: !!(trip.rows[0] && trip.rows[0].wallet_locked),
   };
 }
@@ -148,11 +148,18 @@ exports.handler = async (event) => {
     const body = event.httpMethod === 'POST' ? parseBody(event) : null;
     if (event.httpMethod === 'POST' && !body) return badRequest('Invalid JSON body.');
 
-    // Reads are public: anyone with the trip link can view the wallet,
-    // locked or not. (Admin login used to be required just to *see* the
-    // page — that's gone; only writes are ever gated, and only once the
-    // wallet is locked — see below.)
-    if (event.httpMethod === 'GET') return ok(await readState(tripId));
+    // Reads now require a session too — the wallet holds real financial
+    // data, so "anyone with the trip link" is no longer an acceptable
+    // access model (previously GET was intentionally public; see the
+    // frontend gate in goa-wallet.html for the corresponding change).
+    // Token travels as a query param on GET since there's no body.
+    if (event.httpMethod === 'GET') {
+      const session = params.token ? verifySessionTokenFull(params.token) : null;
+      if (!session) {
+        return unauthorized('Please sign in to view the wallet.');
+      }
+      return ok(await readState(tripId));
+    }
 
     const { action } = body;
     const payload = body.payload || {};
