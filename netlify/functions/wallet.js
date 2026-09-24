@@ -173,6 +173,23 @@ function filterVisible(records, ownerField, viewer) {
   return records.filter((r) => r.status === 'approved' || r[ownerField] === viewer.name);
 }
 
+// Maps a record's raw DB approval columns onto the camelCase shape the
+// frontend expects. This was being called from readState() below without
+// ever being defined — that ReferenceError is what was 500-ing every
+// wallet GET and POST (any request that reaches readState() at the end).
+function approvalFields(r) {
+  return {
+    status: r.status || 'approved',
+    submittedBy: r.submitted_by,
+    submittedAt: r.submitted_at,
+    approvedBy: r.approved_by,
+    approvedAt: r.approved_at,
+    rejectedBy: r.rejected_by,
+    rejectedAt: r.rejected_at,
+    rejectionReason: r.rejection_reason,
+  };
+}
+
 async function readState(tripId, viewer) {
   await ensureWalletLockSchema();
   await ensureApprovalSchema();
