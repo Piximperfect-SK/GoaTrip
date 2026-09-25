@@ -449,3 +449,20 @@ function calculateCircuitRoute(villa, places){
 
   return circuit;
 }
+
+// ---------- PWA install support ----------
+// Registered here (shared.js) rather than per-page, since every page
+// that matters (index/itinerary/goa-wallet/admin) already loads this
+// file — one registration covers the whole site instead of four
+// duplicated <script> blocks. Deliberately fire-and-forget: an install
+// prompt is a nice-to-have, never something that should be able to
+// block or delay the page it's loaded from.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Registration can fail for plenty of harmless reasons (private
+      // browsing, an in-app browser without SW support, etc.) — the
+      // site works fine without it, so this is silent by design.
+    });
+  });
+}

@@ -8,7 +8,7 @@
 <title>Admin request</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="/css/shared.css">
 <style>
   *{ box-sizing:border-box; }
   h1,h2,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
@@ -57,7 +57,7 @@
     <button type="button" id="confirmBtn" class="btn-primary" style="display:none; margin-top:18px;" onclick="runAction()"></button>
   </div>
 
-<script src="shared.js"></script>
+<script src="/js/shared.js"></script>
 <script>
 const params = new URLSearchParams(location.search);
 const action = params.get('action'); // 'approve' | 'reject'

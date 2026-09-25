@@ -20,11 +20,14 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="theme-color" content="#0C3E3A" />
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-512.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <title>Trip Site</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="/css/shared.css">
 <style>
 /* shared :root design tokens now live in shared.css — overridden below
    with a brighter "Golden Hour Goa" palette for this page: warm sand
@@ -1993,7 +1996,7 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="shared.js"></script>
+<script src="/js/shared.js"></script>
 <script>
 /* ============================================================
    PLACES CAROUSEL — fully dynamic, resolved from the itinerary.

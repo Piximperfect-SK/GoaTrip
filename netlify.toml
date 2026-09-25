@@ -76,3 +76,39 @@
   for = "/*.html"
   [headers.values]
     Cache-Control = "public, max-age=3600, must-revalidate"
+
+# ============================================================
+# PWA install support additions.
+#
+# /sw.js gets an explicit no-cache — after the stale-HTML-cache
+# confusion we just chased down, a stale *service worker* would be a
+# much worse version of the same bug (a cached old sw.js can keep
+# intercepting requests long after a redeploy). Browsers already treat
+# service worker scripts specially (they re-check within ~24h even
+# with far-future cache headers), but there's no reason to rely on
+# that default when we can just say what we mean.
+#
+# /manifest.webmanifest gets an explicit Content-Type — Netlify's
+# static server generally infers the right MIME type for .webmanifest
+# already, but Chrome's installability check is picky about this file
+# specifically, so it's worth not leaving it to inference.
+#
+# /icons/* get a long, immutable cache — these are static, versioned
+# by filename if they're ever swapped, and change least often of
+# anything on the site.
+# ============================================================
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=3600, must-revalidate"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000, immutable"
