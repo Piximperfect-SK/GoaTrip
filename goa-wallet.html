@@ -3126,6 +3126,7 @@ function setDepositMode(mode){
   depositMode = mode;
   document.querySelectorAll('[data-deptype]').forEach(t=> t.classList.toggle('active', t.dataset.deptype===mode));
   document.getElementById('depositSubmitBtn').textContent = (depositEditingId ? 'Save changes' : (mode==='deposit' ? 'Add deposit' : 'Record withdrawal'));
+  updateDepositSubmitState();
 }
 
 // Live validation guard: the submit button is disabled whenever the
@@ -3133,12 +3134,22 @@ function setDepositMode(mode){
 // input's HTML5 min="0.01", since that only blocks submission (and
 // inconsistently across browsers) rather than making it visibly clear
 // upfront that a zero/negative amount won't go through.
+// For withdrawals specifically, also disabled when there's nothing in
+// the pot at all (totalDeposited() <= 0), or when the selected person
+// has no deposit of their own to withdraw from (depositedByPerson()
+// <= 0) — withdrawing against a deposit that doesn't exist shouldn't
+// be possible regardless of the amount typed.
 function updateDepositSubmitState(){
   const amount = parseFloat(document.getElementById('d-amount').value);
-  const valid = Number.isFinite(amount) && amount > 0;
+  const person = document.getElementById('d-person').value;
+  let valid = Number.isFinite(amount) && amount > 0;
+  if(valid && depositMode === 'withdrawal'){
+    valid = totalDeposited() > 0 && depositedByPerson(person) > 0;
+  }
   document.getElementById('depositSubmitBtn').disabled = !valid;
 }
 document.getElementById('d-amount').addEventListener('input', updateDepositSubmitState);
+document.getElementById('d-person').addEventListener('change', updateDepositSubmitState);
 
 function openDepositModal(forPerson){
   depositEditingId = null;
