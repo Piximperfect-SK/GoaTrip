@@ -112,3 +112,17 @@
   for = "/icons/*"
   [headers.values]
     Cache-Control = "public, max-age=2592000, immutable"
+
+# ============================================================
+# Never cache Netlify Function responses (wallet, registration, admin,
+# login, etc.) — these are all dynamic/session-scoped, and GET requests
+# like /wallet?tripId=X&token=Y are identical on every load within a
+# session (token is stable for up to 12h), so without this a CDN/proxy
+# cache could serve a stale snapshot instead of hitting the function.
+# This is belt-and-suspenders alongside the fetch(...,{cache:'no-store'})
+# already added on the client for the wallet GET specifically.
+# ============================================================
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Cache-Control = "no-store"

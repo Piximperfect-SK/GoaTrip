@@ -1531,7 +1531,12 @@ async function pullFromSheet(manual){
   if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
+    // cache:'no-store' — this URL is identical on every load within a
+    // session (token doesn't change for up to 12h), so without this the
+    // browser (or an intermediate CDN) can serve a stale cached snapshot
+    // of the wallet data instead of hitting the backend, which is what
+    // was requiring a couple of manual refreshes to actually see fresh data.
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET', cache:'no-store'});
     if(res.status === 401){
       // Session invalid/expired — clear whichever one we sent and force
       // back through the gate rather than showing wallet data at all.
