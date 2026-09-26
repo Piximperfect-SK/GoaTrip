@@ -1531,12 +1531,7 @@ async function pullFromSheet(manual){
   if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    // cache:'no-store' — this URL is identical on every load within a
-    // session (token doesn't change for up to 12h), so without this the
-    // browser (or an intermediate CDN) can serve a stale cached snapshot
-    // of the wallet data instead of hitting the backend, which is what
-    // was requiring a couple of manual refreshes to actually see fresh data.
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET', cache:'no-store'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
     if(res.status === 401){
       // Session invalid/expired — clear whichever one we sent and force
       // back through the gate rather than showing wallet data at all.
@@ -2771,7 +2766,15 @@ function renderP2P(){
 =============================================================*/
 function animateValue(el, endValue, prefix){
   if(!el) return;
-  const startValue = Number(el.dataset.rawval || 0);
+  // Guard against NaN/Infinity on either end — without this, one bad
+  // frame (e.g. total/participants computed before both had loaded)
+  // writes NaN into dataset.rawval, and every future call interpolates
+  // FROM that poisoned value (NaN + (validNumber-NaN) is still NaN), so
+  // the display gets stuck on "NaN" forever even once the real value is
+  // fine. Falling back to 0 here means a bad frame self-heals instead.
+  let startValue = Number(el.dataset.rawval || 0);
+  if(!Number.isFinite(startValue)) startValue = 0;
+  if(!Number.isFinite(endValue)) endValue = 0;
   if(Math.abs(endValue-startValue) < 0.5){ el.textContent = prefix+endValue.toFixed(0); el.dataset.rawval = endValue; return; }
   const duration = 500, startTime = performance.now();
   function tick(now){
@@ -2787,7 +2790,7 @@ function renderOverview(){
   const countable = countableExpenses();
   const total = countable.reduce((a,ex)=>a+Number(ex.amount),0);
   const count = countable.length;
-  const avg = total / PARTICIPANTS.length;
+  const avg = PARTICIPANTS.length ? total / PARTICIPANTS.length : 0;
   const settlements = pairwiseSettlements();
   const net = computeNetBalances(); // still needed below for the balance chart
 
