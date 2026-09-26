@@ -6,7 +6,7 @@
 // just spent a whole session chasing a stale-HTML-cache bug — the last
 // thing this app needs is a service worker making that worse by caching
 // pages on top of it.
-const CACHE_NAME = 'goatrip-static-v1';
+const CACHE_NAME = 'goatrip-static-v2';
 const STATIC_ASSETS = [
   '/shared.css',
   '/shared.js',
