@@ -202,6 +202,7 @@
   }
   .btn-primary:hover{ filter:brightness(1.05); transform:translateY(-1px); box-shadow:0 12px 22px -8px rgba(232,93,42,.6); }
   .btn-primary:active{ transform:scale(.97); }
+  .btn-primary:disabled{ opacity:.4; cursor:not-allowed; filter:none; transform:none; box-shadow:none; }
   .btn-ghost{ border:1.5px solid var(--line); border-radius:10px; padding:9px 18px; font-weight:600; background:white; cursor:pointer; transition:.2s; font-size:14px; color:var(--ink); }
   .btn-ghost:hover{ border-color:var(--ink); }
   .btn-ghost:active{ transform:scale(.97); }
@@ -1531,7 +1532,7 @@ async function pullFromSheet(manual){
   if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET', cache:'no-store'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
     if(res.status === 401){
       // Session invalid/expired — clear whichever one we sent and force
       // back through the gate rather than showing wallet data at all.
@@ -1548,26 +1549,20 @@ async function pullFromSheet(manual){
       throw new Error('Backend did not return JSON — please try again shortly.');
     }
     if(data.error) throw new Error(data.error);
-    // Compared against the current wallet BEFORE overwriting it, so we
-    // can skip re-rendering entirely when a poll comes back identical —
-    // renderAll() rebuilds every card's DOM from scratch, so calling it
-    // on every 5s tick even when nothing changed is what was causing the
-    // visible "cards flashing" — this makes background polls invisible
-    // unless there's actually something new to show.
-    const nextWallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
-    const dataChanged = JSON.stringify(nextWallet) !== JSON.stringify(wallet) || WALLET_LOCKED !== !!data.locked;
-    wallet = nextWallet;
+    // deposits falls back to the existing local copy (not []) if the
+    // backend response is missing it for some reason, so a stale client
+    // never silently wipes locally-logged deposits.
+    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
     persistLocal();
     WALLET_LOCKED = !!data.locked;
     setSyncStatus('ok');
     applyWalletLockUI();
     if(manual && !WALLET_LOCKED) showBanner('warn','Refreshed from the backend.');
-    if(dataChanged || manual) renderAll();
   }catch(err){
     setSyncStatus('bad');
     showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
-    renderAll();
   }
+  renderAll();
   if(manual) syncParticipantsFromRegistrations();
 }
 
@@ -2772,15 +2767,7 @@ function renderP2P(){
 =============================================================*/
 function animateValue(el, endValue, prefix){
   if(!el) return;
-  // Guard against NaN/Infinity on either end — without this, one bad
-  // frame (e.g. total/participants computed before both had loaded)
-  // writes NaN into dataset.rawval, and every future call interpolates
-  // FROM that poisoned value (NaN + (validNumber-NaN) is still NaN), so
-  // the display gets stuck on "NaN" forever even once the real value is
-  // fine. Falling back to 0 here means a bad frame self-heals instead.
-  let startValue = Number(el.dataset.rawval || 0);
-  if(!Number.isFinite(startValue)) startValue = 0;
-  if(!Number.isFinite(endValue)) endValue = 0;
+  const startValue = Number(el.dataset.rawval || 0);
   if(Math.abs(endValue-startValue) < 0.5){ el.textContent = prefix+endValue.toFixed(0); el.dataset.rawval = endValue; return; }
   const duration = 500, startTime = performance.now();
   function tick(now){
@@ -2796,7 +2783,7 @@ function renderOverview(){
   const countable = countableExpenses();
   const total = countable.reduce((a,ex)=>a+Number(ex.amount),0);
   const count = countable.length;
-  const avg = PARTICIPANTS.length ? total / PARTICIPANTS.length : 0;
+  const avg = total / PARTICIPANTS.length;
   const settlements = pairwiseSettlements();
   const net = computeNetBalances(); // still needed below for the balance chart
 
@@ -3127,6 +3114,18 @@ function setDepositMode(mode){
   document.getElementById('depositSubmitBtn').textContent = (depositEditingId ? 'Save changes' : (mode==='deposit' ? 'Add deposit' : 'Record withdrawal'));
 }
 
+// Live validation guard: the submit button is disabled whenever the
+// amount is empty, non-numeric, or <= 0 — not just relying on the
+// input's HTML5 min="0.01", since that only blocks submission (and
+// inconsistently across browsers) rather than making it visibly clear
+// upfront that a zero/negative amount won't go through.
+function updateDepositSubmitState(){
+  const amount = parseFloat(document.getElementById('d-amount').value);
+  const valid = Number.isFinite(amount) && amount > 0;
+  document.getElementById('depositSubmitBtn').disabled = !valid;
+}
+document.getElementById('d-amount').addEventListener('input', updateDepositSubmitState);
+
 function openDepositModal(forPerson){
   depositEditingId = null;
   depositMode = 'deposit';
@@ -3139,6 +3138,7 @@ function openDepositModal(forPerson){
   document.getElementById('d-date').value = new Date().toISOString().slice(0,10);
   pdReturnPerson = forPerson || null;
   if(forPerson) closeModal('personDepositsModal');
+  updateDepositSubmitState();
   openModal('depositModal');
 }
 function editDeposit(id, forPerson){
@@ -3155,6 +3155,7 @@ function editDeposit(id, forPerson){
   document.getElementById('d-note').value = d.note || '';
   pdReturnPerson = forPerson || null;
   if(forPerson) closeModal('personDepositsModal');
+  updateDepositSubmitState();
   openModal('depositModal');
 }
 document.getElementById('depositForm').addEventListener('submit', async e=>{
@@ -3767,57 +3768,7 @@ async function initWalletApp(){
   await pullFromSheet();
   await flushPendingOps();
   await syncParticipantsFromRegistrations();
-  startAutoRefresh();
 }
-
-// ============================================================
-// Background auto-refresh — so everyone viewing the wallet sees new
-// expenses/settlements/etc without having to manually reload the page.
-// Silent (no loading spinner, no banner) and skips a cycle rather than
-// interrupting the user when either:
-//   - the tab isn't visible (no point burning a request in the background,
-//     and pullFromSheet() already re-syncs via visibilitychange below), or
-//   - any modal/wizard is open (.app-modal.open) — overwriting `wallet`
-//     mid-edit (e.g. partway through the add-expense wizard) would be far
-//     more disruptive than the staleness this is meant to fix.
-// autoRefreshTimer is a single module-level handle guarded against
-// duplicate intervals, since initWalletApp() can legitimately run more
-// than once per page load (e.g. logout then a fresh sign-in).
-// ============================================================
-const AUTO_REFRESH_MS = 5000;
-let autoRefreshTimer = null;
-// True while the user is actively typing/selecting anywhere on the page
-// (not just inside a modal) — a background refresh landing mid-keystroke
-// could otherwise wipe out an in-progress edit (e.g. a form field that
-// lives outside the wizard modals).
-function isUserEditing(){
-  const ae = document.activeElement;
-  if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return true;
-  if(document.querySelector('.app-modal.open')) return true;
-  return false;
-}
-function startAutoRefresh(){
-  if(autoRefreshTimer) return;
-  autoRefreshTimer = setInterval(async ()=>{
-    if(document.visibilityState !== 'visible') return;
-    if(isUserEditing()) return;
-    try{
-      await pullFromSheet();
-      await syncParticipantsFromRegistrations();
-    }catch(err){
-      console.warn('Background auto-refresh failed (non-fatal):', err);
-    }
-  }, AUTO_REFRESH_MS);
-}
-// Also catch up immediately when the tab regains focus/visibility
-// (switching back from another app/tab), rather than waiting for the
-// next interval tick — same guards as above.
-document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState !== 'visible') return;
-  if(!autoRefreshTimer) return; // not signed in / wallet not booted yet
-  if(isUserEditing()) return;
-  pullFromSheet().catch(err => console.warn('Visibility refresh failed (non-fatal):', err));
-});
 
 /* ============================================================
    ADMIN LOGIN (now OPTIONAL)
