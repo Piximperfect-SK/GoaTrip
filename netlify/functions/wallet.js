@@ -160,17 +160,18 @@ async function getRecordForApproval(tripId, recordType, id) {
   return { ...rows[0], _table: def.table, _ownerColumn: def.ownerColumn };
 }
 
-// Phase 7 visibility rule: everyone sees every APPROVED record (that's the
-// shared, settled truth of the trip's finances); a non-admin also sees
-// their own not-yet-approved records (their own drafts/pending/rejected
-// stay visible to them so they can find and resubmit/edit them), but not
-// anyone else's. Admins see everything, at every status, since they're
-// the ones who have to review the pending queue. ownerField is the
-// camelCase field name on the already-mapped record (createdBy / actor /
-// loggedBy) that readState()'s three .map() calls produce.
+// Phase 7 visibility rule: everyone sees every APPROVED or PUBLISHED
+// record (that's the shared, settled truth of the trip's finances); a
+// non-admin also sees their own not-yet-approved records (their own
+// drafts/pending/rejected stay visible to them so they can find and
+// resubmit/edit them), but not anyone else's. Admins see everything, at
+// every status, since they're the ones who have to review the pending
+// queue. ownerField is the camelCase field name on the already-mapped
+// record (createdBy / actor / loggedBy) that readState()'s three .map()
+// calls produce.
 function filterVisible(records, ownerField, viewer) {
   if (viewer.isAdmin) return records;
-  return records.filter((r) => r.status === 'approved' || r[ownerField] === viewer.name);
+  return records.filter((r) => r.status === 'approved' || r.status === 'published' || r[ownerField] === viewer.name);
 }
 
 // Maps a record's raw DB approval columns onto the camelCase shape the

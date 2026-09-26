@@ -11,7 +11,7 @@
 <title>Admin — Goa Run</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/shared.css">
+<link rel="stylesheet" href="shared.css">
 <style>
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html{ overscroll-behavior-y:none; }
@@ -271,6 +271,7 @@
   .status-pill.Pending{ background:rgba(201,162,39,.18); color:#8A6D14; }
   .status-pill.Rejected, .status-pill.Revoked{ background:rgba(232,93,42,.15); color:var(--mango-2); }
   .status-pill.Draft{ background:rgba(91,100,114,.15); color:var(--bp-slate,#5B6472); }
+  .status-pill.Published{ background:rgba(46,111,242,.15); color:var(--azulejo); }
   .wallet-type-tag{ font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; opacity:.6; margin-right:6px; }
   .row-actions{ display:flex; gap:8px; flex-wrap:wrap; }
   .row-actions button{ font-size:11.5px; padding:6px 12px; }
@@ -792,8 +793,8 @@
       <!-- ---- Wallet approvals ---- -->
       <div class="dash-panel hidden" id="panel-wallet">
         <div class="sec-card">
-          <h3>Pending wallet submissions</h3>
-          <p class="cardsub">Expenses, settlements and deposits participants have submitted, waiting on an admin decision. Everyone can already see anything already approved — this is only the queue.</p>
+          <h3>Wallet approvals &amp; history</h3>
+          <p class="cardsub">Expenses, settlements and deposits participants have submitted. Default filter is the live pending queue — switch to Approved/Rejected/Published for the full reviewed history, with who decided and when.</p>
           <div class="search-field" style="display:flex; gap:10px; flex-wrap:wrap;">
             <select id="walletFilter" onchange="renderWalletApprovals()" style="width:auto; min-width:180px;">
               <option value="pending_approval">Pending approval</option>
@@ -801,6 +802,7 @@
               <option value="draft">Draft (not yet submitted)</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
+              <option value="published">Published</option>
             </select>
           </div>
           <div id="walletApprovalList"></div>
@@ -1105,7 +1107,7 @@
   </div>
 </div>
 
-<script src="/js/shared.js"></script>
+<script src="shared.js"></script>
 <script>
 const el = id => document.getElementById(id);
 
@@ -1523,7 +1525,7 @@ function renderPendingAdmins(pending){
 let currentWalletState = { expenses: [], settlements: [], deposits: [] };
 function walletStatusPillHtml(status){
   const cls = status === 'approved' ? 'Approved' : status === 'rejected' ? 'Rejected'
-    : status === 'pending_approval' ? 'Pending' : 'Draft';
+    : status === 'published' ? 'Published' : status === 'pending_approval' ? 'Pending' : 'Draft';
   const label = status === 'pending_approval' ? 'pending approval' : (status || 'draft');
   return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
 }
@@ -1551,20 +1553,28 @@ async function loadWalletApprovals(){
 function flattenWalletRecords(){
   const expenses = (currentWalletState.expenses || []).map(r => ({
     recordType: 'expense', id: r.id, label: r.title, who: r.createdBy, amount: r.amount,
-    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
-    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+    status: r.status, submittedBy: r.submittedBy, submittedAt: r.submittedAt,
+    approvedBy: r.approvedBy, approvedAt: r.approvedAt,
+    rejectedBy: r.rejectedBy, rejectedAt: r.rejectedAt, rejectionReason: r.rejectionReason,
   }));
   const settlements = (currentWalletState.settlements || []).map(r => ({
     recordType: 'settlement', id: r.id, label: `${r.from} → ${r.to}`, who: r.actor, amount: r.amount,
-    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
-    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+    status: r.status, submittedBy: r.submittedBy, submittedAt: r.submittedAt,
+    approvedBy: r.approvedBy, approvedAt: r.approvedAt,
+    rejectedBy: r.rejectedBy, rejectedAt: r.rejectedAt, rejectionReason: r.rejectionReason,
   }));
   const deposits = (currentWalletState.deposits || []).map(r => ({
     recordType: 'deposit', id: r.id, label: `${r.person} (${r.type})`, who: r.loggedBy, amount: r.amount,
-    status: r.status, submittedBy: r.submittedBy, approvedBy: r.approvedBy,
-    rejectedBy: r.rejectedBy, rejectionReason: r.rejectionReason,
+    status: r.status, submittedBy: r.submittedBy, submittedAt: r.submittedAt,
+    approvedBy: r.approvedBy, approvedAt: r.approvedAt,
+    rejectedBy: r.rejectedBy, rejectedAt: r.rejectedAt, rejectionReason: r.rejectionReason,
   }));
-  return [...expenses, ...settlements, ...deposits];
+  // Newest-decided-or-submitted first — makes the "switch filter to see
+  // history" case actually usable instead of dumping records in
+  // whatever order the three queries happened to return them.
+  return [...expenses, ...settlements, ...deposits].sort((a,b) =>
+    String(b.approvedAt || b.rejectedAt || b.submittedAt || '').localeCompare(String(a.approvedAt || a.rejectedAt || a.submittedAt || ''))
+  );
 }
 function renderWalletApprovals(){
   const box = el('walletApprovalList');
@@ -1573,11 +1583,18 @@ function renderWalletApprovals(){
   let records = flattenWalletRecords();
   if(filterVal) records = records.filter(r => r.status === filterVal);
   if(!records.length){ box.innerHTML = '<p style="font-size:13px; opacity:.5;">Nothing here right now.</p>'; return; }
-  box.innerHTML = records.map(r => `
+  box.innerHTML = records.map(r => {
+    const historyLine = r.status === 'approved' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''}`
+      : r.status === 'published' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''} · now published`
+      : r.status === 'rejected' && r.rejectedBy ? `Rejected by ${escapeHtml(r.rejectedBy)}${r.rejectedAt ? ' · ' + new Date(r.rejectedAt).toLocaleString() : ''}`
+      : r.submittedBy ? `Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}`
+      : '';
+    return `
     <div class="flag-row">
       <div class="flag-meta">
         <div class="label"><span class="wallet-type-tag">${escapeHtml(r.recordType)}</span>${escapeHtml(r.label)} ${walletStatusPillHtml(r.status)}</div>
         <div class="page">Rs.${escapeHtml(String(r.amount))} · by ${escapeHtml(r.who || '—')}${r.status === 'rejected' && r.rejectionReason ? ' · ' + escapeHtml(r.rejectionReason) : ''}</div>
+        ${historyLine ? `<div class="page" style="opacity:.6; font-size:11.5px;">${historyLine}</div>` : ''}
       </div>
       <div style="display:flex; gap:8px;">
         ${r.status === 'pending_approval' ? `
@@ -1585,7 +1602,8 @@ function renderWalletApprovals(){
           <button class="btn-danger" data-reject data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Reject</button>
         ` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   box.querySelectorAll('button[data-approve]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       btn.disabled = true;

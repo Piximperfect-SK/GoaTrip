@@ -488,6 +488,25 @@ exports.handler = async (event) => {
         if (featureKey === 'wallet.locked') {
           await query('ALTER TABLE trips ADD COLUMN IF NOT EXISTS wallet_locked BOOLEAN DEFAULT false');
           await query('UPDATE trips SET wallet_locked = $2 WHERE id = $1', [tripId, enabled]);
+          // Locking the wallet is the trip's "final submission" moment —
+          // every record that's already been approved becomes the
+          // official, finalized ledger at that point. 'published' is
+          // deliberately a one-way, bulk transition triggered here
+          // (not a per-record admin action) rather than a new
+          // approve/reject-style button, since "publish" means "this
+          // wallet is now closed out", not "this one item is extra
+          // approved". Unlocking does NOT revert published rows back to
+          // approved — once published, that's the historical record of
+          // what was finalized; unlocking only reopens the wallet for
+          // further submissions going forward.
+          if (enabled) {
+            await query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved'`);
+            await query(`ALTER TABLE settlements ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved'`);
+            await query(`ALTER TABLE deposits ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved'`);
+            await query(`UPDATE expenses SET status='published' WHERE trip_id=$1 AND status='approved'`, [tripId]);
+            await query(`UPDATE settlements SET status='published' WHERE trip_id=$1 AND status='approved'`, [tripId]);
+            await query(`UPDATE deposits SET status='published' WHERE trip_id=$1 AND status='approved'`, [tripId]);
+          }
         }
         return ok({ ok: true, flags: await getPublicFlags(tripId) });
       }

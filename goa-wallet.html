@@ -266,6 +266,37 @@
   td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
   tr:hover td{ background:rgba(15,38,34,.02); }
   .pill{ font-family:'Space Mono',monospace; font-size:10.5px; padding:3px 9px; border-radius:9999px; background:var(--sand); white-space:nowrap; }
+
+  /* ---------- Approval status pills (expenses/settlements/deposits + My Submissions) ---------- */
+  .status-pill{
+    font-family:'Space Mono',monospace; font-size:10px; padding:3px 9px; border-radius:9999px;
+    white-space:nowrap; font-weight:600; letter-spacing:.02em; display:inline-block;
+  }
+  .status-pill.draft{ background:var(--sand-2); color:var(--teal-700); }
+  .status-pill.pending{ background:rgba(201,162,39,.14); color:#9C7A15; }
+  .status-pill.approved{ background:rgba(62,124,89,.12); color:var(--palm); }
+  .status-pill.rejected{ background:rgba(232,93,42,.12); color:var(--mango-2); }
+  .status-pill.published{ background:rgba(46,111,242,.12); color:var(--azulejo); }
+
+  /* ---------- My Submissions: per-item 5-step progress stepper ---------- */
+  .sub-step-track{ display:flex; align-items:center; margin:10px 0 2px; }
+  .sub-step{ display:flex; flex-direction:column; align-items:center; flex:1; min-width:0; position:relative; }
+  .sub-step .dot{
+    width:20px; height:20px; border-radius:50%; background:var(--sand-2); border:2px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--teal-700);
+    flex-shrink:0; z-index:1; transition:.2s;
+  }
+  .sub-step .lbl{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; opacity:.55; margin-top:5px; text-align:center; }
+  .sub-step .bar{ position:absolute; top:9px; left:50%; width:100%; height:2px; background:var(--line); z-index:0; }
+  .sub-step:last-child .bar{ display:none; }
+  .sub-step.done .dot{ background:var(--palm); border-color:var(--palm); color:white; }
+  .sub-step.done .bar{ background:var(--palm); }
+  .sub-step.current .dot{ background:var(--mango); border-color:var(--mango); color:white; }
+  .sub-step.current .lbl{ opacity:1; color:var(--ink); font-weight:600; }
+  .sub-step.rejected .dot{ background:var(--mango-2); border-color:var(--mango-2); color:white; }
+  .sub-step.rejected .lbl{ opacity:1; color:var(--mango-2); font-weight:600; }
+  .submission-card{ border:1px solid var(--line); border-radius:14px; padding:16px 18px; background:white; }
+  .submission-card + .submission-card{ margin-top:10px; }
   .balance-pos{ color:var(--palm); font-weight:600; }
   .balance-neg{ color:var(--mango-2); font-weight:600; }
   .avatar{ width:32px; height:32px; border-radius:9999px; background:linear-gradient(135deg, var(--teal-700), var(--teal-900)); color:var(--sand); display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; font-family:'Space Mono',monospace; flex-shrink:0; }
@@ -577,6 +608,7 @@
       <div class="navitem" data-feature="wallet.viewParticipants" data-page="participants"><span class="ic">◍</span> Participants &amp; Balances</div>
       <div class="navitem" data-page="p2p"><span class="ic">⇌</span> 1:1 History</div>
       <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
+      <div class="navitem" data-page="mysubmissions"><span class="ic">☷</span> My Submissions</div>
       <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
     <div class="foot">
@@ -682,7 +714,7 @@
         <p class="text-xs opacity-50 mb-4">Every amount logged into the pool, in order.</p>
         <div class="overflow-x-auto">
           <table>
-            <thead><tr><th>Person</th><th>Amount</th><th>Note</th><th>Date</th><th>Logged by</th><th></th></tr></thead>
+            <thead><tr><th>Person</th><th>Amount</th><th>Note</th><th>Date</th><th>Logged by</th><th>Status</th><th></th></tr></thead>
             <tbody id="depositTableBody"></tbody>
           </table>
         </div>
@@ -726,7 +758,7 @@
       <div class="panel overflow-x-auto">
         <table>
           <thead><tr>
-            <th>Title</th><th>Category</th><th>Amount</th><th>Paid by</th><th>Split with</th><th>Date</th><th>Logged by</th><th></th>
+            <th>Title</th><th>Category</th><th>Amount</th><th>Paid by</th><th>Split with</th><th>Date</th><th>Logged by</th><th>Status</th><th></th>
           </tr></thead>
           <tbody id="expenseTableBody"></tbody>
         </table>
@@ -796,11 +828,31 @@
         <p class="text-xs opacity-50 mb-4">The actual payments people have made to each other — this is the real source of truth, not a suggestion.</p>
         <div class="overflow-x-auto">
           <table>
-            <thead><tr><th>From</th><th>To</th><th>Amount</th><th>Note</th><th>Recorded by</th><th>When</th><th></th></tr></thead>
+            <thead><tr><th>From</th><th>To</th><th>Amount</th><th>Note</th><th>Recorded by</th><th>When</th><th>Status</th><th></th></tr></thead>
             <tbody id="settlementTableBody"></tbody>
           </table>
         </div>
         <p class="text-sm opacity-50 text-center py-8" id="settlementEmptyState" style="display:none;">No settlements recorded yet.</p>
+      </div>
+    </div>
+
+    <!-- ============ MY SUBMISSIONS ============ -->
+    <div class="page" id="page-mysubmissions">
+      <div class="panel p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
+          <h3 class="font-semibold">Your submissions</h3>
+          <select id="mysubFilter" onchange="renderMySubmissions()" style="width:auto; min-width:170px;">
+            <option value="">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="pending_approval">Pending review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="published">Published</option>
+          </select>
+        </div>
+        <p class="text-xs opacity-50 mb-4">Every expense, settlement or deposit you've logged, with its own status — approving or rejecting one never affects any other.</p>
+        <div id="mySubmissionsList"></div>
+        <p class="text-sm opacity-50 text-center py-8" id="mySubmissionsEmptyState" style="display:none;">Nothing here yet.</p>
       </div>
     </div>
 
@@ -824,6 +876,7 @@
     <div class="tabbar-item" data-feature="wallet.viewParticipants" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
     <div class="tabbar-item" data-page="p2p"><span class="tic">⇌</span><span class="tlbl">1:1</span></div>
     <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
+    <div class="tabbar-item" data-page="mysubmissions"><span class="tic">☷</span><span class="tlbl">Mine</span></div>
     <div class="tabbar-item" data-feature="wallet.activityLog" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
   </div>
 </nav>
@@ -1420,7 +1473,7 @@ function goToPage(pageKey){
   document.getElementById('page-'+pageKey).classList.add('active');
   const titles = {overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
     participants:['Who owes what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
-    activity:['Everything logged','Activity Log']};
+    activity:['Everything logged','Activity Log'], mysubmissions:['Track your own submissions','My Submissions']};
   document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
   document.getElementById('pageTitle').textContent = titles[pageKey][1];
   document.getElementById('sidebar').classList.remove('open');
@@ -2467,14 +2520,85 @@ function effectiveParticipants(){
   return Array.from(set);
 }
 
+// Only approved/published records represent real, finalized money —
+// draft/pending_approval/rejected items are still visible to their own
+// owner (per wallet.js's visibility rule) so they can track/resubmit
+// them, but must NOT count toward shared totals, balances, or charts
+// until an admin actually approves them. Missing `status` (pre-approval-
+// workflow legacy records, or the rare edge case of a field the backend
+// didn't send) is treated as approved — matches wallet.js's own
+// `status: r.status || 'approved'` default in approvalFields(), so old
+// data that predates this whole feature keeps counting exactly as it
+// always did.
+function isCountable(status){
+  return !status || status === 'approved' || status === 'published';
+}
+function countableExpenses(){ return wallet.expenses.filter(ex => isCountable(ex.status)); }
+function countableSettlements(){ return wallet.settlements.filter(s => isCountable(s.status)); }
+function countableDeposits(){ return (wallet.deposits||[]).filter(d => isCountable(d.status)); }
+
+// Small pill used inline in the Expenses/Settlements/Deposits tables so
+// a draft/pending/rejected item never looks identical to a finalized
+// one — this was the actual gap: those rows rendered with zero visual
+// distinction from approved rows before, even though they don't count
+// toward the totals above.
+function statusPillHtml(status){
+  const s = status || 'approved';
+  const cls = s === 'pending_approval' ? 'pending' : (['draft','approved','rejected','published'].includes(s) ? s : 'draft');
+  const label = s === 'pending_approval' ? 'Pending review' : s.charAt(0).toUpperCase()+s.slice(1);
+  return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
+}
+
+// Full 5-node progress tracker for My Submissions: Draft → Submitted →
+// Pending Review → Approved/Rejected → Published. Submission in this
+// app is a single atomic action (submitForApprovalAuto fires the moment
+// something is added — there's no separate "saved as draft, submit
+// later" step in the UI today), so "Submitted" and "Pending Review"
+// light up together the instant status becomes pending_approval rather
+// than being two backend states; a genuinely separate "submitted but
+// not yet opened by an admin" state would need its own status value and
+// isn't tracked separately by wallet.js today. This is a UI simplification
+// worth revisiting if you want a real "admin has started reviewing" signal.
+function submissionStepperHtml(status){
+  const s = status || 'approved';
+  const labels = ['Draft','Submitted','Pending review','Approved','Published'];
+  // cls per step, explicit per status rather than derived from an index —
+  // 'done' (green, complete) is not the same visual state as 'current'
+  // (amber, in progress), and "Approved" needs to read as done/complete
+  // even though the item hasn't reached Published yet.
+  let cls = ['', '', '', '', '']; // draft, submitted, pending, decision, published
+  if(s === 'draft'){
+    cls = ['current','','','',''];
+  } else if(s === 'pending_approval'){
+    cls = ['done','done','current','',''];
+  } else if(s === 'approved'){
+    cls = ['done','done','done','done',''];
+  } else if(s === 'rejected'){
+    cls = ['done','done','done','rejected',''];
+    labels[3] = 'Rejected';
+  } else if(s === 'published'){
+    cls = ['done','done','done','done','done'];
+  } else {
+    // legacy/no-status records predate this feature — treat as already
+    // approved, matching wallet.js's own default.
+    cls = ['done','done','done','done',''];
+  }
+  return `<div class="sub-step-track">${labels.map((label,i)=>`
+    <div class="sub-step ${cls[i]}">
+      <div class="bar"></div>
+      <div class="dot">${cls[i]==='done' ? '✓' : (cls[i]==='rejected' ? '✕' : '')}</div>
+      <div class="lbl">${escapeHtml(label)}</div>
+    </div>`).join('')}</div>`;
+}
+
 function computeNetBalances(){
   const net = {}; effectiveParticipants().forEach(p=> net[p]=0);
-  wallet.expenses.forEach(ex=>{
+  countableExpenses().forEach(ex=>{
     if(net[ex.payer]===undefined) net[ex.payer]=0;
     net[ex.payer] += Number(ex.amount);
     ex.split.forEach(p=>{ if(net[p]===undefined) net[p]=0; net[p] -= expenseShare(ex,p); });
   });
-  wallet.settlements.forEach(s=>{
+  countableSettlements().forEach(s=>{
     net[s.from] = (net[s.from]||0) + Number(s.amount); // paid off debt
     net[s.to] = (net[s.to]||0) - Number(s.amount);     // received money
   });
@@ -2497,12 +2621,12 @@ function buildPairwiseLedger(){
     ledger[debtor] = ledger[debtor] || {};
     ledger[debtor][creditor] = (ledger[debtor][creditor] || 0) + amt;
   };
-  wallet.expenses.forEach(ex=>{
+  countableExpenses().forEach(ex=>{
     ex.split.forEach(p=>{ if(p !== ex.payer) add(p, ex.payer, expenseShare(ex,p)); });
   });
   // A settlement only ever adjusts the ledger entry between its own
   // two people — it can never touch a third person's balance.
-  wallet.settlements.forEach(s=>{ add(s.from, s.to, -Number(s.amount)); });
+  countableSettlements().forEach(s=>{ add(s.from, s.to, -Number(s.amount)); });
   return ledger;
 }
 
@@ -2543,7 +2667,7 @@ function pairwiseSettlements(){
 =============================================================*/
 function computeP2PHistory(a, b){
   const rows = [];
-  wallet.expenses.forEach(ex=>{
+  countableExpenses().forEach(ex=>{
     if(ex.payer===a && ex.split.includes(b)){
       const amt = expenseShare(ex,b);
       if(amt) rows.push({type:'expense', date: ex.date||'', title: ex.title, category: ex.category||'Misc', from:b, to:a, amount:amt});
@@ -2553,7 +2677,7 @@ function computeP2PHistory(a, b){
       if(amt) rows.push({type:'expense', date: ex.date||'', title: ex.title, category: ex.category||'Misc', from:a, to:b, amount:amt});
     }
   });
-  wallet.settlements.forEach(s=>{
+  countableSettlements().forEach(s=>{
     if((s.from===a && s.to===b) || (s.from===b && s.to===a)){
       rows.push({type:'settlement', date:(s.ts||'').slice(0,10), title: s.note || 'Settlement', category:'Settlement', from:s.from, to:s.to, amount:Number(s.amount)});
     }
@@ -2646,8 +2770,9 @@ function animateValue(el, endValue, prefix){
   requestAnimationFrame(tick);
 }
 function renderOverview(){
-  const total = wallet.expenses.reduce((a,ex)=>a+Number(ex.amount),0);
-  const count = wallet.expenses.length;
+  const countable = countableExpenses();
+  const total = countable.reduce((a,ex)=>a+Number(ex.amount),0);
+  const count = countable.length;
   const avg = total / PARTICIPANTS.length;
   const settlements = pairwiseSettlements();
   const net = computeNetBalances(); // still needed below for the balance chart
@@ -2662,12 +2787,12 @@ function renderOverview(){
   if(avgSub) avgSub.textContent = `across ${PARTICIPANTS.length} participant${PARTICIPANTS.length===1?'':'s'}`;
 
   const byCat = {};
-  wallet.expenses.forEach(ex=>{ byCat[ex.category||'Misc'] = (byCat[ex.category||'Misc']||0) + Number(ex.amount); });
+  countable.forEach(ex=>{ byCat[ex.category||'Misc'] = (byCat[ex.category||'Misc']||0) + Number(ex.amount); });
   const topCat = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('kpi-topcat').textContent = topCat ? topCat[0] : '—';
   document.getElementById('kpi-topcat-sub').textContent = topCat ? `₹${topCat[1].toFixed(0)} spent` : 'no expenses yet';
 
-  const biggest = wallet.expenses.slice().sort((a,b)=>Number(b.amount)-Number(a.amount))[0];
+  const biggest = countable.slice().sort((a,b)=>Number(b.amount)-Number(a.amount))[0];
   document.getElementById('kpi-biggest').textContent = biggest ? biggest.title : '—';
   document.getElementById('kpi-biggest-sub').textContent = biggest ? `₹${Number(biggest.amount).toFixed(0)} · paid by ${biggest.payer}` : '';
 
@@ -2828,6 +2953,7 @@ function renderExpensesTable(){
       <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : ex.split.join(', ')}</td>
       <td class="mono text-xs">${ex.date||'—'}</td>
       <td class="text-xs opacity-60">${ex.updatedBy || ex.createdBy || '—'}</td>
+      <td>${statusPillHtml(ex.status)}</td>
       <td>
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
@@ -2897,14 +3023,14 @@ function renderParticipants(){
    treasurer) log cash/UPI they've actually received.
 =============================================================*/
 function totalDeposited(){
-  return (wallet.deposits||[]).reduce((s,d)=> {
+  return countableDeposits().reduce((s,d)=> {
     const amt = Number(d.amount||0);
     const sign = (d.type === 'withdrawal') ? -1 : 1;
     return s + (amt * sign);
   }, 0);
 }
 function depositedByPerson(person){
-  return (wallet.deposits||[]).filter(d=>d.person===person).reduce((s,d)=> {
+  return countableDeposits().filter(d=>d.person===person).reduce((s,d)=> {
     const amt = Number(d.amount||0);
     const sign = (d.type === 'withdrawal') ? -1 : 1;
     return s + (amt * sign);
@@ -2953,6 +3079,7 @@ function renderWallet(){
       <td class="text-sm opacity-70">${escapeHtml(d.note||'—')}</td>
       <td class="text-sm">${d.date||'—'}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.loggedBy||'—')}</td>
+      <td>${statusPillHtml(d.status)}</td>
       <td class="text-right whitespace-nowrap">
         <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
         <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>
@@ -3473,6 +3600,7 @@ function renderSettlements(){
       <td>${s.from}</td><td>${s.to}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
       <td class="text-xs opacity-60">${method} ${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
       <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
+      <td>${statusPillHtml(s.status)}</td>
       <td><span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span></td>
     </tr>`;
   }).join('');
@@ -3494,6 +3622,82 @@ function quickRecordSettlement(from, to, amount){
 /* ============================================================
    RENDER: ACTIVITY LOG
 =============================================================*/
+/* ============================================================
+   RENDER: MY SUBMISSIONS
+   Every expense/settlement/deposit the signed-in user owns, across
+   every status — this is the persistent list that was missing
+   entirely before; each item keeps its own status/stepper and never
+   overwrites or hides another one.
+=============================================================*/
+function myOwnedRecords(){
+  const me = getSessionName();
+  if(!me) return [];
+  const exp = wallet.expenses.filter(ex => ex.createdBy === me).map(ex => ({
+    recordType:'expense', id:ex.id, label:ex.title, amount:Number(ex.amount),
+    when: ex.submittedAt || ex.createdAt || ex.date || '', status: ex.status,
+    rejectionReason: ex.rejectionReason, approvedBy: ex.approvedBy, rejectedBy: ex.rejectedBy,
+  }));
+  const settle = wallet.settlements.filter(s => s.actor === me).map(s => ({
+    recordType:'settlement', id:s.id, label:`${s.from} → ${s.to}`, amount:Number(s.amount),
+    when: s.submittedAt || s.ts || '', status: s.status,
+    rejectionReason: s.rejectionReason, approvedBy: s.approvedBy, rejectedBy: s.rejectedBy,
+  }));
+  const dep = (wallet.deposits||[]).filter(d => d.loggedBy === me).map(d => ({
+    recordType:'deposit', id:d.id, label:`${d.person} (${d.type})`, amount:Number(d.amount),
+    when: d.submittedAt || d.ts || '', status: d.status,
+    rejectionReason: d.rejectionReason, approvedBy: d.approvedBy, rejectedBy: d.rejectedBy,
+  }));
+  return [...exp, ...settle, ...dep].sort((a,b)=> String(b.when).localeCompare(String(a.when)));
+}
+async function resubmitRecord(recordType, id){
+  const actor = getSessionName();
+  if(!actor) return;
+  const res = await submitForApprovalAuto(recordType, id, actor);
+  // pushToSheet() already shows its own error banner internally and
+  // already refreshed `wallet` in place on success — just re-render so
+  // this card picks up its new status immediately instead of waiting
+  // for the next unrelated action to trigger a redraw.
+  if(res){ showBanner('ok','Resubmitted for approval.'); }
+  renderAll();
+}
+function renderMySubmissions(){
+  const listEl = document.getElementById('mySubmissionsList');
+  const emptyEl = document.getElementById('mySubmissionsEmptyState');
+  if(!listEl) return; // page not on this build / not yet in DOM
+  const filterVal = document.getElementById('mysubFilter') ? document.getElementById('mysubFilter').value : '';
+  let records = myOwnedRecords();
+  if(filterVal) records = records.filter(r => r.status === filterVal);
+
+  if(!records.length){
+    listEl.innerHTML = '';
+    if(emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+
+  listEl.innerHTML = records.map(r => `
+    <div class="submission-card">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="pill">${escapeHtml(r.recordType)}</span>
+          <span class="font-semibold truncate">${escapeHtml(r.label)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
+          ${statusPillHtml(r.status)}
+        </div>
+      </div>
+      ${submissionStepperHtml(r.status)}
+      ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
+      ${(r.status === 'draft' || r.status === 'rejected') ? `
+        <div class="mt-3">
+          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" onclick="resubmitRecord('${r.recordType}','${r.id}')">
+            ${r.status === 'rejected' ? 'Resubmit for approval' : 'Submit for approval'}
+          </button>
+        </div>` : ''}
+    </div>`).join('');
+}
+
 function renderActivity(){
   const list = document.getElementById('activityLogList');
   list.innerHTML = wallet.activity.slice().reverse().map(a=>`
@@ -3514,7 +3718,7 @@ function renderActivity(){
 // piece just logs to console and leaves its own section stale,
 // instead of taking the whole page down with it.
 function renderAll(){
-  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderP2P, renderSettlements, renderActivity];
+  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderP2P, renderSettlements, renderMySubmissions, renderActivity];
   sections.forEach(fn=>{
     try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
   });

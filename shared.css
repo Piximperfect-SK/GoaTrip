@@ -1,0 +1,266 @@
+/* ============================================================
+   shared.css — GoaTrip common design tokens & base components
+   Used by: index.html, itinerary.html, goa-wallet.html, boarding-pass.html
+   Page-specific <style> blocks load AFTER this file, so any rule
+   here can still be overridden per-page just by re-declaring it.
+   ============================================================ */
+
+:root{
+  /* ---- White-first editorial system ----
+     Near-white canvas + near-black text carry the page; colour is used
+     only contextually (coral primary accent, blue/yellow/pink as small
+     supporting accents) rather than a permanent beach theme. */
+  --ink:#1D1D1F;
+  --teal-900:#1D1D1F;
+  --teal-800:#28282B;
+  --teal-700:#3A3A3D;
+  --sand:#FBFBFD;
+  --sand-2:#F2F1ED;
+  --paper:#FBFBFD;
+  --mango:#FF6B4A;
+  --mango-2:#E85436;
+  --azulejo:#2E6FF2;
+  --azulejo-2:#2557C4;
+  --palm:#2E8B57;
+  --yellow:#F5B942;
+  --pink:#F26FA0;
+  --line: #E6E6E9;
+
+  /* boarding-pass specific palette (harmless elsewhere) */
+  --bp-ink:#0B2340;
+  --bp-brass:#C9A227;
+  --bp-rust:#B4472F;
+  --bp-slate:#5B6472;
+  --bp-line:#D8D2C2;
+  --bp-cardbg:#FFFFFF;
+  --bp-stubtext:#F7F4EC;
+
+  /* wallet specific layout tokens (harmless elsewhere) */
+  --sidebar-w: 248px;
+  --tabbar-h: 62px;
+
+  /* safe-area insets (used across mobile-aware pages) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* ---------- Lenis smooth scroll ----------
+   Inlined from https://unpkg.com/lenis/dist/lenis.css rather than
+   linked, since style-src doesn't allow unpkg.com and adding it
+   there just for ~10 lines of CSS isn't worth the CSP surface. */
+html.lenis, html.lenis body{ height:auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped{ overflow:clip; }
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical],
+.lenis [data-lenis-prevent-horizontal]{ overscroll-behavior:contain; }
+.lenis.lenis-smooth iframe{ pointer-events:none; }
+.lenis.lenis-autoToggle{ transition-property:overflow; transition-duration:1ms; transition-behavior:allow-discrete; }
+
+/* ---------- Base ---------- */
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Space Grotesk', sans-serif;
+  -webkit-font-smoothing:antialiased;
+  /* Deliberately NOT overscroll-behavior-y:none — that's the exact CSS
+     property that also disables Chrome/Android's native pull-to-refresh
+     gesture, and this site has no custom pull-to-refresh of its own to
+     replace it with. Leave it at the default (auto) so the gesture works. */
+}
+
+::-webkit-scrollbar{ width:8px; height:8px; }
+::-webkit-scrollbar-thumb{ background:var(--teal-700); border-radius:9999px; }
+::selection{ background:var(--mango); color:white; }
+
+.mono{ font-family:'Space Mono', monospace; }
+
+/* ---------- Buttons ---------- */
+.btn-primary{
+  background:var(--mango); color:white; font-weight:600; border-radius:9999px;
+  padding:12px 26px; transition:.2s; border:none; cursor:pointer;
+}
+.btn-primary:hover{ background:var(--mango-2); transform:translateY(-1px); }
+
+.btn-ghost{
+  border:1.5px solid var(--ink); border-radius:9999px; padding:11px 24px;
+  font-weight:600; background:transparent; cursor:pointer; transition:.2s;
+}
+.btn-ghost:hover{ background:var(--ink); color:var(--paper); }
+
+.btn-icon{
+  width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center;
+  justify-content:center; cursor:pointer; transition:.15s; border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06); color:var(--sand); text-decoration:none; flex-shrink:0;
+}
+
+.btn-danger{
+  border:1.5px solid rgba(232,93,42,.35); color:var(--mango-2); border-radius:9999px;
+  padding:7px 14px; font-weight:600; background:white; cursor:pointer; font-size:12.5px; transition:.2s;
+}
+.btn-danger:hover{ background:rgba(232,93,42,.08); }
+
+/* ---------- Surfaces ---------- */
+.card{
+  background:white; border:1px solid var(--line); border-radius:16px; transition:box-shadow .2s ease;
+}
+.panel{
+  background:white; border:1px solid var(--line); border-radius:16px;
+  transition:box-shadow .2s ease, transform .2s ease;
+}
+
+/* ---------- Typography helpers ---------- */
+.section-eyebrow{
+  font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--mango-2);
+}
+
+/* ---------- Forms ---------- */
+label, .field-label{
+  font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--teal-700); opacity:.85; display:block; margin-bottom:7px;
+}
+.field-row input, .field-row select, .field-row textarea,
+input[type="text"], input[type="date"], input[type="number"], input[type="time"], textarea{
+  width:100%; border:1.5px solid var(--line); border-radius:12px;
+  padding:12px 14px; background:white; color:var(--ink); font-family:inherit; font-size:14px;
+}
+input::placeholder, textarea::placeholder{ color:var(--ink); opacity:.35; }
+input:focus, textarea:focus, select:focus{
+  outline:none; border-color:var(--mango); box-shadow:0 0 0 4px rgba(255,122,69,0.14);
+}
+
+/* ---------- Field tooltip (inline validation / hints on any input) ----------
+   Generic — not tied to the registration wizard. Positioned by shared.js's
+   showFieldTooltip()/hideFieldTooltip() relative to whatever input it's
+   attached to, so any form on the site can use it. */
+.field-tooltip-anchor{ position:relative; }
+.field-tooltip{
+  position:absolute; z-index:60; max-width:260px; font-size:12.5px; line-height:1.45;
+  padding:9px 13px; border-radius:10px; font-weight:500; color:white;
+  box-shadow:0 12px 26px -10px rgba(0,0,0,.35);
+  opacity:0; transform:translateY(-4px); pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.field-tooltip.show{ opacity:1; transform:translateY(0); }
+.field-tooltip::before{
+  content:''; position:absolute; left:16px; top:-5px; width:10px; height:10px;
+  transform:rotate(45deg); background:inherit; border-radius:2px;
+}
+.field-tooltip.bad{ background:var(--mango-2); }
+.field-tooltip.ok{ background:var(--palm); }
+.field-tooltip.info{ background:var(--azulejo); }
+
+/* ---------- Status banners ---------- */
+.banner{ border-radius:12px; padding:12px 16px; font-size:13.5px; font-weight:500; }
+.banner.ok{ background:rgba(62,124,89,.10); color:var(--palm); border:1px solid rgba(62,124,89,.25); }
+.banner.bad{ background:rgba(232,93,42,.10); color:var(--mango-2); border:1px solid rgba(232,93,42,.25); }
+.banner.info{ background:rgba(30,96,145,.08); color:var(--azulejo); border:1px solid rgba(30,96,145,.2); }
+
+/* ---------- Sync indicator dot ---------- */
+.sync-dot{ width:9px; height:9px; border-radius:50%; display:inline-block; background:var(--sand-2); transition:.2s; }
+.sync-dot.ok{ background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18); }
+.sync-dot.bad{ background:var(--mango-2); box-shadow:0 0 0 3px rgba(232,93,42,.18); }
+.sync-dot.pending{ background:var(--bp-brass, #C9A227); box-shadow:0 0 0 3px rgba(201,162,39,.18); }
+
+/* ---------- Seal loading indicator (pictures/seal.png) ---------- */
+.seal-spin{
+  display:inline-block; width:52px; height:52px; flex-shrink:0;
+  background:url('pictures/seal.png') center/contain no-repeat;
+  animation: seal-spin-rotate 2.2s linear infinite, seal-spin-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 4px 10px rgba(11,61,58,.28));
+}
+.seal-spin.small{ width:18px; height:18px; filter:drop-shadow(0 2px 5px rgba(11,61,58,.3)); }
+@keyframes seal-spin-rotate{ to{ transform:rotate(360deg); } }
+@keyframes seal-spin-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.6; } }
+@media (prefers-reduced-motion:reduce){
+  .seal-spin{ animation:seal-spin-pulse 1.8s ease-in-out infinite; }
+}
+
+/* ---------- Crew photo cards (index.html "The crew." section) ----------
+   Native HTML/CSS/JS port of the visual/interaction idea behind Framer's
+   "Team Card Hover" marketplace component (photo fills the card, a
+   gradient + detail panel rises on hover) — no Framer runtime, no React,
+   nothing loaded off-origin; just transform/opacity on a real <img>,
+   consistent with the rest of this self-contained, CSP-locked site.
+   Every card requires a real uploaded photo (see admin.html's crew
+   editor) — there is no initials-avatar fallback here, so index.html's
+   renderTeam() simply skips any crew member with no photo rather than
+   rendering a card for them. */
+.crew-card{
+  position:relative; aspect-ratio:4/5; border-radius:16px; overflow:hidden; cursor:default;
+  background:var(--teal-900); box-shadow:0 1px 2px rgba(29,29,31,.06);
+}
+.crew-card.has-note{ cursor:pointer; }
+.crew-card-photo{
+  position:absolute; inset:0; width:100%; height:100%; background-repeat:no-repeat;
+  transform:scale(1.04); transition:transform .6s cubic-bezier(.2,.7,.2,1);
+}
+.crew-card.is-active .crew-card-photo{ transform:scale(1.1); }
+@media (hover:hover){ .crew-card:hover .crew-card-photo{ transform:scale(1.1); } }
+
+/* Base gradient always present (keeps name/role legible over any photo);
+   a second, taller gradient fades in on hover/active to carry the note. */
+.crew-card-scrim{
+  position:absolute; inset:0; background:linear-gradient(to top, rgba(11,15,15,.88) 0%, rgba(11,15,15,.35) 42%, rgba(11,15,15,0) 68%);
+  transition:opacity .35s ease;
+}
+.crew-card-scrim-hover{
+  position:absolute; inset:0; background:linear-gradient(to top, rgba(11,15,15,.94) 0%, rgba(11,15,15,.7) 55%, rgba(11,15,15,0) 100%);
+  opacity:0; transition:opacity .35s ease;
+}
+.crew-card.is-active .crew-card-scrim-hover{ opacity:1; }
+@media (hover:hover){ .crew-card:hover .crew-card-scrim-hover{ opacity:1; } }
+
+.crew-card-body{
+  position:absolute; left:0; right:0; bottom:0; padding:14px 14px 13px; color:var(--sand);
+  transform:translateY(0); transition:transform .4s cubic-bezier(.2,.7,.2,1);
+}
+.crew-card-name{ font-family:'Fraunces',serif; font-size:0.95rem; font-weight:600; line-height:1.2; margin:0; }
+.crew-card-role{
+  font-family:'Space Mono',monospace; font-size:9px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--mango); opacity:.95; margin:4px 0 0;
+}
+.crew-card-note{
+  font-size:11.5px; line-height:1.5; color:var(--sand); opacity:0; max-height:0; margin-top:0;
+  transition:opacity .3s ease .05s, max-height .4s ease, margin-top .3s ease;
+}
+.crew-card.has-note.is-active .crew-card-note{ opacity:.88; max-height:120px; margin-top:7px; }
+.crew-card.has-note.is-active .crew-card-body{ transform:translateY(-2px); }
+@media (hover:hover){
+  .crew-card.has-note:hover .crew-card-note{ opacity:.88; max-height:120px; margin-top:7px; }
+  .crew-card.has-note:hover .crew-card-body{ transform:translateY(-2px); }
+}
+
+.crew-flip-hint{
+  position:absolute; top:10px; right:10px; width:22px; height:22px; border-radius:9999px;
+  background:rgba(251,251,253,.16); border:1px solid rgba(251,251,253,.3);
+  display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--sand);
+  opacity:0; transition:opacity .25s ease;
+}
+.crew-card.has-note.is-active .crew-flip-hint{ opacity:.85; }
+@media (hover:hover){ .crew-card.has-note:hover .crew-flip-hint{ opacity:.85; } }
+
+@media (prefers-reduced-motion:reduce){
+  .crew-card-photo, .crew-card-scrim-hover, .crew-card-body, .crew-card-note, .crew-flip-hint{ transition:opacity .15s linear; }
+  .crew-card.is-active .crew-card-photo{ transform:none; }
+  .crew-card-body, .crew-card.is-active .crew-card-body{ transform:none; }
+  @media (hover:hover){
+    .crew-card:hover .crew-card-photo{ transform:none; }
+    .crew-card:hover .crew-card-body{ transform:none; }
+  }
+}
+
+/* ---------- Top bar (sticky/fixed header used on itinerary & boarding-pass) ---------- */
+#topbar{
+  position:sticky; top:0; z-index:30; background:rgba(11,61,58,.94);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--sand);
+  padding:calc(14px + var(--sat)) 20px 14px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+#topbar a{ color:var(--sand); opacity:.8; text-decoration:none; font-size:13px; transition:.15s; }
+#topbar a:hover{ opacity:1; }
