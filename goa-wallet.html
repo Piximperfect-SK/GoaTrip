@@ -1981,9 +1981,26 @@ function toggleDepositPayment(){
   const checked = document.getElementById('e-paid-from-deposit').checked;
   document.getElementById('depositPaymentBox').style.display = checked ? 'block' : 'none';
   if(checked){
-    const sel = document.getElementById('e-deposit-from');
-    sel.innerHTML = '<option value="">Select person…</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    populateDepositFromSelect();
     updateDepositPreview();
+  }
+}
+
+// Only offers people who actually have a positive deposit balance —
+// paying an expense "from" someone's deposit when they have none (or
+// it's already been spent down to 0) would create a withdrawal against
+// money that isn't there. keepPerson (used when editing an existing
+// expense) is always included even at 0 so opening an old record for
+// edit never silently loses its already-saved selection.
+function populateDepositFromSelect(keepPerson){
+  const eligible = PARTICIPANTS.filter(p => depositedByPerson(p) > 0 || p === keepPerson);
+  const sel = document.getElementById('e-deposit-from');
+  if(eligible.length === 0){
+    sel.innerHTML = '<option value="">No one has a deposit yet</option>';
+    sel.disabled = true;
+  }else{
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">Select person…</option>' + eligible.map(p=>`<option value="${p}" ${p===keepPerson?'selected':''}>${p}</option>`).join('');
   }
 }
 
@@ -2059,7 +2076,7 @@ function startEditExpense(id){
   document.getElementById('e-date').value = ex.date || new Date().toISOString().slice(0,10);
   document.getElementById('e-paid-from-deposit').checked = ex.paidFromDeposit || false;
   if(ex.paidFromDeposit){
-    document.getElementById('e-deposit-from').innerHTML = '<option value="">Select person…</option>' + PARTICIPANTS.map(p=>`<option value="${p}" ${p === ex.depositUsedFrom ? 'selected' : ''}>${p}</option>`).join('');
+    populateDepositFromSelect(ex.depositUsedFrom);
     document.getElementById('depositPaymentBox').style.display = 'block';
   } else {
     document.getElementById('depositPaymentBox').style.display = 'none';
@@ -2097,6 +2114,10 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
   
   if(paidFromDeposit && !depositUsedFrom){
     showBanner('warn', '⚠️ Select which person\'s deposit to use, or uncheck the box.');
+    return;
+  }
+  if(paidFromDeposit && depositUsedFrom && depositedByPerson(depositUsedFrom) <= 0){
+    showBanner('warn', `⚠️ ${depositUsedFrom} doesn't have a deposit to pay this from.`);
     return;
   }
 
