@@ -1548,20 +1548,26 @@ async function pullFromSheet(manual){
       throw new Error('Backend did not return JSON — please try again shortly.');
     }
     if(data.error) throw new Error(data.error);
-    // deposits falls back to the existing local copy (not []) if the
-    // backend response is missing it for some reason, so a stale client
-    // never silently wipes locally-logged deposits.
-    wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+    // Compared against the current wallet BEFORE overwriting it, so we
+    // can skip re-rendering entirely when a poll comes back identical —
+    // renderAll() rebuilds every card's DOM from scratch, so calling it
+    // on every 5s tick even when nothing changed is what was causing the
+    // visible "cards flashing" — this makes background polls invisible
+    // unless there's actually something new to show.
+    const nextWallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+    const dataChanged = JSON.stringify(nextWallet) !== JSON.stringify(wallet) || WALLET_LOCKED !== !!data.locked;
+    wallet = nextWallet;
     persistLocal();
     WALLET_LOCKED = !!data.locked;
     setSyncStatus('ok');
     applyWalletLockUI();
     if(manual && !WALLET_LOCKED) showBanner('warn','Refreshed from the backend.');
+    if(dataChanged || manual) renderAll();
   }catch(err){
     setSyncStatus('bad');
     showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
+    renderAll();
   }
-  renderAll();
   if(manual) syncParticipantsFromRegistrations();
 }
 
@@ -3780,11 +3786,21 @@ async function initWalletApp(){
 // ============================================================
 const AUTO_REFRESH_MS = 5000;
 let autoRefreshTimer = null;
+// True while the user is actively typing/selecting anywhere on the page
+// (not just inside a modal) — a background refresh landing mid-keystroke
+// could otherwise wipe out an in-progress edit (e.g. a form field that
+// lives outside the wizard modals).
+function isUserEditing(){
+  const ae = document.activeElement;
+  if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return true;
+  if(document.querySelector('.app-modal.open')) return true;
+  return false;
+}
 function startAutoRefresh(){
   if(autoRefreshTimer) return;
   autoRefreshTimer = setInterval(async ()=>{
     if(document.visibilityState !== 'visible') return;
-    if(document.querySelector('.app-modal.open')) return;
+    if(isUserEditing()) return;
     try{
       await pullFromSheet();
       await syncParticipantsFromRegistrations();
@@ -3799,7 +3815,7 @@ function startAutoRefresh(){
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible') return;
   if(!autoRefreshTimer) return; // not signed in / wallet not booted yet
-  if(document.querySelector('.app-modal.open')) return;
+  if(isUserEditing()) return;
   pullFromSheet().catch(err => console.warn('Visibility refresh failed (non-fatal):', err));
 });
 

@@ -1197,11 +1197,21 @@ function showLoggedIn(name){
 // ============================================================
 const AUTO_REFRESH_MS = 5000;
 let autoRefreshTimer = null;
+// True while the user is actively typing/selecting anywhere on the page
+// (not just inside a modal) — many admin sections (flags, board members,
+// content) have inline editable fields outside any modal, and a
+// background refresh landing mid-keystroke there would wipe the edit.
+function isUserEditing(){
+  const ae = document.activeElement;
+  if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return true;
+  if(document.querySelector('.modal-overlay:not(.hidden)')) return true;
+  return false;
+}
 function startAutoRefresh(){
   if(autoRefreshTimer) return;
   autoRefreshTimer = setInterval(() => {
     if(document.visibilityState !== 'visible') return;
-    if(document.querySelector('.modal-overlay:not(.hidden)')) return;
+    if(isUserEditing()) return;
     loadFlags();
     loadPendingAdmins();
     loadAdminList();
@@ -1216,7 +1226,7 @@ function startAutoRefresh(){
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState !== 'visible') return;
   if(!autoRefreshTimer) return; // not logged in / dashboard not booted yet
-  if(document.querySelector('.modal-overlay:not(.hidden)')) return;
+  if(isUserEditing()) return;
   loadFlags(); loadPendingAdmins(); loadAdminList(); loadRegistrations();
   loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); loadWalletApprovals();
 });
