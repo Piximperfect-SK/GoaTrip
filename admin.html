@@ -1179,7 +1179,47 @@ function showLoggedIn(name){
   loadCrew();
   loadContent();
   loadWalletApprovals();
+  startAutoRefresh();
 }
+
+// ============================================================
+// Background auto-refresh — so an admin doesn't have to manually reload
+// to see changes another admin (or a participant, for registrations/
+// cancellations/wallet approvals) just made. Silent, and skips a cycle
+// rather than interrupting when either:
+//   - the tab isn't visible, or
+//   - any modal is open (.modal-overlay:not(.hidden)) — reloading data
+//     out from under an in-progress edit (crew photo crop, PIN change,
+//     wallet-reject reason, etc.) would be worse than the staleness
+//     this is meant to fix.
+// autoRefreshTimer guards against duplicate intervals if showLoggedIn()
+// ever runs more than once in a session (e.g. logout then sign back in).
+// ============================================================
+const AUTO_REFRESH_MS = 5000;
+let autoRefreshTimer = null;
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer = setInterval(() => {
+    if(document.visibilityState !== 'visible') return;
+    if(document.querySelector('.modal-overlay:not(.hidden)')) return;
+    loadFlags();
+    loadPendingAdmins();
+    loadAdminList();
+    loadRegistrations();
+    loadCancellations();
+    loadBoardMembers();
+    loadCrew();
+    loadContent();
+    loadWalletApprovals();
+  }, AUTO_REFRESH_MS);
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(!autoRefreshTimer) return; // not logged in / dashboard not booted yet
+  if(document.querySelector('.modal-overlay:not(.hidden)')) return;
+  loadFlags(); loadPendingAdmins(); loadAdminList(); loadRegistrations();
+  loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); loadWalletApprovals();
+});
 
 /* ---------- mobile sidebar toggle ---------- */
 function toggleSidebar(){

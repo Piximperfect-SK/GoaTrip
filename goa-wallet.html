@@ -1531,7 +1531,7 @@ async function pullFromSheet(manual){
   if(!token){ setSyncStatus('bad'); showAccessGate(); return; }
   setSyncStatus('pending');
   try{
-    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET'});
+    const res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id) + '&token=' + encodeURIComponent(token), {method:'GET', cache:'no-store'});
     if(res.status === 401){
       // Session invalid/expired — clear whichever one we sent and force
       // back through the gate rather than showing wallet data at all.
@@ -3761,7 +3761,47 @@ async function initWalletApp(){
   await pullFromSheet();
   await flushPendingOps();
   await syncParticipantsFromRegistrations();
+  startAutoRefresh();
 }
+
+// ============================================================
+// Background auto-refresh — so everyone viewing the wallet sees new
+// expenses/settlements/etc without having to manually reload the page.
+// Silent (no loading spinner, no banner) and skips a cycle rather than
+// interrupting the user when either:
+//   - the tab isn't visible (no point burning a request in the background,
+//     and pullFromSheet() already re-syncs via visibilitychange below), or
+//   - any modal/wizard is open (.app-modal.open) — overwriting `wallet`
+//     mid-edit (e.g. partway through the add-expense wizard) would be far
+//     more disruptive than the staleness this is meant to fix.
+// autoRefreshTimer is a single module-level handle guarded against
+// duplicate intervals, since initWalletApp() can legitimately run more
+// than once per page load (e.g. logout then a fresh sign-in).
+// ============================================================
+const AUTO_REFRESH_MS = 5000;
+let autoRefreshTimer = null;
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer = setInterval(async ()=>{
+    if(document.visibilityState !== 'visible') return;
+    if(document.querySelector('.app-modal.open')) return;
+    try{
+      await pullFromSheet();
+      await syncParticipantsFromRegistrations();
+    }catch(err){
+      console.warn('Background auto-refresh failed (non-fatal):', err);
+    }
+  }, AUTO_REFRESH_MS);
+}
+// Also catch up immediately when the tab regains focus/visibility
+// (switching back from another app/tab), rather than waiting for the
+// next interval tick — same guards as above.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(!autoRefreshTimer) return; // not signed in / wallet not booted yet
+  if(document.querySelector('.app-modal.open')) return;
+  pullFromSheet().catch(err => console.warn('Visibility refresh failed (non-fatal):', err));
+});
 
 /* ============================================================
    ADMIN LOGIN (now OPTIONAL)
