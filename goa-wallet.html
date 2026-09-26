@@ -131,6 +131,15 @@
   #sidebar .navitem .ic{ width:18px; text-align:center; transition:transform .18s ease; }
   #sidebar .navitem.active .ic{ transform:scale(1.15); }
   #sidebar .foot{ margin-top:auto; padding:16px 20px; font-size:11px; color:rgba(239,230,214,.4); border-top:1px solid rgba(255,255,255,.08); position:relative; z-index:1; }
+  /* Account status moved to the top of the sidebar (right under the
+     logo) so it's visible immediately instead of sitting pinned to
+     the bottom of a tall fixed sidebar behind faint decorative art.
+     Higher-contrast text than the old bottom-of-sidebar version. */
+  #sidebar .foot.foot-top{
+    margin-top:0; padding:14px 20px 16px; border-top:none; border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  #sidebar .foot.foot-top a{ color:rgba(239,230,214,.85); }
+  #sidebar .foot.foot-top a:hover{ color:var(--sand); }
 
   #main{ margin-left:var(--sidebar-w); flex:1; min-width:0; }
   #topbar{
@@ -601,6 +610,12 @@
       <p class="mono text-[10px] tracking-widest opacity-60" id="walletSubtitle">TRIP WALLET</p>
       <h1 class="display text-xl font-semibold mt-1">Trip Wallet</h1>
     </div>
+    <div class="foot foot-top">
+      <p class="mono" style="font-size:11px; opacity:.85; margin-bottom:8px;" id="walletWhoAmI"></p>
+      <a href="index.html" class="hover:text-white">← Back to trip site</a>
+      <a href="#" id="walletAdminSigninBtn" class="hover:text-white" style="display:block; margin-top:6px;">Admin sign-in</a>
+      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:none; margin-top:6px;">Log out</a>
+    </div>
     <nav class="py-3">
       <div class="navitem active" data-page="overview"><span class="ic">◆</span> Overview</div>
       <div class="navitem" data-page="wallet"><span class="ic">▣</span> Wallet</div>
@@ -611,12 +626,6 @@
       <div class="navitem" data-page="mysubmissions"><span class="ic">☷</span> My Submissions</div>
       <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
     </nav>
-    <div class="foot">
-      <p class="mono" style="font-size:11px; opacity:.6; margin-bottom:8px;" id="walletWhoAmI"></p>
-      <a href="index.html" class="hover:text-white">← Back to trip site</a>
-      <a href="#" id="walletAdminSigninBtn" class="hover:text-white" style="display:block; margin-top:6px;">Admin sign-in</a>
-      <a href="#" id="walletLogoutBtn" class="hover:text-white" style="display:none; margin-top:6px;">Log out</a>
-    </div>
   </aside>
 
   <!-- ============ MAIN ============ -->
