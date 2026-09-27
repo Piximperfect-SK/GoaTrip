@@ -372,13 +372,13 @@
   .exwiz-q{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; margin-bottom:12px; letter-spacing:-.01em; }
   .exwiz-hint{ font-size:12px; opacity:.5; font-weight:400; text-transform:none; letter-spacing:0; }
 
-  .chip-grid{ display:flex; flex-wrap:wrap; gap:6px; }
-  .opt-chip{ border:1.5px solid var(--line); border-radius:9999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .chip-grid{ display:flex; flex-wrap:wrap; gap:5px; }
+  .opt-chip{ border:1.5px solid var(--line); border-radius:9999px; padding:5px 10px; font-size:12.5px; font-weight:600; cursor:pointer; background:white; transition:.15s; user-select:none; }
   .opt-chip:hover{ border-color:var(--mango); }
   .opt-chip.selected{ background:var(--mango); color:white; border-color:var(--mango); }
 
-  .cat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-  .cat-card{ border:1.5px solid var(--line); border-radius:13px; padding:10px 6px; text-align:center; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .cat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+  .cat-card{ border:1.5px solid var(--line); border-radius:13px; padding:8px 6px; text-align:center; cursor:pointer; background:white; transition:.15s; user-select:none; }
   .cat-card:hover{ border-color:var(--mango); transform:translateY(-1px); }
   .cat-card.selected{ border-color:var(--mango); background:rgba(255,122,69,.08); box-shadow:0 0 0 1px var(--mango) inset; }
   .cat-card .em{ font-size:18px; display:block; margin-bottom:2px; }
@@ -958,7 +958,10 @@
           <p class="exwiz-q">Who's splitting this?</p>
           <div class="flex items-center justify-between mb-2">
             <label class="block mb-0">Split with <span class="exwiz-hint">— tap to toggle, none picked = everyone</span></label>
-            <button type="button" class="btn-ghost text-xs" style="padding:4px 8px" onclick="selectAllSplit()">Select All</button>
+            <div>
+              <button type="button" class="btn-ghost text-xs" style="padding:4px 8px" onclick="selectAllSplit()">Select All</button>
+              <button type="button" class="btn-ghost text-xs ml-1" style="padding:4px 8px" onclick="clearAllSplit()">Reset</button>
+            </div>
           </div>
           <div class="chip-grid mb-5" id="splitChips"></div>
 
@@ -976,11 +979,11 @@
         <!-- Step 3: category, payer, date -->
         <div class="exwiz-step" data-exstep="3">
           <p class="exwiz-q">What category, and who paid?</p>
-          <label class="mb-2 block">Category</label>
-          <div class="cat-grid mb-4" id="catChips"></div>
-          <label class="mb-2 block">Paid by</label>
-          <div class="chip-grid mb-4" id="payerChips"></div>
-          <label class="mb-2 block">Date</label>
+          <label class="mb-1 block">Category</label>
+          <div class="cat-grid mb-3" id="catChips"></div>
+          <label class="mb-1 block">Paid by</label>
+          <div class="chip-grid mb-3" id="payerChips"></div>
+          <label class="mb-1 block">Date</label>
           <input type="date" id="e-date" style="max-width:220px;"/>
           <p class="exwiz-error" id="exwiz-err-1">⚠ Pick who paid to continue</p>
         </div>
@@ -1323,7 +1326,7 @@ function loadParticipants(){
   return [];
 }
 function persistParticipants(){ localStorage.setItem('goaWalletParticipants', JSON.stringify(PARTICIPANTS)); }
-let PARTICIPANTS = [];
+let PARTICIPANTS = loadParticipants();
 
 /* ============================================================
    REGISTRATION → PARTICIPANTS auto-add
@@ -1884,6 +1887,12 @@ function syncSplitChips(){
 function selectAllSplit(){
   const sel = document.getElementById('e-split');
   Array.from(sel.options).forEach(o=>o.selected = true);
+  syncSplitChips();
+  if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
+}
+function clearAllSplit(){
+  const sel = document.getElementById('e-split');
+  Array.from(sel.options).forEach(o=>o.selected = false);
   syncSplitChips();
   if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
 }
