@@ -31,7 +31,13 @@ const SCHEMAS = {
     title: { type: 'string', maxLen: 120, required: true },
     category: { type: 'string', maxLen: 40 },
     amount: { type: 'number', min: 0, max: 10000000, required: true },
-    payer: { type: 'string', maxLen: 80, required: true },
+    // Not required at the schema level any more — a "pre-logged" common
+    // expense (payload.unpaid === true) is deliberately submitted with no
+    // payer yet. The handler below still enforces payer as required
+    // whenever unpaid isn't set, so a normal expense can't slip through
+    // without one; this just moves that check from unconditional to
+    // conditional on unpaid.
+    payer: { type: 'string', maxLen: 80 },
     date: { type: 'string', maxLen: 20 },
     splitType: { type: 'string', maxLen: 20 },
     split: { type: 'array', maxLen: 50 },
@@ -42,7 +48,8 @@ const SCHEMAS = {
     title: { type: 'string', maxLen: 120, required: true },
     category: { type: 'string', maxLen: 40 },
     amount: { type: 'number', min: 0, max: 10000000, required: true },
-    payer: { type: 'string', maxLen: 80, required: true },
+    // See addExpense's payer comment — same conditional-on-unpaid rule.
+    payer: { type: 'string', maxLen: 80 },
     date: { type: 'string', maxLen: 20 },
     splitType: { type: 'string', maxLen: 20 },
     split: { type: 'array', maxLen: 50 },
@@ -125,6 +132,21 @@ async function getWalletLockState(tripId) {
   return !!(rows[0] && rows[0].wallet_locked);
 }
 
+// "Pre-logged" common expenses — a shared cost the group knows is coming
+// (or has already happened) but that nobody has personally fronted the
+// money for yet. Stored as a normal expense row with unpaid=true and
+// payer='' so it still shows in the expense list/activity/category
+// totals like any other expense, but readState/computeNetBalances on the
+// frontend deliberately skip crediting anyone for having "paid" it until
+// someone actually settles it (at which point an edit sets payer + flips
+// unpaid back to false, same row/id — not a new record).
+let unpaidExpenseSchemaEnsured = false;
+async function ensureUnpaidExpenseSchema() {
+  if (unpaidExpenseSchemaEnsured) return;
+  await query('ALTER TABLE expenses ADD COLUMN IF NOT EXISTS unpaid BOOLEAN DEFAULT false');
+  unpaidExpenseSchemaEnsured = true;
+}
+
 // Phase 2 schema, added here (not just once at boot) for the same
 // cold-start-independence reason as ensureWalletLockSchema above.
 // DEFAULT 'approved' on the new status column is deliberate: it's a
@@ -194,6 +216,7 @@ function approvalFields(r) {
 async function readState(tripId, viewer) {
   await ensureWalletLockSchema();
   await ensureApprovalSchema();
+  await ensureUnpaidExpenseSchema();
   const [expenses, settlements, deposits, activity, trip] = await Promise.all([
     query('SELECT * FROM expenses WHERE trip_id=$1 ORDER BY created_at', [tripId]),
     query('SELECT * FROM settlements WHERE trip_id=$1 ORDER BY ts', [tripId]),
@@ -206,6 +229,7 @@ async function readState(tripId, viewer) {
     split: r.split || [], date: r.date, createdBy: r.created_by, createdAt: r.created_at,
     updatedBy: r.updated_by, updatedAt: r.updated_at, splitType: r.split_type,
     splitAmounts: r.split_amounts, paidFromDeposit: r.paid_from_deposit, depositUsedFrom: r.deposit_used_from,
+    unpaid: !!r.unpaid,
     ...approvalFields(r),
   }));
   const mappedSettlements = settlements.rows.map((r) => ({
@@ -311,26 +335,44 @@ exports.handler = async (event) => {
     // approved_by/etc, whether that's an INSERT (add*) or an UPDATE
     // (submitForApproval/approveRecord/rejectRecord).
     await ensureApprovalSchema();
+    await ensureUnpaidExpenseSchema();
+
+    if (action === 'addExpense' || action === 'editExpense') {
+      // Conditional payer requirement: schema no longer enforces it
+      // unconditionally (see the SCHEMAS comment above), so a normal
+      // expense that isn't explicitly marked unpaid still needs one.
+      const isUnpaid = !!payload.unpaid;
+      if (!isUnpaid && !sanitizeText(payload.payer, 80)) {
+        return badRequest('Pick who paid, or mark this as a pre-logged / not-yet-paid expense.');
+      }
+    }
 
     if (action === 'addExpense') {
       const amount = sanitizeNumber(payload.amount, 0, 10000000) || 0;
       const splitType = payload.splitType === 'individual' ? 'individual' : 'equal';
+      const isUnpaid = !!payload.unpaid;
       await query(
         `INSERT INTO expenses (id, trip_id, title, category, amount, payer, split, date, created_by, split_type,
-           split_amounts, paid_from_deposit, deposit_used_from, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'draft')`,
+           split_amounts, paid_from_deposit, deposit_used_from, status, unpaid)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'draft',$14)`,
         [
           sanitizeText(payload.id, 60), tripId, sanitizeText(payload.title, 120), sanitizeText(payload.category || 'Misc', 40),
-          amount, sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
+          amount, isUnpaid ? '' : sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
           sanitizeText(payload.date || '', 20), actor, splitType,
           payload.splitAmounts ? JSON.stringify(payload.splitAmounts) : null,
-          !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80),
+          !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80), isUnpaid,
         ]
       );
-      await logActivity(tripId, payload.id, actor, 'add_expense', `${sanitizeText(payload.title, 120)} (Rs.${amount})`);
+      await logActivity(
+        tripId, payload.id, actor, 'add_expense',
+        isUnpaid
+          ? `${sanitizeText(payload.title, 120)} (Rs.${amount}) — pre-logged, not yet paid`
+          : `${sanitizeText(payload.title, 120)} (Rs.${amount})`
+      );
     } else if (action === 'editExpense') {
       const amount = sanitizeNumber(payload.amount, 0, 10000000) || 0;
       const splitType = payload.splitType === 'individual' ? 'individual' : 'equal';
+      const isUnpaid = !!payload.unpaid;
       // A non-admin editing their own expense sends it back to 'draft' and
       // clears any prior approval/rejection — otherwise a participant could
       // get a record approved, then edit the amount afterward with no
@@ -341,17 +383,27 @@ exports.handler = async (event) => {
            approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
       await query(
         `UPDATE expenses SET title=$3, category=$4, amount=$5, payer=$6, split=$7, date=$8, updated_by=$9,
-           updated_at=now(), split_type=$10, split_amounts=$11, paid_from_deposit=$12, deposit_used_from=$13${statusClause}
+           updated_at=now(), split_type=$10, split_amounts=$11, paid_from_deposit=$12, deposit_used_from=$13,
+           unpaid=$14${statusClause}
          WHERE trip_id=$1 AND id=$2`,
         [
           tripId, sanitizeText(payload.id, 60), sanitizeText(payload.title, 120), sanitizeText(payload.category || 'Misc', 40),
-          amount, sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
+          amount, isUnpaid ? '' : sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
           sanitizeText(payload.date || '', 20), actor, splitType,
           payload.splitAmounts ? JSON.stringify(payload.splitAmounts) : null,
-          !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80),
+          !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80), isUnpaid,
         ]
       );
-      await logActivity(tripId, payload.id, actor, 'edit_expense', `${sanitizeText(payload.title, 120)} (Rs.${amount})`);
+      // Editing an unpaid record to finally add a payer (isUnpaid now
+      // false, but the row previously had none) is the "someone settled
+      // this" moment — worth its own activity-log wording rather than a
+      // generic edit, same idea as the pre-logged note on add above.
+      await logActivity(
+        tripId, payload.id, actor, 'edit_expense',
+        isUnpaid
+          ? `${sanitizeText(payload.title, 120)} (Rs.${amount}) — pre-logged, not yet paid`
+          : `${sanitizeText(payload.title, 120)} (Rs.${amount})`
+      );
     } else if (action === 'removeExpense') {
       await query('DELETE FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
       await logActivity(tripId, payload.id, actor, 'remove_expense', payload.id);
