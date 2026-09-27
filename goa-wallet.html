@@ -142,10 +142,18 @@
   #sidebar .foot.foot-top a:hover{ color:var(--sand); }
 
   #main{ margin-left:var(--sidebar-w); flex:1; min-width:0; }
+  /* Both the main topbar row and the sign-in/sync status row stick
+     together as one unit — previously only #topbar itself was
+     position:sticky, so #statusRow (a separate row directly below it)
+     scrolled away under it the moment the page scrolled, taking the
+     name/role pill out of view. Wrapping them and stickying the wrapper
+     keeps both pinned at once. */
+  #topbarWrap{ position:sticky; top:0; z-index:30; }
   #topbar{
-    position:sticky; top:0; z-index:30; background:rgba(251,246,236,.92); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    background:rgba(251,246,236,.92); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--line); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
     color:var(--ink); /* shared.css sets pale --sand text for a DARK topbar; this topbar is light, so it needs dark text of its own */
+    position:relative;
   }
   #topbar::after{
     content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px;
@@ -664,6 +672,7 @@
 
   <!-- ============ MAIN ============ -->
   <div id="main">
+    <div id="topbarWrap">
     <div id="topbar">
       <div class="flex items-center gap-3">
         <a href="index.html" id="homeBackBtn" class="btn-icon" title="Back to trip site" style="text-decoration:none;">⌂</a>
@@ -684,10 +693,12 @@
          badge (and the sync label to get dropped entirely) once the
          screen narrowed. This row never collapses: it always shows the
          full text, wrapping onto a second line on very narrow screens
-         rather than truncating or hiding anything. -->
+         rather than truncating or hiding anything. Sticks together with
+         #topbar via #topbarWrap above, so it stays visible on scroll too. -->
     <div id="statusRow">
       <span class="flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
       <span id="walletWhoAmITop" style="display:none;" title="Click to manage your session"></span>
+    </div>
     </div>
 
     <div id="bannerZone" class="px-7 pt-5"></div>
