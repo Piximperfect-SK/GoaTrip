@@ -465,6 +465,24 @@
   .tabbar-item.active{ color:var(--mango); }
   .tabbar-item.active .tic{ transform:translateY(-1px); }
 
+  /* ---------- Items launcher (cards replacing the individual tabbar tabs) ---------- */
+  .items-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (min-width:560px){ .items-grid{ grid-template-columns:repeat(3,1fr); } }
+  @media (min-width:900px){ .items-grid{ grid-template-columns:repeat(4,1fr); } }
+  .item-card{
+    display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+    padding:18px 16px; cursor:pointer; text-align:left; -webkit-user-select:none; user-select:none;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .item-card:hover{ box-shadow:0 14px 28px -18px rgba(15,38,34,.3); }
+  .item-card:active{ transform:scale(.96); }
+  .item-card .ic-wrap{
+    width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-size:19px; background:rgba(255,122,69,.1); color:var(--mango-2); flex-shrink:0;
+  }
+  .item-card .it-name{ font-weight:600; font-size:14.5px; }
+  .item-card .it-desc{ font-size:11.5px; opacity:.55; line-height:1.35; margin-top:1px; }
+
   .fab{
     display:none; position:fixed; z-index:101; right:calc(18px + var(--sar));
     bottom:calc(var(--tabbar-h) + var(--sab) + 16px);
@@ -703,8 +721,55 @@
 
     <div id="bannerZone" class="px-7 pt-5"></div>
 
+    <!-- ============ ITEMS (default landing page — a card launcher for
+         every section that used to be its own bottom tabbar tab. Each
+         card just calls goToPage(), the exact same function the old
+         tabbar-item click handler called, so navigation behaves
+         identically — this only changes how you get there. ============ -->
+    <div class="page active" id="page-items">
+      <p class="text-sm opacity-60 mb-5 max-w-md">Everything in the wallet, in one place — tap a card to open it.</p>
+      <div class="items-grid">
+        <div class="panel item-card" data-page="overview" onclick="goToPage('overview')">
+          <span class="ic-wrap">◆</span>
+          <span><span class="it-name">Overview</span><br><span class="it-desc">Totals, charts &amp; trends</span></span>
+        </div>
+        <div class="panel item-card" data-page="wallet" onclick="goToPage('wallet')">
+          <span class="ic-wrap">▣</span>
+          <span><span class="it-name">Wallet</span><br><span class="it-desc">Fund the pool</span></span>
+        </div>
+        <div class="panel item-card" data-page="expenses" onclick="goToPage('expenses')">
+          <span class="ic-wrap">▤</span>
+          <span><span class="it-name">Expenses</span><br><span class="it-desc">Every expense logged</span></span>
+        </div>
+        <div class="panel item-card" data-feature="wallet.viewParticipants" data-page="participants" onclick="goToPage('participants')">
+          <span class="ic-wrap">◍</span>
+          <span><span class="it-name">Balances</span><br><span class="it-desc">Who owes what</span></span>
+        </div>
+        <div class="panel item-card" data-page="p2p" onclick="goToPage('p2p')">
+          <span class="ic-wrap">⇌</span>
+          <span><span class="it-name">1:1</span><br><span class="it-desc">Just the two of you</span></span>
+        </div>
+        <div class="panel item-card" data-page="settlements" onclick="goToPage('settlements')">
+          <span class="ic-wrap">⇄</span>
+          <span><span class="it-name">Settle</span><br><span class="it-desc">Square up</span></span>
+        </div>
+        <div class="panel item-card" data-page="mysubmissions" onclick="goToPage('mysubmissions')">
+          <span class="ic-wrap">☷</span>
+          <span><span class="it-name">Mine</span><br><span class="it-desc">Your own submissions</span></span>
+        </div>
+        <div class="panel item-card" data-feature="wallet.activityLog" data-page="activity" onclick="goToPage('activity')">
+          <span class="ic-wrap">≡</span>
+          <span><span class="it-name">Activity</span><br><span class="it-desc">Everything logged</span></span>
+        </div>
+        <div class="panel item-card" id="itemsCardApprovals" data-page="approvals" onclick="goToPage('approvals')" style="display:none;">
+          <span class="ic-wrap">✓</span>
+          <span><span class="it-name">Approve</span><br><span class="it-desc">Review &amp; decide</span></span>
+        </div>
+      </div>
+    </div>
+
     <!-- ============ OVERVIEW ============ -->
-    <div class="page active watermarked" id="page-overview">
+    <div class="page watermarked" id="page-overview">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="kpi"><p class="lbl">Total expenses</p><p class="val" id="kpi-total">₹0</p><p class="sub" id="kpi-total-sub">across the trip</p></div>
         <div class="kpi"><p class="lbl">Total contributions</p><p class="val" id="kpi-contrib">₹0</p><p class="sub">sum of all amounts paid in</p></div>
@@ -962,15 +1027,7 @@
 <!-- ============ MOBILE: bottom tab bar ============ -->
 <nav id="tabbar">
   <div class="tabbar-row">
-    <div class="tabbar-item active" data-page="overview"><span class="tic">◆</span><span class="tlbl">Overview</span></div>
-    <div class="tabbar-item" data-page="wallet"><span class="tic">▣</span><span class="tlbl">Wallet</span></div>
-    <div class="tabbar-item" data-page="expenses"><span class="tic">▤</span><span class="tlbl">Expenses</span></div>
-    <div class="tabbar-item" data-feature="wallet.viewParticipants" data-page="participants"><span class="tic">◍</span><span class="tlbl">Balances</span></div>
-    <div class="tabbar-item" data-page="p2p"><span class="tic">⇌</span><span class="tlbl">1:1</span></div>
-    <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
-    <div class="tabbar-item" data-page="mysubmissions"><span class="tic">☷</span><span class="tlbl">Mine</span></div>
-    <div class="tabbar-item" data-feature="wallet.activityLog" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
-    <div class="tabbar-item" id="tabApprovals" data-page="approvals" style="display:none;"><span class="tic">✓</span><span class="tlbl">Approve</span></div>
+    <div class="tabbar-item active" data-page="items"><span class="tic">⊞</span><span class="tlbl">Items</span></div>
   </div>
 </nav>
 
@@ -1635,7 +1692,7 @@ function goToPage(pageKey){
   document.querySelectorAll(`.navitem[data-page="${pageKey}"], .tabbar-item[data-page="${pageKey}"]`).forEach(n=>n.classList.add('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pageKey).classList.add('active');
-  const titles = {overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
+  const titles = {items:['Everything, in one place','Items'], overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
     participants:['Who owes what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
     activity:['Everything logged','Activity Log'], mysubmissions:['Track your own submissions','My Submissions'],
     approvals:['Review & decide','Payment approvals']};
@@ -4317,11 +4374,11 @@ function refreshWalletIdentityUI(){
   // somehow left sitting on the approvals page (e.g. their admin
   // session just expired), bounce them off it too.
   const navAppr = document.getElementById('navApprovals');
-  const tabAppr = document.getElementById('tabApprovals');
+  const itemsAppr = document.getElementById('itemsCardApprovals');
   if(navAppr) navAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
-  if(tabAppr) tabAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
+  if(itemsAppr) itemsAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
   if(!IS_WALLET_ADMIN && document.getElementById('page-approvals')?.classList.contains('active')){
-    goToPage('overview');
+    goToPage('items');
   }
 
   const top = document.getElementById('walletWhoAmITop');
