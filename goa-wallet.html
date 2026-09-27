@@ -356,35 +356,35 @@
   .wtab-chip.active{ background:var(--teal-900); color:var(--sand); border-color:var(--teal-900); }
 
   /* ---------- Add/Edit Expense: rail-progress wizard ---------- */
-  .exwiz-rail-wrap{ padding:16px 24px 20px; background:var(--teal-900); }
-  .exwiz-rail-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .exwiz-rail-wrap{ padding:12px 20px 14px; background:var(--teal-900); }
+  .exwiz-rail-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .exwiz-rail-label{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:rgba(239,230,214,.55); }
   .exwiz-rail-count{ font-family:'Space Mono',monospace; font-size:11px; color:var(--sand); opacity:.85; }
-  .exwiz-rail{ position:relative; height:24px; }
+  .exwiz-rail{ position:relative; height:20px; }
   .exwiz-rail svg{ width:100%; height:100%; overflow:visible; display:block; }
   .exwiz-track{ stroke:rgba(239,230,214,.22); stroke-width:2; stroke-dasharray:1 9; stroke-linecap:round; }
   .exwiz-progress{ stroke:var(--mango); stroke-width:2.5; stroke-linecap:round; transition:stroke-dashoffset .45s cubic-bezier(.65,0,.35,1); }
 
-  .exwiz-body{ padding:26px 24px 6px; }
+  .exwiz-body{ padding:16px 20px 6px; }
   .exwiz-step{ display:none; }
   .exwiz-step.active{ display:block; animation:exwizIn .4s cubic-bezier(.22,1,.36,1); }
   @keyframes exwizIn{ from{opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);} }
-  .exwiz-q{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; margin-bottom:16px; letter-spacing:-.01em; }
+  .exwiz-q{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; margin-bottom:12px; letter-spacing:-.01em; }
   .exwiz-hint{ font-size:12px; opacity:.5; font-weight:400; text-transform:none; letter-spacing:0; }
 
-  .chip-grid{ display:flex; flex-wrap:wrap; gap:8px; }
-  .opt-chip{ border:1.5px solid var(--line); border-radius:9999px; padding:8px 15px; font-size:13px; font-weight:600; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .chip-grid{ display:flex; flex-wrap:wrap; gap:6px; }
+  .opt-chip{ border:1.5px solid var(--line); border-radius:9999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; background:white; transition:.15s; user-select:none; }
   .opt-chip:hover{ border-color:var(--mango); }
   .opt-chip.selected{ background:var(--mango); color:white; border-color:var(--mango); }
 
-  .cat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-  .cat-card{ border:1.5px solid var(--line); border-radius:13px; padding:13px 8px; text-align:center; cursor:pointer; background:white; transition:.15s; user-select:none; }
+  .cat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .cat-card{ border:1.5px solid var(--line); border-radius:13px; padding:10px 6px; text-align:center; cursor:pointer; background:white; transition:.15s; user-select:none; }
   .cat-card:hover{ border-color:var(--mango); transform:translateY(-1px); }
   .cat-card.selected{ border-color:var(--mango); background:rgba(255,122,69,.08); box-shadow:0 0 0 1px var(--mango) inset; }
-  .cat-card .em{ font-size:19px; display:block; margin-bottom:3px; }
-  .cat-card .tt{ font-size:11.5px; font-weight:600; }
+  .cat-card .em{ font-size:18px; display:block; margin-bottom:2px; }
+  .cat-card .tt{ font-size:11px; font-weight:600; }
 
-  .exwiz-nav{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px 22px; gap:12px; border-top:1px solid var(--line); margin-top:14px; }
+  .exwiz-nav{ display:flex; align-items:center; justify-content:space-between; padding:12px 20px 16px; gap:12px; border-top:1px solid var(--line); margin-top:10px; }
   .exwiz-back{ background:none; border:none; font-weight:600; font-size:13px; color:var(--ink); opacity:.55; cursor:pointer; padding:9px 4px; }
   .exwiz-back:hover{ opacity:1; }
   .exwiz-back:disabled{ visibility:hidden; }
@@ -937,20 +937,8 @@
           <p class="exwiz-error" id="exwiz-err-0">⚠ Add a title and an amount to continue</p>
         </div>
 
-        <!-- Step 1: category, payer, date -->
+        <!-- Step 1: paid from deposit? -->
         <div class="exwiz-step" data-exstep="1">
-          <p class="exwiz-q">What category, and who paid?</p>
-          <label class="mb-2 block">Category</label>
-          <div class="cat-grid mb-5" id="catChips"></div>
-          <label class="mb-2 block">Paid by</label>
-          <div class="chip-grid mb-5" id="payerChips"></div>
-          <label class="mb-2 block">Date</label>
-          <input type="date" id="e-date" style="max-width:220px;"/>
-          <p class="exwiz-error" id="exwiz-err-1">⚠ Pick who paid to continue</p>
-        </div>
-
-        <!-- Step 2: paid from deposit? -->
-        <div class="exwiz-step" data-exstep="2">
           <p class="exwiz-q">Was this paid from someone's deposit?</p>
           <label class="mb-3 block">
             <input type="checkbox" id="e-paid-from-deposit" onchange="toggleDepositPayment()"/> 
@@ -965,10 +953,13 @@
           </div>
         </div>
 
-        <!-- Step 3: split -->
-        <div class="exwiz-step" data-exstep="3">
+        <!-- Step 2: split -->
+        <div class="exwiz-step" data-exstep="2">
           <p class="exwiz-q">Who's splitting this?</p>
-          <label class="mb-2 block">Split with <span class="exwiz-hint">— tap to toggle, none picked = everyone</span></label>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block mb-0">Split with <span class="exwiz-hint">— tap to toggle, none picked = everyone</span></label>
+            <button type="button" class="btn-ghost text-xs" style="padding:4px 8px" onclick="selectAllSplit()">Select All</button>
+          </div>
           <div class="chip-grid mb-5" id="splitChips"></div>
 
           <label class="mb-2 block">Split method</label>
@@ -980,6 +971,18 @@
             <div id="individualSplitInputs" class="border rounded-xl divide-y" style="border-color:var(--line)"></div>
             <p class="text-xs mt-2" id="individualSplitTotalNote"></p>
           </div>
+        </div>
+
+        <!-- Step 3: category, payer, date -->
+        <div class="exwiz-step" data-exstep="3">
+          <p class="exwiz-q">What category, and who paid?</p>
+          <label class="mb-2 block">Category</label>
+          <div class="cat-grid mb-4" id="catChips"></div>
+          <label class="mb-2 block">Paid by</label>
+          <div class="chip-grid mb-4" id="payerChips"></div>
+          <label class="mb-2 block">Date</label>
+          <input type="date" id="e-date" style="max-width:220px;"/>
+          <p class="exwiz-error" id="exwiz-err-1">⚠ Pick who paid to continue</p>
         </div>
 
         <!-- Step 4: review -->
@@ -1878,6 +1881,12 @@ function syncSplitChips(){
   const selected = Array.from(document.getElementById('e-split').selectedOptions).map(o=>o.value);
   Array.from(box.children).forEach(c=>c.classList.toggle('selected', selected.includes(c.dataset.value)));
 }
+function selectAllSplit(){
+  const sel = document.getElementById('e-split');
+  Array.from(sel.options).forEach(o=>o.selected = true);
+  syncSplitChips();
+  if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
+}
 renderCategoryChips();
 renderPayerChips();
 renderSplitChips();
@@ -1927,7 +1936,7 @@ function exwizValidateStep(i){
     document.getElementById('exwiz-err-0').classList.toggle('show', !ok);
     return ok;
   }
-  if(i===1){
+  if(i===3){
     const ok = !!document.getElementById('e-payer').value;
     document.getElementById('exwiz-err-1').classList.toggle('show', !ok);
     return ok;
