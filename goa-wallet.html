@@ -626,6 +626,7 @@
       <div class="navitem" data-page="settlements"><span class="ic">⇄</span> Settlements</div>
       <div class="navitem" data-page="mysubmissions"><span class="ic">☷</span> My Submissions</div>
       <div class="navitem" data-feature="wallet.activityLog" data-page="activity"><span class="ic">≡</span> Activity Log</div>
+      <div class="navitem" id="navApprovals" data-page="approvals" style="display:none;"><span class="ic">✓</span> Approvals <span id="navApprovalsCount" class="mono" style="font-size:10px; opacity:.75; margin-left:2px;"></span></div>
     </nav>
   </aside>
 
@@ -874,6 +875,34 @@
         <div id="activityLogList" class="divide-y" style="border-color:var(--line)"></div>
       </div>
     </div>
+
+    <!-- ============ ADMIN: PAYMENT APPROVALS ============
+         Moved here from admin.html so admins can review and decide on
+         submitted expenses/settlements/deposits without leaving the
+         wallet. Admin-only: the nav/tab entry for this page stays
+         hidden unless IS_WALLET_ADMIN is true (see refreshWalletIdentityUI()),
+         and renderApprovals() itself refuses to show any data if that
+         flag is somehow false — belt-and-suspenders, since the real
+         enforcement is server-side (wallet.js gates approveRecord/
+         rejectRecord to admin sessions regardless of what the UI shows). -->
+    <div class="page" id="page-approvals">
+      <div class="panel p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
+          <h3 class="font-semibold">Payment approvals</h3>
+          <select id="approvalsFilter" onchange="renderApprovals()" style="width:auto; min-width:180px;">
+            <option value="pending_approval">Pending approval</option>
+            <option value="">All statuses</option>
+            <option value="draft">Draft (not yet submitted)</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="published">Published</option>
+          </select>
+        </div>
+        <p class="text-xs opacity-50 mb-4">Expenses, settlements and deposits participants have submitted. Default filter is the live pending queue — switch to Approved/Rejected/Published for the full reviewed history.</p>
+        <div id="approvalsList"></div>
+        <p class="text-sm opacity-50 text-center py-8" id="approvalsEmptyState" style="display:none;">Nothing here right now.</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -888,6 +917,7 @@
     <div class="tabbar-item" data-page="settlements"><span class="tic">⇄</span><span class="tlbl">Settle</span></div>
     <div class="tabbar-item" data-page="mysubmissions"><span class="tic">☷</span><span class="tlbl">Mine</span></div>
     <div class="tabbar-item" data-feature="wallet.activityLog" data-page="activity"><span class="tic">≡</span><span class="tlbl">Activity</span></div>
+    <div class="tabbar-item" id="tabApprovals" data-page="approvals" style="display:none;"><span class="tic">✓</span><span class="tlbl">Approve</span></div>
   </div>
 </nav>
 
@@ -1228,6 +1258,27 @@
   </div>
 </div>
 
+<!-- ============ MODAL: Reject a wallet record (admin approvals) ============ -->
+<div id="approvalRejectModal" class="app-modal" data-lenis-prevent>
+  <div class="modal-panel" style="max-width:420px;">
+    <div class="flex items-center justify-between px-6 py-5 border-b" style="border-color:var(--line)">
+      <div>
+        <h3 class="display text-xl font-semibold">Reject this record?</h3>
+        <p class="text-xs opacity-50 mt-0.5" id="approvalRejectSub"></p>
+      </div>
+      <span class="modal-close" onclick="closeModal('approvalRejectModal')">✕</span>
+    </div>
+    <div class="p-6">
+      <label>Reason (optional, shown to the submitter)</label>
+      <textarea id="ar-reason" rows="3" maxlength="300" placeholder="e.g. Receipt missing / amount doesn't match"></textarea>
+      <div class="flex gap-3 mt-4">
+        <button type="button" class="btn-danger flex-1" id="approvalRejectConfirmBtn" onclick="confirmApprovalReject()">Reject record</button>
+        <button type="button" class="btn-ghost" onclick="closeModal('approvalRejectModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: Name verification ============ -->
 <div id="nameVerifyModal" class="app-modal" data-lenis-prevent>
   <div class="modal-panel" style="max-width:380px;">
@@ -1483,13 +1534,22 @@ let charts = {};
    SIDEBAR NAV
 =============================================================*/
 function goToPage(pageKey){
+  // Approvals is admin-only — the nav/tab entries are hidden for
+  // everyone else, but guard direct navigation too (e.g. a stale
+  // click already in flight from just before logout) rather than
+  // trusting hidden UI alone.
+  if(pageKey === 'approvals' && !IS_WALLET_ADMIN){
+    showBanner('err', 'You need to be signed in as admin to view payment approvals.');
+    pageKey = 'overview';
+  }
   document.querySelectorAll('.navitem, .tabbar-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll(`.navitem[data-page="${pageKey}"], .tabbar-item[data-page="${pageKey}"]`).forEach(n=>n.classList.add('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pageKey).classList.add('active');
   const titles = {overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
     participants:['Who owes what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
-    activity:['Everything logged','Activity Log'], mysubmissions:['Track your own submissions','My Submissions']};
+    activity:['Everything logged','Activity Log'], mysubmissions:['Track your own submissions','My Submissions'],
+    approvals:['Review & decide','Payment approvals']};
   document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
   document.getElementById('pageTitle').textContent = titles[pageKey][1];
   document.getElementById('sidebar').classList.remove('open');
@@ -3796,6 +3856,140 @@ function renderActivity(){
 }
 
 /* ============================================================
+   ADMIN: PAYMENT APPROVALS (moved here from admin.html)
+   wallet.js only ever returns every status (draft/pending_approval/
+   rejected/etc) to an admin viewer — a non-admin GET is already
+   filtered server-side to approved/published/their-own (see
+   filterVisible() in wallet.js) — so `wallet.expenses/settlements/
+   deposits` already has everything this needs once signed in as
+   admin; no separate fetch required.
+=============================================================*/
+function allWalletApprovalRecords(){
+  const exp = wallet.expenses.map(ex => ({
+    recordType:'expense', id:ex.id, label:ex.title, amount:Number(ex.amount), who: ex.createdBy,
+    status: ex.status, submittedBy: ex.submittedBy, submittedAt: ex.submittedAt,
+    approvedBy: ex.approvedBy, approvedAt: ex.approvedAt,
+    rejectedBy: ex.rejectedBy, rejectedAt: ex.rejectedAt, rejectionReason: ex.rejectionReason,
+  }));
+  const settle = wallet.settlements.map(s => ({
+    recordType:'settlement', id:s.id, label:`${s.from} → ${s.to}`, amount:Number(s.amount), who: s.actor,
+    status: s.status, submittedBy: s.submittedBy, submittedAt: s.submittedAt,
+    approvedBy: s.approvedBy, approvedAt: s.approvedAt,
+    rejectedBy: s.rejectedBy, rejectedAt: s.rejectedAt, rejectionReason: s.rejectionReason,
+  }));
+  const dep = (wallet.deposits||[]).map(d => ({
+    recordType:'deposit', id:d.id, label:`${d.person} (${d.type})`, amount:Number(d.amount), who: d.loggedBy,
+    status: d.status, submittedBy: d.submittedBy, submittedAt: d.submittedAt,
+    approvedBy: d.approvedBy, approvedAt: d.approvedAt,
+    rejectedBy: d.rejectedBy, rejectedAt: d.rejectedAt, rejectionReason: d.rejectionReason,
+  }));
+  // Newest-decided-or-submitted first, same ordering admin.html used.
+  return [...exp, ...settle, ...dep].sort((a,b) =>
+    String(b.approvedAt || b.rejectedAt || b.submittedAt || '').localeCompare(String(a.approvedAt || a.rejectedAt || a.submittedAt || ''))
+  );
+}
+function renderApprovals(){
+  const listEl = document.getElementById('approvalsList');
+  const emptyEl = document.getElementById('approvalsEmptyState');
+  if(!listEl) return; // page not on this build / not yet in DOM
+
+  const all = IS_WALLET_ADMIN ? allWalletApprovalRecords() : [];
+  const pending = all.filter(r => r.status === 'pending_approval').length;
+  const navCount = document.getElementById('navApprovalsCount');
+  if(navCount) navCount.textContent = pending > 0 ? `(${pending})` : '';
+
+  if(!IS_WALLET_ADMIN){
+    // Server-side this is already enforced (approveRecord/rejectRecord
+    // require an admin session — see wallet.js), and the nav/tab entries
+    // stay hidden for non-admins; this is just what shows if the page
+    // is reached anyway (e.g. an admin's session just expired).
+    listEl.innerHTML = '';
+    emptyEl.textContent = 'Sign in as admin to view payment approvals.';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  const filterVal = document.getElementById('approvalsFilter') ? document.getElementById('approvalsFilter').value : 'pending_approval';
+  let records = all;
+  if(filterVal) records = records.filter(r => r.status === filterVal);
+
+  if(!records.length){
+    listEl.innerHTML = '';
+    emptyEl.textContent = 'Nothing here right now.';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  listEl.innerHTML = records.map(r => {
+    const historyLine = r.status === 'approved' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''}`
+      : r.status === 'published' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''} · now published`
+      : r.status === 'rejected' && r.rejectedBy ? `Rejected by ${escapeHtml(r.rejectedBy)}${r.rejectedAt ? ' · ' + new Date(r.rejectedAt).toLocaleString() : ''}`
+      : r.submittedBy ? `Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}`
+      : '';
+    return `
+    <div class="submission-card">
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="pill">${escapeHtml(r.recordType)}</span>
+          <span class="font-semibold truncate">${escapeHtml(r.label)}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
+          ${statusPillHtml(r.status)}
+        </div>
+      </div>
+      <p class="text-xs opacity-50">by ${escapeHtml(r.who || '—')}</p>
+      ${historyLine ? `<p class="text-xs opacity-50 mt-0.5">${historyLine}</p>` : ''}
+      ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
+      ${r.status === 'pending_approval' ? `
+        <div class="mt-3 flex gap-2">
+          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-approve data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Approve</button>
+          <button type="button" class="btn-danger" style="padding:6px 14px; font-size:12px;" data-reject data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Reject</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('button[data-approve]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      // approveRecord is admin-gated server-side regardless of what
+      // getSessionToken()/getSessionName() resolve to here — pushToSheet()
+      // already handles a 401 (expired/invalid admin session) by clearing
+      // it and reopening the sign-in gate.
+      const res = await pushToSheet('approveRecord', { recordType: btn.dataset.type, id: btn.dataset.id }, getSessionName());
+      if(res){ showBanner('ok', 'Record approved.'); renderAll(); }
+      else btn.disabled = false;
+    });
+  });
+  listEl.querySelectorAll('button[data-reject]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openApprovalRejectModal(btn.dataset.type, btn.dataset.id));
+  });
+}
+let approvalRejectTarget = null;
+function openApprovalRejectModal(recordType, id){
+  approvalRejectTarget = { recordType, id };
+  document.getElementById('ar-reason').value = '';
+  document.getElementById('approvalRejectSub').textContent = `${recordType} ${id}`;
+  openModal('approvalRejectModal');
+}
+async function confirmApprovalReject(){
+  if(!approvalRejectTarget) return;
+  const btn = document.getElementById('approvalRejectConfirmBtn');
+  btn.disabled = true;
+  const res = await pushToSheet('rejectRecord', {
+    recordType: approvalRejectTarget.recordType, id: approvalRejectTarget.id,
+    reason: document.getElementById('ar-reason').value.trim(),
+  }, getSessionName());
+  btn.disabled = false;
+  if(res){
+    closeModal('approvalRejectModal');
+    showBanner('ok', 'Record rejected.');
+    renderAll();
+  }
+}
+
+/* ============================================================
    RENDER ALL
 =============================================================*/
 // Each section renders independently — a bug in one (e.g. a stray
@@ -3806,7 +4000,7 @@ function renderActivity(){
 // piece just logs to console and leaves its own section stale,
 // instead of taking the whole page down with it.
 function renderAll(){
-  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderP2P, renderSettlements, renderMySubmissions, renderActivity];
+  const sections = [renderOverview, renderWallet, renderExpensesTable, renderParticipants, renderP2P, renderSettlements, renderMySubmissions, renderActivity, renderApprovals];
   sections.forEach(fn=>{
     try{ fn(); }catch(e){ console.error(`renderAll: ${fn.name} failed`, e); }
   });
@@ -3974,6 +4168,18 @@ function refreshWalletIdentityUI(){
   const logoutBtn = document.getElementById('walletLogoutBtn');
   if(signinBtn) signinBtn.style.display = IS_WALLET_ADMIN ? 'none' : 'block';
   if(logoutBtn) logoutBtn.style.display = name ? 'block' : 'none';
+
+  // Payment approvals is admin-only — reveal/hide the nav & tabbar
+  // entries with the rest of the admin-specific UI. If a non-admin was
+  // somehow left sitting on the approvals page (e.g. their admin
+  // session just expired), bounce them off it too.
+  const navAppr = document.getElementById('navApprovals');
+  const tabAppr = document.getElementById('tabApprovals');
+  if(navAppr) navAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
+  if(tabAppr) tabAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
+  if(!IS_WALLET_ADMIN && document.getElementById('page-approvals')?.classList.contains('active')){
+    goToPage('overview');
+  }
 
   const top = document.getElementById('walletWhoAmITop');
   if(top){
