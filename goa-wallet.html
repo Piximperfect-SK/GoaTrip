@@ -30,14 +30,9 @@
       radial-gradient(700px 420px at -10% 15%, rgba(255,122,69,.05), transparent 55%),
       var(--paper);
   }
-  /* Subtle azulejo-tile watermark, fixed behind all content */
-  body::before{
-    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.05;
-    background-image:
-      linear-gradient(45deg, var(--azulejo-2) 25%, transparent 25%),
-      linear-gradient(-45deg, var(--azulejo-2) 25%, transparent 25%);
-    background-size:52px 52px;
-  }
+  /* Azulejo-tile watermark removed per request — it was a fixed,
+     repeating diagonal-triangle pattern (52px diamonds) sitting above
+     the background video/scrim at 5% opacity. */
 
   /* ---------- Full-page background video ---------- */
   #pageVideo{
