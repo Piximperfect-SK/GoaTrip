@@ -154,6 +154,19 @@
   }
   #menuToggle{ display:none; }
 
+  /* Sign-in + sync status strip — always visible (desktop and mobile
+     alike), never collapses to an icon or gets hidden for space, since
+     that's exactly the problem this row replaces the old inline badges
+     to fix. */
+  #statusRow{
+    background:rgba(251,246,236,.96);
+    border-bottom:1px solid var(--line); padding:8px 28px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    font-family:'Space Mono', monospace; font-size:12px; color:var(--teal-700);
+  }
+  #statusRow #walletWhoAmITop{ cursor:pointer; opacity:.9; }
+  #statusRow #walletWhoAmITop:hover{ opacity:1; text-decoration:underline; }
+
   .page{ display:none; padding:26px 28px 60px; max-width:1400px; margin:0 auto; width:100%; box-sizing:border-box; position:relative; }
   .page.active{ display:block; animation:pageIn .35s ease; }
   .page.watermarked::before{
@@ -456,7 +469,8 @@
     #topbar .btn-ghost{ padding:8px 10px; font-size:0; }
     #topbar .btn-ghost::before{ content:'↻'; font-size:16px; }
     #topbar .btn-primary{ display:none; } /* replaced by FAB on mobile */
-    #topbar #syncStatus span#syncLabel{ display:none; } /* dot only, label hidden to save space */
+
+    #statusRow{ padding:7px 16px; font-size:11px; gap:10px; }
 
     .page{ padding:16px 16px calc(var(--tabbar-h) + var(--sab) + 84px); }
     #bannerZone{ padding-left:16px !important; padding-right:16px !important; }
@@ -642,11 +656,20 @@
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <span class="mono text-xs flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
-        <span id="walletWhoAmITop" class="mono text-xs" style="display:none; padding:6px 12px; border-radius:9999px; background:var(--sand-2); border:1px solid var(--line); cursor:pointer;" title="Click to log out"></span>
         <button class="btn-ghost" data-feature="wallet.refresh" onclick="pullFromSheet(true)">Refresh</button>
         <button class="btn-primary" data-feature="wallet.addExpense" onclick="openExpenseModal()">+ Add expense</button>
       </div>
+    </div>
+    <!-- Sign-in + sync status live on their own row, under the main topbar
+         row rather than squeezed in among its buttons — that's what was
+         causing "Signed in as X (admin)" to get replaced by a tiny icon
+         badge (and the sync label to get dropped entirely) once the
+         screen narrowed. This row never collapses: it always shows the
+         full text, wrapping onto a second line on very narrow screens
+         rather than truncating or hiding anything. -->
+    <div id="statusRow">
+      <span class="flex items-center gap-2" id="syncStatus"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+      <span id="walletWhoAmITop" style="display:none;" title="Click to log out"></span>
     </div>
 
     <div id="bannerZone" class="px-7 pt-5"></div>
@@ -4184,7 +4207,10 @@ function refreshWalletIdentityUI(){
   const top = document.getElementById('walletWhoAmITop');
   if(top){
     if(name){
-      top.textContent = `${IS_WALLET_ADMIN ? '\uD83D\uDD11 ' : '\uD83D\uDC64 '}${name}`;
+      // Full text now (not the old icon+name compact badge) — this is
+      // the one place that's supposed to be clearly readable, including
+      // on mobile; #statusRow (its container) never collapses or hides it.
+      top.textContent = `Signed in as ${name}${IS_WALLET_ADMIN ? ' (admin)' : ''}`;
       top.style.display = 'inline-flex';
     } else {
       top.style.display = 'none';
