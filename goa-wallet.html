@@ -2459,7 +2459,11 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
 async function removeExpense(id){
   const ex = wallet.expenses.find(x=>x.id===id);
   confirmAction('Delete this expense?', ex ? `"${ex.title}" — ₹${Number(ex.amount).toFixed(0)} will be removed for everyone.` : 'This expense will be removed.', async ()=>{
-    const actor = await requestActor("Who's deleting this expense?", ex ? `Confirm your name to delete "${ex.title}".` : 'Confirm your name to delete this expense.');
+    // Deleting is admin-only (same as deleteDeposit below) — the backend
+    // enforces this too, but checking here first means a normal user
+    // sees a clear "you need to be an admin" banner instead of the
+    // request silently failing after they've already confirmed the delete.
+    const actor = await checkWalletAdmin('delete expenses');
     if(!actor) return;
     wallet.expenses = wallet.expenses.filter(x=>x.id!==id);
     persistLocal(); closeModal('detailModal'); renderAll();
@@ -2522,7 +2526,7 @@ function viewExpense(id){
     <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${ex.updatedBy}` : `Added by ${ex.createdBy||'—'}`}</p>
     <div class="flex gap-3">
       <button class="btn-primary flex-1" onclick="startEditExpense('${ex.id}')">Edit</button>
-      <button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>
+      ${IS_WALLET_ADMIN ? `<button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>` : ''}
     </div>`;
   openModal('detailModal');
 }
@@ -2775,7 +2779,8 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
 });
 async function removeSettlement(id){
   confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
-    const actor = await requestActor("Who's removing this settlement?");
+    // Admin-only, same reasoning as removeExpense above.
+    const actor = await checkWalletAdmin('delete settlements');
     if(!actor) return;
     wallet.settlements = wallet.settlements.filter(x=>x.id!==id);
     persistLocal(); renderAll();
@@ -3286,7 +3291,7 @@ function renderExpensesTable(){
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
           <span class="btn-icon" title="Edit" onclick="startEditExpense('${ex.id}')">✎</span>
-          <span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>
+          ${IS_WALLET_ADMIN ? `<span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>` : ''}
         </div>
       </td>
     </tr>`).join('');
@@ -3969,7 +3974,7 @@ function renderSettlements(){
       <td class="text-xs opacity-60">${method} ${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
       <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
       <td>${statusPillHtml(s.status)}</td>
-      <td><span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span></td>
+      <td>${IS_WALLET_ADMIN ? `<span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span>` : ''}</td>
     </tr>`;
   }).join('');
   document.getElementById('settlementEmptyState').style.display = wallet.settlements.length ? 'none' : 'block';

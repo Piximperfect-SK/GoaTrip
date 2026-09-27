@@ -313,14 +313,22 @@ exports.handler = async (event) => {
     // approveRecord/rejectRecord are always admin-only, lock state aside —
     // the whole point of the approval step is that a participant can't be
     // the one who approves their own (or anyone else's) submission.
+    // removeExpense/removeSettlement/deleteDeposit are always admin-only
+    // too, lock state aside — a normal participant can add/edit their own
+    // records (and those still go through the approval queue), but
+    // deleting a record removes it outright with no review step, so that
+    // stays admin-only the same way resetWallet/approveRecord do.
+    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'removeExpense', 'removeSettlement', 'deleteDeposit'];
     const locked = await getWalletLockState(tripId);
-    const requiresAdmin = action === 'resetWallet' || action === 'approveRecord' || action === 'rejectRecord' || locked;
+    const requiresAdmin = ALWAYS_ADMIN_ACTIONS.includes(action) || locked;
     if (requiresAdmin && !isAdmin) {
       return unauthorized(
         action === 'resetWallet'
           ? 'Resetting the wallet requires an admin session — please log in as admin.'
           : action === 'approveRecord' || action === 'rejectRecord'
           ? 'Approving or rejecting records requires an admin session — please log in as admin.'
+          : action === 'removeExpense' || action === 'removeSettlement' || action === 'deleteDeposit'
+          ? 'Deleting records requires an admin session — please log in as admin.'
           : 'The wallet is locked for final submission — only admins can make changes now. Please log in as admin.'
       );
     }
