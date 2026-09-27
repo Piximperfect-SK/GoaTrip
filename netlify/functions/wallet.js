@@ -182,6 +182,24 @@ async function getRecordForApproval(tripId, recordType, id) {
   return { ...rows[0], _table: def.table, _ownerColumn: def.ownerColumn };
 }
 
+// A "self-only" expense: the actor paid it themselves, out of their own
+// pocket (not from the shared deposit pool), and the only person in the
+// split is that same actor. Nobody else owes or is owed anything on it, so
+// there is nothing for an admin to review — a non-admin's self-only expense
+// is auto-approved instead of entering the approval queue. Anything that
+// involves another person, a deposit, or an unpaid/pre-logged record still
+// goes through normal approval. Enforced here (not just in the UI) so it
+// can't be spoofed from the frontend: `actor` comes from the session.
+function isSelfOnlyExpense(payload, actor) {
+  const norm = (v) => String(v || '').trim().toLowerCase();
+  const me = norm(actor);
+  if (!me || payload.unpaid || payload.paidFromDeposit) return false;
+  if (norm(payload.payer) !== me) return false;
+  const split = Array.isArray(payload.split) ? payload.split : [];
+  return split.length > 0 && split.every((p) => norm(p) === me);
+}
+const AUTO_APPROVED_BY = 'auto (self-only expense)';
+
 // Phase 7 visibility rule: everyone sees every APPROVED or PUBLISHED
 // record (that's the shared, settled truth of the trip's finances); a
 // non-admin also sees their own not-yet-approved records (their own
@@ -359,16 +377,18 @@ exports.handler = async (event) => {
       const amount = sanitizeNumber(payload.amount, 0, 10000000) || 0;
       const splitType = payload.splitType === 'individual' ? 'individual' : 'equal';
       const isUnpaid = !!payload.unpaid;
+      const selfOnly = !isAdmin && isSelfOnlyExpense(payload, actor);
       await query(
         `INSERT INTO expenses (id, trip_id, title, category, amount, payer, split, date, created_by, split_type,
-           split_amounts, paid_from_deposit, deposit_used_from, status, unpaid)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'draft',$14)`,
+           split_amounts, paid_from_deposit, deposit_used_from, status, unpaid, approved_by, approved_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$15,$14,$16,$17)`,
         [
           sanitizeText(payload.id, 60), tripId, sanitizeText(payload.title, 120), sanitizeText(payload.category || 'Misc', 40),
           amount, isUnpaid ? '' : sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
           sanitizeText(payload.date || '', 20), actor, splitType,
           payload.splitAmounts ? JSON.stringify(payload.splitAmounts) : null,
           !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80), isUnpaid,
+          selfOnly ? 'approved' : 'draft', selfOnly ? AUTO_APPROVED_BY : null, selfOnly ? new Date().toISOString() : null,
         ]
       );
       await logActivity(
@@ -387,7 +407,13 @@ exports.handler = async (event) => {
       // re-approval step, which defeats the point of having one. Admin
       // edits don't reset status, since admins are the approvers and this
       // is mainly a correction/typo-fix path for them, not a resubmission.
-      const statusClause = isAdmin ? '' : `, status='draft', submitted_by=NULL, submitted_at=NULL,
+      // Exception: a self-only expense (see isSelfOnlyExpense) stays/goes
+      // auto-approved, since nobody else is affected.
+      const selfOnly = !isAdmin && isSelfOnlyExpense(payload, actor);
+      const statusClause = isAdmin ? '' : selfOnly
+        ? `, status='approved', submitted_by=NULL, submitted_at=NULL, approved_by='${AUTO_APPROVED_BY}', approved_at=now(),
+           rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`
+        : `, status='draft', submitted_by=NULL, submitted_at=NULL,
            approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
       await query(
         `UPDATE expenses SET title=$3, category=$4, amount=$5, payer=$6, split=$7, date=$8, updated_by=$9,

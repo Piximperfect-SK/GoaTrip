@@ -355,6 +355,7 @@
   .status-pill.pending{ background:rgba(201,162,39,.14); color:#9C7A15; }
   .status-pill.approved{ background:rgba(62,124,89,.12); color:var(--palm); }
   .status-pill.rejected{ background:rgba(232,93,42,.12); color:var(--mango-2); }
+  .status-pill.selfonly{ background:rgba(46,139,87,.12); color:var(--palm); }
   .status-pill.published{ background:rgba(46,111,242,.12); color:var(--azulejo); }
   /* Pre-logged / unpaid expense — same visual language as status-pill
      (small uppercase pill) but its own colour so it never reads as an
@@ -1028,7 +1029,6 @@
             <option value="pending_approval">Pending review</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
-            <option value="published">Published</option>
           </select>
         </div>
         <p class="text-xs opacity-50 mb-4">Every expense, settlement or deposit you've logged, with its own status — approving or rejecting one never affects any other.</p>
@@ -1065,10 +1065,9 @@
             <option value="draft">Draft (not yet submitted)</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
-            <option value="published">Published</option>
           </select>
         </div>
-        <p class="text-xs opacity-50 mb-4">Expenses, settlements and deposits participants have submitted. Default filter is the live pending queue — switch to Approved/Rejected/Published for the full reviewed history.</p>
+        <p class="text-xs opacity-50 mb-4">Expenses, settlements and deposits participants have submitted. Default filter is the live pending queue — switch to Approved/Rejected for the full reviewed history.</p>
         <div id="approvalsList"></div>
         <p class="text-sm opacity-50 text-center py-8" id="approvalsEmptyState" style="display:none;">Nothing here right now.</p>
       </div>
@@ -1915,6 +1914,14 @@ setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
 // every add flow below calls this immediately afterward instead of
 // leaving records stranded as invisible drafts.
 async function submitForApprovalAuto(recordType, id, actor){
+  // Self-only expenses (I paid, split is just me, not from the deposit
+  // pool) are auto-approved by wallet.js — nothing to submit. Mirrors
+  // isSelfOnlyExpense() on the backend, which is what actually enforces it.
+  if(recordType === 'expense' && !IS_WALLET_ADMIN){
+    const ex = (wallet.expenses||[]).find(x=>x.id===id);
+    const n = v => String(v||'').trim().toLowerCase();
+    if(ex && !ex.unpaid && !ex.paidFromDeposit && n(ex.payer)===n(actor) && (ex.split||[]).length && ex.split.every(p=>n(p)===n(actor))) return true;
+  }
   return await pushToSheet('submitForApproval', {recordType, id}, actor);
 }
 
@@ -2458,7 +2465,13 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     const local = wallet.expenses.find(x=>x.id===editingId);
     if(local) Object.assign(local, {title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, unpaid:isUnpaid, updatedBy:actor, updatedAt:new Date().toISOString()});
     persistLocal(); closeModal('expenseModal'); renderAll();
-    await pushToSheet('editExpense', {id:editingId, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, unpaid:isUnpaid}, actor);
+    const editSynced = await pushToSheet('editExpense', {id:editingId, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, unpaid:isUnpaid}, actor);
+    // wallet.js resets a non-admin's edited record to 'draft' (so an
+    // approved amount can't be changed afterwards without re-review).
+    // Send it straight back into the approval queue, same as adding does,
+    // instead of leaving it stuck as an uncounted draft. Admin edits keep
+    // their status, so there's nothing to resubmit for them.
+    if(editSynced && !IS_WALLET_ADMIN) await submitForApprovalAuto('expense', editingId, actor);
     renderAll();
   }else{
     const actor = await requestActor("Who's adding this expense?", `Confirm your name to log "${title}".`);
@@ -2907,7 +2920,14 @@ function countableDeposits(){ return (wallet.deposits||[]).filter(d => isCountab
 // one — this was the actual gap: those rows rendered with zero visual
 // distinction from approved rows before, even though they don't count
 // toward the totals above.
-function statusPillHtml(status){
+// Marker wallet.js writes into approved_by for auto-approved self-only
+// expenses (see AUTO_APPROVED_BY there) — those are shown as "Self-only
+// expense" instead of "Approved", since no admin actually approved them.
+const SELF_ONLY_MARKER = 'auto (self-only expense)';
+function isSelfOnlyRecord(status, approvedBy){ return (status || 'approved') === 'approved' && approvedBy === SELF_ONLY_MARKER; }
+
+function statusPillHtml(status, approvedBy){
+  if(isSelfOnlyRecord(status, approvedBy)) return `<span class="status-pill selfonly">Self-only expense</span>`;
   const s = status || 'approved';
   const cls = s === 'pending_approval' ? 'pending' : (['draft','approved','rejected','published'].includes(s) ? s : 'draft');
   const label = s === 'pending_approval' ? 'Pending review' : s.charAt(0).toUpperCase()+s.slice(1);
@@ -2915,7 +2935,7 @@ function statusPillHtml(status){
 }
 
 // Full 5-node progress tracker for My Submissions: Draft → Submitted →
-// Pending Review → Approved/Rejected → Published. Submission in this
+// Pending Review → Approved/Rejected. Submission in this
 // app is a single atomic action (submitForApprovalAuto fires the moment
 // something is added — there's no separate "saved as draft, submit
 // later" step in the UI today), so "Submitted" and "Pending Review"
@@ -2924,29 +2944,32 @@ function statusPillHtml(status){
 // not yet opened by an admin" state would need its own status value and
 // isn't tracked separately by wallet.js today. This is a UI simplification
 // worth revisiting if you want a real "admin has started reviewing" signal.
-function submissionStepperHtml(status){
+function submissionStepperHtml(status, approvedBy){
   const s = status || 'approved';
-  const labels = ['Draft','Submitted','Pending review','Approved','Published'];
+  const labels = ['Draft','Submitted','Pending review','Approved'];
   // cls per step, explicit per status rather than derived from an index —
   // 'done' (green, complete) is not the same visual state as 'current'
   // (amber, in progress), and "Approved" needs to read as done/complete
-  // even though the item hasn't reached Published yet.
-  let cls = ['', '', '', '', '']; // draft, submitted, pending, decision, published
+  // (Approved is the final state).
+  let cls = ['', '', '', '']; // draft, submitted, pending, decision
   if(s === 'draft'){
-    cls = ['current','','','',''];
+    cls = ['current','','',''];
   } else if(s === 'pending_approval'){
-    cls = ['done','done','current','',''];
-  } else if(s === 'approved'){
-    cls = ['done','done','done','done',''];
+    cls = ['done','done','current',''];
+  } else if(isSelfOnlyRecord(s, approvedBy)){
+    cls = ['done','done','done','done'];
+    labels[3] = 'Self-only expense';
+  } else if(s === 'approved' || s === 'published'){
+    // 'published' is a legacy value nothing sets anymore — Approved is the
+    // final state — but treat any old row that has it the same as approved.
+    cls = ['done','done','done','done'];
   } else if(s === 'rejected'){
-    cls = ['done','done','done','rejected',''];
+    cls = ['done','done','done','rejected'];
     labels[3] = 'Rejected';
-  } else if(s === 'published'){
-    cls = ['done','done','done','done','done'];
   } else {
     // legacy/no-status records predate this feature — treat as already
     // approved, matching wallet.js's own default.
-    cls = ['done','done','done','done',''];
+    cls = ['done','done','done','done'];
   }
   return `<div class="sub-step-track">${labels.map((label,i)=>`
     <div class="sub-step ${cls[i]}">
@@ -3338,7 +3361,7 @@ function renderExpensesTable(){
       <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : ex.split.join(', ')}</td>
       <td class="mono text-xs">${ex.date||'—'}</td>
       <td class="text-xs opacity-60">${ex.updatedBy || ex.createdBy || '—'}</td>
-      <td>${statusPillHtml(ex.status)}</td>
+      <td>${statusPillHtml(ex.status, ex.approvedBy)}</td>
       <td>
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
@@ -3581,6 +3604,9 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     Object.assign(d, {person, amount, date, note, type});
     persistLocal(); closeModal('depositModal'); renderAll();
     const synced = await pushToSheet('editDeposit', {id:editing, person, amount, date, note, type}, actor);
+    // Same as expenses: a non-admin edit resets the record to 'draft' on
+    // the backend, so resubmit it for approval automatically.
+    if(synced && !IS_WALLET_ADMIN) await submitForApprovalAuto('deposit', editing, actor);
     renderAll();
     showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} updated for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
   } else {
@@ -4109,10 +4135,10 @@ function renderMySubmissions(){
         </div>
         <div class="flex items-center gap-2">
           <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
-          ${statusPillHtml(r.status)}
+          ${statusPillHtml(r.status, r.approvedBy)}
         </div>
       </div>
-      ${submissionStepperHtml(r.status)}
+      ${submissionStepperHtml(r.status, r.approvedBy)}
       ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
       ${(r.status === 'draft' || r.status === 'rejected') ? `
         <div class="mt-3">
@@ -4199,8 +4225,8 @@ function renderApprovals(){
   emptyEl.style.display = 'none';
 
   listEl.innerHTML = records.map(r => {
-    const historyLine = r.status === 'approved' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''}`
-      : r.status === 'published' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''} · now published`
+    const historyLine = isSelfOnlyRecord(r.status, r.approvedBy) ? 'Self-only expense — no approval needed'
+      : r.status === 'approved' && r.approvedBy ? `Approved by ${escapeHtml(r.approvedBy)}${r.approvedAt ? ' · ' + new Date(r.approvedAt).toLocaleString() : ''}`
       : r.status === 'rejected' && r.rejectedBy ? `Rejected by ${escapeHtml(r.rejectedBy)}${r.rejectedAt ? ' · ' + new Date(r.rejectedAt).toLocaleString() : ''}`
       : r.submittedBy ? `Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}`
       : '';
@@ -4213,7 +4239,7 @@ function renderApprovals(){
         </div>
         <div class="flex items-center gap-2">
           <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
-          ${statusPillHtml(r.status)}
+          ${statusPillHtml(r.status, r.approvedBy)}
         </div>
       </div>
       <p class="text-xs opacity-50">by ${escapeHtml(r.who || '—')}</p>
