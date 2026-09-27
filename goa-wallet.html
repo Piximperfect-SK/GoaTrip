@@ -1679,7 +1679,8 @@ let charts = {};
 /* ============================================================
    SIDEBAR NAV
 =============================================================*/
-function goToPage(pageKey){
+function goToPage(pageKey, opts){
+  opts = opts || {};
   // Approvals is admin-only — the nav/tab entries are hidden for
   // everyone else, but guard direct navigation too (e.g. a stale
   // click already in flight from just before logout) rather than
@@ -1703,9 +1704,29 @@ function goToPage(pageKey){
   window.scrollTo(0,0);
   renderAll();
   setTimeout(()=> Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(e){} }), 0);
+  // Record this tab switch as its own browser-history entry (instead of
+  // just swapping DOM classes with no history trail) so the phone/browser
+  // "back" gesture steps back through the wallet's OWN tabs first and
+  // only leaves to whatever page was open before the wallet once that
+  // in-app trail is exhausted — see the popstate listener below, which is
+  // what actually handles the back button; this call just lays the trail.
+  // Skipped when we're already responding to a back/forward navigation
+  // (opts.fromHistory), so we don't push a duplicate entry for the same step.
+  if(!opts.fromHistory){
+    try{ history.pushState({walletPage:pageKey}, '', location.pathname + location.search + location.hash); }catch(e){}
+  }
 }
 document.querySelectorAll('.navitem, .tabbar-item').forEach(item=>{
   item.addEventListener('click', ()=> goToPage(item.dataset.page));
+});
+// Mark the initial landing tab (Items) as the base of that in-app history
+// trail, and wire "back"/"forward" (browser buttons or a phone's back
+// gesture) to walk that trail — landing on Items rather than jumping
+// straight out to index.html once the trail runs out.
+try{ history.replaceState({walletPage:'items'}, '', location.pathname + location.search + location.hash); }catch(e){}
+window.addEventListener('popstate', (e)=>{
+  const pk = (e.state && e.state.walletPage) || 'items';
+  goToPage(pk, {fromHistory:true});
 });
 
 /* ============================================================
