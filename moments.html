@@ -211,6 +211,20 @@ html,body{background:#FBFBFD!important;}
 #mmApp[data-tab="home"] .mm-grid{display:none;}
 #mmApp:not([data-tab="home"]) .mm-reel{display:none!important;}
 .mm-bar .mm-btn{margin-left:auto;}
+
+/* ===== height follows the content — no forced scrolling on short tabs ===== */
+html,body{overflow-x:clip!important;}
+#moments.moments-bg{min-height:calc(100vh - 56px - var(--sat));min-height:calc(100dvh - 56px - var(--sat));padding-top:clamp(20px,4vh,40px);padding-bottom:clamp(28px,5vh,48px);}
+#moments:not([data-tab="home"]) .mm-title{font-size:clamp(2rem,4.5vw,2.75rem);margin:4px 0 14px;}
+#moments:not([data-tab="home"]) .mm-lede{display:none;}
+#moments:not([data-tab="home"]) .section-num{margin-bottom:4px;}
+.mm-lede{margin-bottom:20px;}
+.mm-bar{margin-bottom:22px;}
+.mm-reel{margin-bottom:8px;}
+@media(max-width:767px){
+  #moments.moments-bg{padding-bottom:calc(84px + var(--sab));}
+  .mm-title{font-size:clamp(3rem,15vw,4.5rem);}
+}
 </style>
 </head>
 <body>
@@ -229,7 +243,7 @@ html,body{background:#FBFBFD!important;}
 </nav>
 
 <!-- ============ MOMENTS (members only) ============ -->
-<section id="moments" class="moments-bg">
+<section id="moments" class="moments-bg" data-tab="home">
   <div class="mm-wrap">
     <div class="section-num"><span>Trip gallery</span><span class="rule"></span></div>
     <h1 class="display mm-title">Moments.</h1>
@@ -354,7 +368,7 @@ async function load(reset){
 }
 document.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){
   document.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x===c);});
-  var f=c.dataset.f; $('mmApp').dataset.tab=f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; scrollTo(0,0); load(true);
+  var f=c.dataset.f; $('mmApp').dataset.tab=f; sec.dataset.tab=f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; scrollTo(0,0); load(true);
 };});
 new IntersectionObserver(function(es){if(es[0].isIntersecting&&st.more&&!st.busy&&$('mmApp').dataset.tab!=='home')load(false);},{rootMargin:'700px'}).observe($('mmSentinel'));
 
