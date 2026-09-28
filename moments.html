@@ -196,6 +196,21 @@ html,body{background:#FBFBFD!important;}
   #moments.moments-bg{padding-bottom:calc(120px + var(--sab));}
   .mm-queue{bottom:calc(84px + var(--sab));}
 }
+
+/* storage indicator (top of every tab) + tab-specific views */
+.mm-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:26px;}
+.mm-store{flex:1 1 280px;max-width:520px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 18px;box-shadow:0 10px 30px -22px rgba(29,29,31,.4);}
+.mm-store-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px;}
+.mm-store-l{font:600 11.5px 'Space Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mango-2);}
+.mm-store-v{font:500 13px 'Space Grotesk',sans-serif;color:var(--ink);}
+.mm-store-bar{height:8px;border-radius:9999px;background:rgba(29,29,31,.08);overflow:hidden;}
+.mm-store-bar i{display:block;height:100%;width:0;border-radius:9999px;background:linear-gradient(90deg,var(--mango),var(--yellow));transition:width .6s cubic-bezier(.2,.7,.2,1);}
+.mm-store.warn .mm-store-bar i{background:var(--yellow);}
+.mm-store.full .mm-store-bar i{background:var(--mango-2);}
+.mm-store.full .mm-store-v{color:var(--mango-2);font-weight:700;}
+#mmApp[data-tab="home"] .mm-grid{display:none;}
+#mmApp:not([data-tab="home"]) .mm-reel{display:none!important;}
+.mm-bar .mm-btn{margin-left:auto;}
 </style>
 </head>
 <body>
@@ -207,7 +222,7 @@ html,body{background:#FBFBFD!important;}
   <button class="mm-btn" id="mmOut" type="button" hidden>Log out</button>
 </header>
 <nav id="mmNav" class="mm-nav" aria-label="Filter moments" hidden>
-  <button class="mm-chip on" data-f="all" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span>All</span></button>
+  <button class="mm-chip on" data-f="home" type="button"><svg viewBox="0 0 24 24"><rect x="6.5" y="5.5" width="11" height="13" rx="2.5"/><path d="M3 8.5v7M21 8.5v7"/></svg><span>Carousel</span></button>
   <button class="mm-chip" data-f="image" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 16l4.5-4.5a2 2 0 0 1 2.8 0L15 15l1.2-1.2a2 2 0 0 1 2.8 0l1.5 1.5"/></svg><span>Photos</span></button>
   <button class="mm-chip" data-f="video" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M10.5 9.5l4 2.5-4 2.5z"/></svg><span>Videos</span></button>
   <button class="mm-chip" data-f="mine" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg><span>Mine</span></button>
@@ -229,14 +244,16 @@ html,body{background:#FBFBFD!important;}
       <p class="mm-err" id="mmErr"></p>
     </div>
 
-    <div id="mmApp" hidden>
-      <div class="mm-reel" id="mmReel" hidden><div class="mm-reel-row" id="mmR1"></div><div class="mm-reel-row rev" id="mmR2"></div></div>
+    <div id="mmApp" data-tab="home" hidden>
       <div class="mm-bar">
-        <span class="mm-space"></span>
-        <span class="mm-use" id="mmUsage"></span>
+        <div class="mm-store" id="mmStore" role="group" aria-label="Storage used">
+          <div class="mm-store-top"><span class="mm-store-l">Storage</span><span class="mm-store-v" id="mmUsage"></span></div>
+          <div class="mm-store-bar"><i id="mmStoreBar"></i></div>
+        </div>
         <button class="mm-btn pri" id="mmAdd" type="button">+ Add moments</button>
         <input type="file" id="mmFile" multiple accept="image/*,video/*" hidden>
       </div>
+      <div class="mm-reel" id="mmReel" hidden><div class="mm-reel-row" id="mmR1"></div><div class="mm-reel-row rev" id="mmR2"></div></div>
       <div class="mm-queue" id="mmQueue"></div>
       <div class="mm-grid" id="mmGrid"></div>
       <p class="mm-empty" id="mmEmpty" hidden>No moments yet — add the first one, or drop files anywhere on this section.</p>
@@ -316,7 +333,12 @@ function enter(){
 }
 
 /* ---------- list ---------- */
-function usage(){$('mmUsage').textContent=fb(st.used)+' of '+Math.round(st.quota/GB)+' GB used';}
+function usage(){
+  var q=st.quota||0, p=q?Math.min(100,st.used/q*100):0, box=$('mmStore');
+  $('mmUsage').textContent=fb(st.used)+' of '+Math.round(q/GB)+' GB used \u00b7 '+(p<.1&&st.used?'<0.1':p.toFixed(p<10?1:0))+'%';
+  $('mmStoreBar').style.width=(st.used?Math.max(1.5,p):0)+'%';
+  box.classList.toggle('warn',p>=80&&p<95); box.classList.toggle('full',p>=95);
+}
 async function load(reset){
   if(st.busy) return; st.busy=true;
   try{
@@ -332,9 +354,9 @@ async function load(reset){
 }
 document.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){
   document.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x===c);});
-  var f=c.dataset.f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; load(true);
+  var f=c.dataset.f; $('mmApp').dataset.tab=f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; scrollTo(0,0); load(true);
 };});
-new IntersectionObserver(function(es){if(es[0].isIntersecting&&st.more&&!st.busy)load(false);},{rootMargin:'700px'}).observe($('mmSentinel'));
+new IntersectionObserver(function(es){if(es[0].isIntersecting&&st.more&&!st.busy&&$('mmApp').dataset.tab!=='home')load(false);},{rootMargin:'700px'}).observe($('mmSentinel'));
 
 /* ---------- tiles + hover/in-view video previews ---------- */
 var vio=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){preview(e.target,e.isIntersecting&&e.intersectionRatio>=.6);});},{threshold:[0,.6]}):{observe:function(){}};
@@ -533,7 +555,7 @@ function buildReel(){
     for(var h=0;h<2;h++) for(var r=0;r<reps;r++) list.forEach(function(it){
       var im=new Image(); im.alt=''; im.decoding='async'; im.src=it.thumbUrl;
       im.style.aspectRatio=Math.min(1.9,Math.max(.7,it.width&&it.height?it.width/it.height:1.4)).toFixed(3);
-      im.onclick=function(){openLB(it,im);}; row.appendChild(im);
+      im.onclick=function(){openLB(st.items.filter(function(x){return x.id===it.id;})[0]||it,im);}; row.appendChild(im);
     });
   }
   var half=Math.ceil(its.length/2);
