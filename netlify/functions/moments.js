@@ -49,13 +49,22 @@ const ALLOWED_TYPES = {
 let s3;
 function getS3() {
   if (!s3) {
-    const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY } = process.env;
-    if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+    const R2_ACCESS_KEY_ID = (process.env.R2_ACCESS_KEY_ID || '').trim();
+    const R2_SECRET_ACCESS_KEY = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
+    // R2_ACCOUNT_ID should be just the 32-char id, but it's easy to paste the
+    // whole S3 endpoint URL (https://<id>.r2.cloudflarestorage.com) instead —
+    // that produced a malformed host like "bucket.https://<id>...". Reduce
+    // whatever was pasted down to the bare id so both forms work.
+    const accountId = (process.env.R2_ACCOUNT_ID || '')
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .split(/[./]/)[0];
+    if (!accountId || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
       throw new Error('R2 credentials are not configured.');
     }
     s3 = new S3Client({
       region: 'auto',
-      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY },
       // Newer AWS SDK versions add CRC32 checksum params to presigned URLs by
       // default, which R2 then rejects (the browser can't send a matching
@@ -67,8 +76,9 @@ function getS3() {
   return s3;
 }
 function bucket() {
-  if (!process.env.R2_BUCKET) throw new Error('R2_BUCKET is not configured.');
-  return process.env.R2_BUCKET;
+  const name = (process.env.R2_BUCKET || '').trim();
+  if (!name) throw new Error('R2_BUCKET is not configured.');
+  return name;
 }
 
 // Thumbnails are signed against a signing date rounded down to the hour, so
