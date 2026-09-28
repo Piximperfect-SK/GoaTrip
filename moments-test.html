@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Moments API test (temporary)</title>
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+  body{ padding:24px 16px; max-width:760px; margin:0 auto; }
+  h1{ font-family:'Fraunces',serif; margin:0 0 4px; }
+  .box{ background:white; border:1px solid var(--line); border-radius:16px; padding:18px; margin:16px 0; }
+  select, input[type=password]{ width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; font:inherit; margin-bottom:10px; }
+  #log{ font-family:'Space Mono',monospace; font-size:12px; white-space:pre-wrap; background:#111; color:#9fe8b8; border-radius:12px; padding:12px; min-height:90px; max-height:260px; overflow:auto; }
+  .row{ display:flex; gap:12px; align-items:center; border-top:1px solid var(--line); padding:10px 0; }
+  .row img{ width:64px; height:64px; object-fit:cover; border-radius:10px; background:var(--sand-2); }
+  .row .meta{ flex:1; font-size:13px; min-width:0; overflow-wrap:anywhere; }
+  .row button{ font-size:12px; padding:6px 12px; margin-left:4px; }
+  progress{ width:100%; }
+</style>
+</head>
+<body>
+  <h1>Moments API test</h1>
+  <p style="opacity:.6;font-size:13px;margin:0">Temporary page — delete it from the repo once uploads work.</p>
+
+  <div class="box" id="loginBox">
+    <label for="who">Your name</label>
+    <select id="who"></select>
+    <label for="pw">Trip password</label>
+    <input type="password" id="pw" autocomplete="current-password" />
+    <button class="btn-primary" id="loginBtn" type="button">Log in</button>
+  </div>
+
+  <div class="box" id="appBox" style="display:none">
+    <div id="usage" style="font-size:13px;opacity:.7;margin-bottom:10px"></div>
+    <input type="file" id="file" multiple accept="image/*,video/*" />
+    <progress id="prog" value="0" max="100" style="display:none;margin-top:10px"></progress>
+    <div id="items"></div>
+    <button class="btn-ghost" id="moreBtn" type="button" style="display:none;margin-top:12px">Load more</button>
+  </div>
+
+  <div id="log"></div>
+
+<script src="/js/shared.js"></script>
+<script>
+let TOKEN = null, NEXT_BEFORE = null;
+const $ = (id) => document.getElementById(id);
+function log(m){ const el = $('log'); el.textContent += m + '\n'; el.scrollTop = el.scrollHeight; }
+
+async function post(fn, body){
+  const res = await fetch(FUNCTIONS_BASE + '/' + fn + '?tripId=' + encodeURIComponent(window.TRIP.id), {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+const api = (action, extra) => post('moments', Object.assign({ action, token: TOKEN }, extra || {}));
+
+function fmtBytes(n){ return n > 1e9 ? (n/1e9).toFixed(2)+' GB' : n > 1e6 ? (n/1e6).toFixed(1)+' MB' : Math.round(n/1e3)+' KB'; }
+
+async function makeImageThumb(file){
+  try{
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 600 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/webp', 0.8));
+    return { blob, width: bmp.width, height: bmp.height };
+  }catch(e){ return null; } // e.g. HEIC in Chrome — upload without a preview
+}
+
+function putFile(url, blob, contentType, onProgress){
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open('PUT', url);
+    x.setRequestHeader('Content-Type', contentType);
+    if(onProgress) x.upload.onprogress = (e) => { if(e.lengthComputable) onProgress(e.loaded / e.total * 100); };
+    x.onload = () => (x.status >= 200 && x.status < 300) ? resolve() : reject(new Error('R2 upload failed (HTTP ' + x.status + ')'));
+    x.onerror = () => reject(new Error('Upload blocked — usually R2 CORS or the site CSP (connect-src).'));
+    x.send(blob);
+  });
+}
+
+async function uploadOne(file){
+  log('Uploading ' + file.name + ' (' + fmtBytes(file.size) + ')…');
+  const isImage = file.type.startsWith('image/');
+  const thumb = isImage ? await makeImageThumb(file) : null;
+  const p = await api('presignUpload', { filename: file.name, mime: file.type, size: file.size, withThumb: !!thumb });
+  $('prog').style.display = 'block'; $('prog').value = 0;
+  await putFile(p.uploadUrl, file, p.contentType, (pct) => { $('prog').value = pct; });
+  if(thumb && p.thumbUploadUrl) await putFile(p.thumbUploadUrl, thumb.blob, p.thumbContentType);
+  await api('confirm', {
+    key: p.key, thumbKey: thumb ? p.thumbKey : null, filename: file.name, mime: file.type,
+    width: thumb && thumb.width, height: thumb && thumb.height
+  });
+  log('Saved ✓ ' + file.name);
+}
+
+function renderItem(it){
+  const row = document.createElement('div'); row.className = 'row';
+  const img = document.createElement('img'); if(it.thumbUrl) img.src = it.thumbUrl; img.alt = '';
+  const meta = document.createElement('div'); meta.className = 'meta';
+  meta.textContent = it.filename + ' · ' + it.kind + ' · ' + fmtBytes(it.sizeBytes) + ' · by ' + it.uploadedBy;
+  row.append(img, meta);
+  const mk = (label, fn) => { const b = document.createElement('button'); b.className = 'btn-ghost'; b.textContent = label; b.onclick = fn; return b; };
+  row.append(mk('Open', async () => { window.open((await api('getUrl', { id: it.id })).url, '_blank'); }));
+  row.append(mk('Download', async () => { location.href = (await api('download', { id: it.id })).url; }));
+  if(it.canDelete) row.append(mk('Delete', async () => {
+    if(!confirm('Delete ' + it.filename + '?')) return;
+    const r = await api('delete', { id: it.id }); log('Deleted: ' + JSON.stringify(r)); refresh();
+  }));
+  return row;
+}
+
+async function refresh(append){
+  const data = await api('list', append && NEXT_BEFORE ? { before: NEXT_BEFORE } : {});
+  if(!append) $('items').textContent = '';
+  data.items.forEach(it => $('items').appendChild(renderItem(it)));
+  NEXT_BEFORE = data.nextBefore;
+  $('moreBtn').style.display = data.hasMore ? 'inline-block' : 'none';
+  $('usage').textContent = 'Used ' + fmtBytes(data.usedBytes) + ' of ' + fmtBytes(data.quotaBytes);
+}
+
+$('file').addEventListener('change', async (e) => {
+  for(const f of Array.from(e.target.files)){
+    try{ await uploadOne(f); }catch(err){ log('✗ ' + f.name + ': ' + err.message); }
+  }
+  e.target.value = ''; $('prog').style.display = 'none'; refresh();
+});
+$('moreBtn').addEventListener('click', () => refresh(true).catch(e => log(e.message)));
+
+$('loginBtn').addEventListener('click', async () => {
+  try{
+    const r = await post('login', { action:'login', name: $('who').value, password: $('pw').value });
+    TOKEN = r.token; log('Logged in as ' + r.name);
+    $('loginBox').style.display = 'none'; $('appBox').style.display = 'block';
+    await refresh();
+  }catch(e){ log('✗ Login: ' + e.message); }
+});
+
+(async function init(){
+  try{
+    await initTripContext();
+    const r = await post('login', { action:'participants' });
+    r.participants.forEach(n => { const o = document.createElement('option'); o.value = o.textContent = n; $('who').appendChild(o); });
+    log('Ready. Trip: ' + window.TRIP.id);
+  }catch(e){ log('✗ Init: ' + e.message); }
+})();
+</script>
+</body>
+</html>
