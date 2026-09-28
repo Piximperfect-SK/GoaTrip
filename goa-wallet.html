@@ -905,34 +905,41 @@
 
     <!-- ============ EXPENSES ============ -->
     <div class="page" id="page-expenses">
-      <div class="panel p-6 mb-5">
-        <div class="flex flex-wrap items-end gap-4">
-          <div class="flex-1 min-w-[180px]">
-            <label>Search</label>
-            <input id="f-search" placeholder="Search by title…" oninput="renderExpensesTable()"/>
+      <!-- Filters: search stays visible; the rest collapses behind a toggle
+           (collapsed by default) so the table gets the space. -->
+      <div class="panel p-4 mb-5" id="expFilterPanel">
+        <div class="flex items-center gap-3">
+          <input id="f-search" class="flex-1 min-w-0" placeholder="Search by title…" oninput="renderExpensesTable()"/>
+          <button type="button" class="btn-ghost flex items-center gap-2 whitespace-nowrap" id="expFilterToggle" aria-expanded="false" aria-controls="expFilterBody" onclick="toggleExpFilters()">
+            <span>Filters</span><span id="expFilterBadge" class="mono" style="display:none; font-size:10.5px; background:var(--mango); color:white; border-radius:9999px; padding:1px 7px;"></span>
+            <span id="expFilterChevron" style="transition:transform .2s ease; display:inline-block;">▾</span>
+          </button>
+        </div>
+        <div id="expFilterBody" style="display:none;">
+          <div class="flex flex-wrap items-end gap-4 mt-4 pt-4" style="border-top:1px solid var(--line);">
+            <div>
+              <label>Category</label>
+              <select id="f-category" onchange="renderExpensesTable()"><option value="">All</option></select>
+            </div>
+            <div>
+              <label>Paid by</label>
+              <select id="f-payer" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
+            </div>
+            <div>
+              <label>Involves</label>
+              <select id="f-involves" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
+            </div>
+            <div>
+              <label>Sort</label>
+              <select id="f-sort" onchange="renderExpensesTable()">
+                <option value="date_desc">Newest first</option>
+                <option value="date_asc">Oldest first</option>
+                <option value="amt_desc">Amount: high → low</option>
+                <option value="amt_asc">Amount: low → high</option>
+              </select>
+            </div>
+            <button class="btn-ghost" onclick="clearFilters()">Clear filters</button>
           </div>
-          <div>
-            <label>Category</label>
-            <select id="f-category" onchange="renderExpensesTable()"><option value="">All</option></select>
-          </div>
-          <div>
-            <label>Paid by</label>
-            <select id="f-payer" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
-          </div>
-          <div>
-            <label>Involves</label>
-            <select id="f-involves" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
-          </div>
-          <div>
-            <label>Sort</label>
-            <select id="f-sort" onchange="renderExpensesTable()">
-              <option value="date_desc">Newest first</option>
-              <option value="date_asc">Oldest first</option>
-              <option value="amt_desc">Amount: high → low</option>
-              <option value="amt_asc">Amount: low → high</option>
-            </select>
-          </div>
-          <button class="btn-ghost" onclick="clearFilters()">Clear filters</button>
         </div>
       </div>
 
@@ -3330,6 +3337,22 @@ window.addEventListener('resize', ()=>{ Object.values(charts).forEach(c=>{ try{ 
 /* ============================================================
    RENDER: EXPENSES TABLE
 =============================================================*/
+function toggleExpFilters(force){
+  const body = document.getElementById('expFilterBody');
+  const open = typeof force === 'boolean' ? force : body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  document.getElementById('expFilterToggle').setAttribute('aria-expanded', String(open));
+  document.getElementById('expFilterChevron').style.transform = open ? 'rotate(180deg)' : '';
+}
+// Badge on the Filters button = how many non-default filters are active
+// (category / paid by / involves / sort), so they stay visible while collapsed.
+function updateExpFilterBadge(){
+  const n = ['f-category','f-payer','f-involves'].filter(id=>document.getElementById(id).value).length
+    + (document.getElementById('f-sort').value !== 'date_desc' ? 1 : 0);
+  const b = document.getElementById('expFilterBadge');
+  if(!b) return;
+  b.textContent = n; b.style.display = n ? 'inline-block' : 'none';
+}
 function clearFilters(){
   document.getElementById('f-search').value='';
   document.getElementById('f-category').value='';
@@ -3339,6 +3362,7 @@ function clearFilters(){
   renderExpensesTable();
 }
 function renderExpensesTable(){
+  updateExpFilterBadge();
   const q = document.getElementById('f-search').value.trim().toLowerCase();
   const cat = document.getElementById('f-category').value;
   const payer = document.getElementById('f-payer').value;
