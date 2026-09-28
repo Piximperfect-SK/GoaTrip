@@ -27,7 +27,7 @@ const { verifySessionTokenFull } = require('./lib/auth');
 // ---------- limits ----------
 const QUOTA_BYTES = Math.round(Number(process.env.MOMENTS_QUOTA_GB || 30) * 1024 * 1024 * 1024);
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024;   // 50 MB
-const MAX_VIDEO_BYTES = 500 * 1024 * 1024;  // 500 MB
+const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB (R2 allows up to 5 GB per single PUT)
 const MAX_THUMB_BYTES = 1 * 1024 * 1024;    // 1 MB
 const PAGE_SIZE = 40;
 const MAX_BULK_DELETE = 50;
