@@ -2528,7 +2528,9 @@ async function removeExpense(id){
     // enforces this too, but checking here first means a normal user
     // sees a clear "you need to be an admin" banner instead of the
     // request silently failing after they've already confirmed the delete.
-    const actor = await checkWalletAdmin('delete expenses');
+    // Users can delete their own private self-only expenses; everything
+    // else needs a verified admin session (backend enforces both).
+    const actor = canDeleteExpense(ex) && !IS_WALLET_ADMIN ? getSessionName() : await checkWalletAdmin('delete expenses');
     if(!actor) return;
     wallet.expenses = wallet.expenses.filter(x=>x.id!==id);
     persistLocal(); closeModal('detailModal'); renderAll();
@@ -2591,7 +2593,7 @@ function viewExpense(id){
     <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${ex.updatedBy}` : `Added by ${ex.createdBy||'—'}`}</p>
     <div class="flex gap-3">
       <button class="btn-primary flex-1" onclick="startEditExpense('${ex.id}')">Edit</button>
-      ${IS_WALLET_ADMIN ? `<button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>` : ''}
+      ${canDeleteExpense(ex) ? `<button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>` : ''}
     </div>`;
   openModal('detailModal');
 }
@@ -2924,6 +2926,12 @@ function countableDeposits(){ return (wallet.deposits||[]).filter(d => isCountab
 // expenses (see AUTO_APPROVED_BY there) — those are shown as "Self-only
 // expense" instead of "Approved", since no admin actually approved them.
 const SELF_ONLY_MARKER = 'auto (self-only expense)';
+// True when this is the signed-in user's own private self-only expense —
+// the one kind of record a non-admin is allowed to delete.
+function canDeleteExpense(ex){
+  if(IS_WALLET_ADMIN) return true;
+  return !!ex && isSelfOnlyRecord(ex.status, ex.approvedBy) && ex.createdBy === getSessionName();
+}
 function isSelfOnlyRecord(status, approvedBy){ return (status || 'approved') === 'approved' && approvedBy === SELF_ONLY_MARKER; }
 
 function statusPillHtml(status, approvedBy){
@@ -3366,7 +3374,7 @@ function renderExpensesTable(){
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
           <span class="btn-icon" title="Edit" onclick="startEditExpense('${ex.id}')">✎</span>
-          ${IS_WALLET_ADMIN ? `<span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>` : ''}
+          ${canDeleteExpense(ex) ? `<span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>` : ''}
         </div>
       </td>
     </tr>`).join('');

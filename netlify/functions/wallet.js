@@ -210,8 +210,13 @@ const AUTO_APPROVED_BY = 'auto (self-only expense)';
 // record (createdBy / actor / loggedBy) that readState()'s three .map()
 // calls produce.
 function filterVisible(records, ownerField, viewer) {
-  if (viewer.isAdmin) return records;
-  return records.filter((r) => r.status === 'approved' || r.status === 'published' || r[ownerField] === viewer.name);
+  const base = viewer.isAdmin
+    ? records
+    : records.filter((r) => r.status === 'approved' || r.status === 'published' || r[ownerField] === viewer.name);
+  // Self-only expenses (auto-approved, see isSelfOnlyExpense) are private:
+  // only the person who logged them sees them — not other participants and
+  // not admins either.
+  return base.filter((r) => r.approvedBy !== AUTO_APPROVED_BY || r[ownerField] === viewer.name);
 }
 
 // Maps a record's raw DB approval columns onto the camelCase shape the
@@ -338,7 +343,16 @@ exports.handler = async (event) => {
     // stays admin-only the same way resetWallet/approveRecord do.
     const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'removeExpense', 'removeSettlement', 'deleteDeposit'];
     const locked = await getWalletLockState(tripId);
-    const requiresAdmin = ALWAYS_ADMIN_ACTIONS.includes(action) || locked;
+    // Exception: a user may delete their OWN self-only expense (private,
+    // never reviewed by anyone) — unless the wallet is locked.
+    let ownSelfOnlyDelete = false;
+    if (action === 'removeExpense' && !isAdmin && !locked) {
+      const { rows: own } = await query(
+        'SELECT created_by, approved_by FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload && payload.id]
+      );
+      ownSelfOnlyDelete = own.length > 0 && own[0].approved_by === AUTO_APPROVED_BY && own[0].created_by === actor;
+    }
+    const requiresAdmin = (ALWAYS_ADMIN_ACTIONS.includes(action) && !ownSelfOnlyDelete) || locked;
     if (requiresAdmin && !isAdmin) {
       return unauthorized(
         action === 'resetWallet'
@@ -391,7 +405,8 @@ exports.handler = async (event) => {
           selfOnly ? 'approved' : 'draft', selfOnly ? AUTO_APPROVED_BY : null, selfOnly ? new Date().toISOString() : null,
         ]
       );
-      await logActivity(
+      // Private self-only expenses leave no trace in the shared activity log.
+      if (!selfOnly) await logActivity(
         tripId, payload.id, actor, 'add_expense',
         isUnpaid
           ? `${sanitizeText(payload.title, 120)} (Rs.${amount}) — pre-logged, not yet paid`
@@ -409,7 +424,14 @@ exports.handler = async (event) => {
       // is mainly a correction/typo-fix path for them, not a resubmission.
       // Exception: a self-only expense (see isSelfOnlyExpense) stays/goes
       // auto-approved, since nobody else is affected.
-      const selfOnly = !isAdmin && isSelfOnlyExpense(payload, actor);
+      // Only the record's own creator can make it self-only (otherwise
+      // someone could hide another person's expense by editing it).
+      let ownsRecord = false;
+      if (!isAdmin) {
+        const { rows: cur } = await query('SELECT created_by FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+        ownsRecord = cur.length > 0 && cur[0].created_by === actor;
+      }
+      const selfOnly = !isAdmin && ownsRecord && isSelfOnlyExpense(payload, actor);
       const statusClause = isAdmin ? '' : selfOnly
         ? `, status='approved', submitted_by=NULL, submitted_at=NULL, approved_by='${AUTO_APPROVED_BY}', approved_at=now(),
            rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`
@@ -432,7 +454,8 @@ exports.handler = async (event) => {
       // false, but the row previously had none) is the "someone settled
       // this" moment — worth its own activity-log wording rather than a
       // generic edit, same idea as the pre-logged note on add above.
-      await logActivity(
+      // Private self-only expenses leave no trace in the shared activity log.
+      if (!selfOnly) await logActivity(
         tripId, payload.id, actor, 'edit_expense',
         isUnpaid
           ? `${sanitizeText(payload.title, 120)} (Rs.${amount}) — pre-logged, not yet paid`
@@ -440,7 +463,8 @@ exports.handler = async (event) => {
       );
     } else if (action === 'removeExpense') {
       await query('DELETE FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
-      await logActivity(tripId, payload.id, actor, 'remove_expense', payload.id);
+      // Private self-only deletions leave no trace in the shared activity log.
+      if (!ownSelfOnlyDelete) await logActivity(tripId, payload.id, actor, 'remove_expense', payload.id);
     } else if (action === 'addSettlement') {
       const amount = sanitizeNumber(payload.amount, 0, 10000000) || 0;
       await query(
