@@ -7,7 +7,7 @@
 // page "registered members only".
 //
 // Actions (all POST, JSON body: { action, token, tripId?, ... }):
-//   list           -> { items, hasMore, usedBytes, quotaBytes }   (thumb URLs signed)
+//   list           -> { items, hasMore, usedBytes, quotaBytes, uploaders }   (thumb URLs signed; optional filters: kind, mine, by)
 //   presignUpload  -> { key, uploadUrl, thumbKey?, thumbUploadUrl? }
 //   confirm        -> { item }             (verifies the object really exists in R2)
 //   getUrl         -> { url }              (short-lived signed URL for viewing/streaming)
@@ -184,12 +184,14 @@ async function actionList(tripId, session, body) {
   const before = sanitizeNumber(body.before, 1, Number.MAX_SAFE_INTEGER);
   const kind = body.kind === 'image' || body.kind === 'video' ? body.kind : null;
   const mine = body.mine === true;
+  const by = sanitizeText(body.by || '', 80).trim().toLowerCase();
 
   const where = ['trip_id = $1'];
   const params = [tripId];
   if (before !== null) { params.push(before); where.push(`id < $${params.length}`); }
   if (kind) { params.push(kind); where.push(`kind = $${params.length}`); }
   if (mine) { params.push(session.name.trim().toLowerCase()); where.push(`lower(trim(uploaded_by)) = $${params.length}`); }
+  if (by) { params.push(by); where.push(`lower(trim(uploaded_by)) = $${params.length}`); }
   params.push(PAGE_SIZE + 1);
 
   const { rows } = await query(
@@ -200,7 +202,13 @@ async function actionList(tripId, session, body) {
   const page = rows.slice(0, PAGE_SIZE);
   const items = await Promise.all(page.map((r) => shapeItem(r, session, true)));
   const { used } = await usedBytes(tripId);
-  return ok({ items, hasMore, nextBefore: page.length ? Number(page[page.length - 1].id) : null, usedBytes: used, quotaBytes: QUOTA_BYTES });
+  // Everyone who has uploaded (independent of the active filters) — feeds the uploader filter in the UI.
+  const up = await query(
+    `SELECT min(uploaded_by) AS name, COUNT(*)::int AS n FROM moments WHERE trip_id = $1 GROUP BY lower(trim(uploaded_by)) ORDER BY n DESC, min(uploaded_by)`,
+    [tripId]
+  );
+  const uploaders = up.rows.map((u) => ({ name: u.name, count: u.n }));
+  return ok({ items, hasMore, nextBefore: page.length ? Number(page[page.length - 1].id) : null, usedBytes: used, quotaBytes: QUOTA_BYTES, uploaders });
 }
 
 async function actionStats(tripId) {
