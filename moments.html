@@ -131,7 +131,7 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .mm-cur.on{opacity:1;transform:translate(-50%,-50%) scale(1);}
 .mm-lb-amb{position:absolute;inset:-12%;background-size:cover;background-position:center;filter:blur(70px) saturate(1.5);opacity:.6;transition:background-image .6s;}
 .mm-lb-bg{background:rgba(3,12,15,.78)!important;}
-@media(prefers-reduced-motion:reduce){.mm-title span,.mm-lede,.mm-reel,.mm-reel-row{animation:none!important;}.mm-tile.rv{opacity:1;translate:none;scale:1;transition:none;}}
+@media(prefers-reduced-motion:reduce){.mm-title span,.mm-lede{animation:none!important;}.mm-tile.rv{opacity:1;translate:none;scale:1;transition:none;}}
 @media(hover:none){.mm-cur{display:none;}}
 
 /* lightbox entrance (pure CSS) */
@@ -180,6 +180,22 @@ html,body{background:#FBFBFD!important;}
 .mm-up.done .mm-up-st{color:var(--palm);}
 .mm-up.bad .mm-up-st,.mm-up.bad .mm-up-sub{color:var(--mango-2);}
 .mm-cur{background:var(--ink);color:#fff;}
+
+/* ===== nav: top bar on desktop, bottom tab bar on mobile ===== */
+.mm-top{min-height:calc(56px + var(--sat));padding:var(--sat) calc(clamp(20px,4vw,40px) + var(--sar)) 0 calc(clamp(20px,4vw,40px) + var(--sal));}
+.mm-btn[hidden]{display:none!important;}
+#mmNav[hidden]{display:none!important;}
+.mm-nav{position:fixed;top:var(--sat);left:50%;transform:translateX(-50%);height:56px;z-index:31;display:flex;align-items:center;gap:6px;}
+.mm-nav .mm-chip{display:flex;align-items:center;gap:7px;padding:8px 16px;}
+.mm-nav svg{display:none;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+@media(max-width:767px){
+  .mm-nav{top:auto;bottom:0;left:0;right:0;transform:none;height:auto;justify-content:space-around;gap:0;padding:6px 8px calc(6px + var(--sab));background:rgba(251,251,253,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);}
+  .mm-nav .mm-chip{flex:1;flex-direction:column;gap:3px;border:0;background:transparent;border-radius:12px;padding:7px 4px;font-size:11px;color:#5B6472;}
+  .mm-nav .mm-chip.on{background:transparent;color:var(--mango-2);}
+  .mm-nav svg{display:block;}
+  #moments.moments-bg{padding-bottom:calc(120px + var(--sab));}
+  .mm-queue{bottom:calc(84px + var(--sab));}
+}
 </style>
 </head>
 <body>
@@ -188,8 +204,14 @@ html,body{background:#FBFBFD!important;}
 <div class="mm-cur" id="mmCur"></div>
 <header class="mm-top">
   <a href="index.html" aria-label="Back to the trip homepage">&larr; Back to home</a>
-  <a href="index.html">Trip Site</a>
+  <button class="mm-btn" id="mmOut" type="button" hidden>Log out</button>
 </header>
+<nav id="mmNav" class="mm-nav" aria-label="Filter moments" hidden>
+  <button class="mm-chip on" data-f="all" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span>All</span></button>
+  <button class="mm-chip" data-f="image" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 16l4.5-4.5a2 2 0 0 1 2.8 0L15 15l1.2-1.2a2 2 0 0 1 2.8 0l1.5 1.5"/></svg><span>Photos</span></button>
+  <button class="mm-chip" data-f="video" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M10.5 9.5l4 2.5-4 2.5z"/></svg><span>Videos</span></button>
+  <button class="mm-chip" data-f="mine" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg><span>Mine</span></button>
+</nav>
 
 <!-- ============ MOMENTS (members only) ============ -->
 <section id="moments" class="moments-bg">
@@ -210,14 +232,9 @@ html,body{background:#FBFBFD!important;}
     <div id="mmApp" hidden>
       <div class="mm-reel" id="mmReel" hidden><div class="mm-reel-row" id="mmR1"></div><div class="mm-reel-row rev" id="mmR2"></div></div>
       <div class="mm-bar">
-        <button class="mm-chip on" data-f="all" type="button">All</button>
-        <button class="mm-chip" data-f="image" type="button">Photos</button>
-        <button class="mm-chip" data-f="video" type="button">Videos</button>
-        <button class="mm-chip" data-f="mine" type="button">Mine</button>
         <span class="mm-space"></span>
         <span class="mm-use" id="mmUsage"></span>
         <button class="mm-btn pri" id="mmAdd" type="button">+ Add moments</button>
-        <button class="mm-btn" id="mmOut" type="button">Log out</button>
         <input type="file" id="mmFile" multiple accept="image/*,video/*" hidden>
       </div>
       <div class="mm-queue" id="mmQueue"></div>
@@ -276,7 +293,7 @@ async function getUrl(id){
 
 /* ---------- gate ---------- */
 async function showGate(){
-  $('mmApp').hidden=true; $('mmGate').hidden=false;
+  $('mmApp').hidden=true; $('mmGate').hidden=false; $('mmNav').hidden=true; $('mmOut').hidden=true;
   var sel=$('mmWho');
   if(!sel.options.length){
     try{var r=await post('login',{action:'participants'});r.participants.forEach(function(n){var o=document.createElement('option');o.value=o.textContent=n;sel.appendChild(o);});}catch(e){$('mmErr').textContent='Could not load the member list.';}
@@ -293,7 +310,7 @@ $('mmLogin').onclick=doLogin;
 $('mmPw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 $('mmOut').onclick=function(){try{localStorage.removeItem(KEY);}catch(e){} active.slice().forEach(stop); if(token())enter(); else showGate();};
 function enter(){
-  $('mmGate').hidden=true; $('mmApp').hidden=false;
+  $('mmGate').hidden=true; $('mmApp').hidden=false; $('mmNav').hidden=false; $('mmOut').hidden=false;
   var p=decode(token()); if(p) $('mmOut').title='Signed in as '+p.name;
   load(true);
 }
@@ -309,12 +326,12 @@ async function load(reset){
     st.more=d.hasMore; st.before=d.nextBefore; st.used=d.usedBytes; st.quota=d.quotaBytes;
     d.items.forEach(function(it,i){st.items.push(it);addTile(it,false,i);});
     usage(); $('mmEmpty').hidden=st.items.length>0;
-    if(reset&&!st.kind&&!st.mine) buildReel();
+    if(reset&&!st.kind&&!st.mine){reelItems=st.items.slice();buildReel();}
   }catch(e){if(e.status!==401)note(e.message);}
   finally{st.busy=false;}
 }
-sec.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){
-  sec.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x===c);});
+document.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){
+  document.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x===c);});
   var f=c.dataset.f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; load(true);
 };});
 new IntersectionObserver(function(es){if(es[0].isIntersecting&&st.more&&!st.busy)load(false);},{rootMargin:'700px'}).observe($('mmSentinel'));
@@ -410,7 +427,7 @@ async function del(){
     var i=st.items.indexOf(it); if(i>=0) st.items.splice(i,1);
     var t=grid.querySelector('[data-id="'+it.id+'"]'); if(t){stop(t);t.remove();}
     st.used=Math.max(0,st.used-it.sizeBytes); usage(); $('mmEmpty').hidden=st.items.length>0;
-    var n=st.items[i]||st.items[i-1]; if(n) show(n,null,0); else closeLB();
+    kick(); var n=st.items[i]||st.items[i-1]; if(n) show(n,null,0); else closeLB();
   }catch(e){note(e.message);}
 }
 lb.addEventListener('click',function(e){
@@ -480,7 +497,7 @@ async function up(f,row){
     stage('ind','Saving\u2026');
     if(th&&p.thumbUploadUrl) await put(p.thumbUploadUrl,th.blob,p.thumbContentType);
     var r=await api('confirm',{key:p.key,thumbKey:th?p.thumbKey:null,filename:f.name,mime:mime,width:th&&th.width,height:th&&th.height,durationS:th&&th.duration});
-    st.items.unshift(r.item); addTile(r.item,true,0); st.used+=f.size; usage(); $('mmEmpty').hidden=true;
+    r.item._t=Date.now(); st.items.unshift(r.item); addTile(r.item,true,0); st.used+=f.size; usage(); $('mmEmpty').hidden=true;
     var tile=grid.querySelector('[data-id="'+r.item.id+'"]');
     if(tile){tile.classList.add('fresh'); setTimeout(function(){tile.classList.remove('fresh');},4000);}
     stage('done','\u2713 Added'); setTimeout(function(){row.remove();},3500);
@@ -491,7 +508,7 @@ async function up(f,row){
   }
 }
 var q=[], running=0;
-function pump(){while(running<2&&q.length){var it=q.shift();running++;up(it.f,it.row).then(function(){running--;pump();});}}
+function pump(){while(running<2&&q.length){var it=q.shift();running++;up(it.f,it.row).then(function(){running--;pump();if(!running&&!q.length)kick();});}}
 function enqueue(files){Array.prototype.forEach.call(files,function(f){q.push({f:f,row:upRow(f)});});pump();}
 window.addEventListener('beforeunload',function(e){if(running||q.length){e.preventDefault();e.returnValue='';}});
 $('mmAdd').onclick=function(){$('mmFile').click();};
@@ -505,11 +522,14 @@ var tio=new IntersectionObserver(function(es){es.forEach(function(e){
   if(!e.isIntersecting) return; var t=e.target; tio.unobserve(t); t.classList.add('in');
   setTimeout(function(){t.classList.remove('rv','in');},1400+(parseFloat(t.style.getPropertyValue('--d'))||0));
 });},{threshold:.08,rootMargin:'0px 0px -6% 0px'});
+var reelItems=[], reelSig='';
 function buildReel(){
-  var its=st.items.filter(function(x){return x.thumbUrl;}), reel=$('mmReel');
-  if(its.length<4||RM){reel.hidden=true;return;}
+  var its=reelItems.filter(function(x){return x.thumbUrl;}), reel=$('mmReel');
+  if(!its.length){reel.hidden=true;reelSig='';return;}
+  var sig=its.map(function(x){return x.id;}).join(',');
+  if(sig===reelSig&&!reel.hidden) return; reelSig=sig;
   function fill(row,list){
-    row.textContent=''; var n=list.length, reps=Math.max(2,Math.ceil(10/n));
+    row.textContent=''; var n=list.length, reps=Math.max(1,Math.ceil(10/n));
     for(var h=0;h<2;h++) for(var r=0;r<reps;r++) list.forEach(function(it){
       var im=new Image(); im.alt=''; im.decoding='async'; im.src=it.thumbUrl;
       im.style.aspectRatio=Math.min(1.9,Math.max(.7,it.width&&it.height?it.width/it.height:1.4)).toFixed(3);
@@ -520,6 +540,36 @@ function buildReel(){
   fill($('mmR1'),its.slice(0,Math.max(half,4))); fill($('mmR2'),its.slice(-Math.max(half,4)).reverse());
   reel.hidden=false;
 }
+/* ---------- keep reel + grid in step with the server (uploads, deletes, other devices) ---------- */
+var syncing=false, kt;
+function kick(){clearTimeout(kt);kt=setTimeout(sync,400);}
+function dropItem(it){
+  var i=st.items.indexOf(it); if(i>=0) st.items.splice(i,1);
+  var tl=grid.querySelector('[data-id="'+it.id+'"]'); if(tl){stop(tl);tl.remove();}
+  if(cur===it) closeLB();
+}
+async function sync(){
+  if(document.hidden||$('mmApp').hidden||st.busy||syncing||running||q.length) return; syncing=true;
+  try{
+    var d=await api('list',{});
+    reelItems=d.items; buildReel();
+    st.used=d.usedBytes; st.quota=d.quotaBytes; usage();
+    if(!st.kind&&!st.mine){
+      var ids={}; d.items.forEach(function(x){ids[x.id]=1;});
+      var floor=d.hasMore&&d.items.length?Date.parse(d.items[d.items.length-1].createdAt):0;
+      st.items.slice().forEach(function(it){
+        if(ids[it.id]||(it._t&&Date.now()-it._t<30000)) return;
+        if(!d.hasMore||Date.parse(it.createdAt)>=floor) dropItem(it);
+      });
+      var have={}; st.items.forEach(function(x){have[x.id]=1;});
+      d.items.filter(function(x){return !have[x.id];}).reverse().forEach(function(x){st.items.unshift(x);addTile(x,true,0);});
+      $('mmEmpty').hidden=st.items.length>0;
+    }
+  }catch(e){} finally{syncing=false;}
+}
+setInterval(sync,30000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)sync();});
+addEventListener('focus',sync);
 (function(){
   var title=sec.querySelector('.mm-title');
   if(title&&!RM){var s=title.textContent; title.textContent=''; title.setAttribute('aria-label',s);
