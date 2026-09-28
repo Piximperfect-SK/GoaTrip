@@ -225,6 +225,32 @@ html,body{overflow-x:clip!important;}
   #moments.moments-bg{padding-bottom:calc(84px + var(--sab));}
   .mm-title{font-size:clamp(3rem,15vw,4.5rem);}
 }
+
+/* ===== signed-in indicator ===== */
+.mm-user{display:flex;align-items:center;gap:10px;min-width:0;}
+.mm-user[hidden]{display:none!important;}
+.mm-av{position:relative;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font:700 13px 'Space Grotesk',sans-serif;}
+.mm-av::after{content:'';position:absolute;right:-2px;bottom:-2px;width:10px;height:10px;border-radius:50%;background:var(--palm);border:2px solid #FBFBFD;}
+.mm-un{font:600 13px 'Space Grotesk',sans-serif;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mm-user .mm-btn{padding:6px 14px;font-size:12.5px;}
+@media(min-width:768px) and (max-width:1000px){.mm-un{display:none;}}
+@media(max-width:767px){.mm-un{max-width:96px;}}
+
+/* ===== carousel tab fits one screen: sizes follow viewport HEIGHT ===== */
+.mm-title{font-size:clamp(2.6rem,10vh,9rem);margin:4px 0 12px;}
+.mm-reel img{height:clamp(84px,17vh,180px);}
+.mm-reel{gap:10px;margin-bottom:0;}
+.mm-lede{margin-bottom:16px;}
+@media(max-width:767px){
+  .mm-title{font-size:clamp(2.4rem,min(14vw,9vh),4.2rem);}
+  .mm-lede{display:none;}
+  .mm-reel img{height:clamp(76px,14vh,130px);}
+  .mm-bar{flex-wrap:nowrap;gap:10px;}
+  .mm-store{flex:1 1 0;min-width:0;padding:11px 13px;}
+  .mm-store-top{flex-direction:column;gap:2px;align-items:flex-start;margin-bottom:8px;}
+  .mm-store-v{font-size:11.5px;}
+  .mm-bar .mm-btn{flex-shrink:0;padding:9px 14px;}
+}
 </style>
 </head>
 <body>
@@ -233,7 +259,7 @@ html,body{overflow-x:clip!important;}
 <div class="mm-cur" id="mmCur"></div>
 <header class="mm-top">
   <a href="index.html" aria-label="Back to the trip homepage">&larr; Back to home</a>
-  <button class="mm-btn" id="mmOut" type="button" hidden>Log out</button>
+  <div class="mm-user" id="mmUser" hidden><span class="mm-av" id="mmAv" aria-hidden="true"></span><span class="mm-un" id="mmUn"></span><button class="mm-btn" id="mmOut" type="button">Log out</button></div>
 </header>
 <nav id="mmNav" class="mm-nav" aria-label="Filter moments" hidden>
   <button class="mm-chip on" data-f="home" type="button"><svg viewBox="0 0 24 24"><rect x="6.5" y="5.5" width="11" height="13" rx="2.5"/><path d="M3 8.5v7M21 8.5v7"/></svg><span>Carousel</span></button>
@@ -324,7 +350,7 @@ async function getUrl(id){
 
 /* ---------- gate ---------- */
 async function showGate(){
-  $('mmApp').hidden=true; $('mmGate').hidden=false; $('mmNav').hidden=true; $('mmOut').hidden=true;
+  $('mmApp').hidden=true; $('mmGate').hidden=false; $('mmNav').hidden=true; $('mmUser').hidden=true;
   var sel=$('mmWho');
   if(!sel.options.length){
     try{var r=await post('login',{action:'participants'});r.participants.forEach(function(n){var o=document.createElement('option');o.value=o.textContent=n;sel.appendChild(o);});}catch(e){$('mmErr').textContent='Could not load the member list.';}
@@ -341,8 +367,8 @@ $('mmLogin').onclick=doLogin;
 $('mmPw').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 $('mmOut').onclick=function(){try{localStorage.removeItem(KEY);}catch(e){} active.slice().forEach(stop); if(token())enter(); else showGate();};
 function enter(){
-  $('mmGate').hidden=true; $('mmApp').hidden=false; $('mmNav').hidden=false; $('mmOut').hidden=false;
-  var p=decode(token()); if(p) $('mmOut').title='Signed in as '+p.name;
+  $('mmGate').hidden=true; $('mmApp').hidden=false; $('mmNav').hidden=false; $('mmUser').hidden=false;
+  var p=decode(token()), nm=(p&&p.name)||'Admin'; $('mmUn').textContent=nm; $('mmAv').textContent=nm.trim().charAt(0).toUpperCase(); $('mmUser').title='Signed in as '+nm;
   load(true);
 }
 
@@ -366,10 +392,20 @@ async function load(reset){
   }catch(e){if(e.status!==401)note(e.message);}
   finally{st.busy=false;}
 }
-document.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){
-  document.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x===c);});
-  var f=c.dataset.f; $('mmApp').dataset.tab=f; sec.dataset.tab=f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; scrollTo(0,0); load(true);
-};});
+var curTab='home';
+function setTab(f,push){
+  if(f===curTab&&push) return;
+  if(push){ try{history.pushState({mm:'tab',f:f},'');}catch(e){} }
+  curTab=f;
+  document.querySelectorAll('.mm-chip').forEach(function(x){x.classList.toggle('on',x.dataset.f===f);});
+  $('mmApp').dataset.tab=f; sec.dataset.tab=f; st.kind=(f==='image'||f==='video')?f:null; st.mine=f==='mine'; scrollTo(0,0); load(true);
+}
+document.querySelectorAll('.mm-chip').forEach(function(c){c.onclick=function(){setTab(c.dataset.f,true);};});
+try{history.replaceState({mm:'tab',f:'home'},'');}catch(e){}
+window.addEventListener('popstate',function(e){
+  if(!lb.hidden){ hideLB(); return; }
+  var s=e.state; if(s&&s.mm==='tab') setTab(s.f,false);
+});
 new IntersectionObserver(function(es){if(es[0].isIntersecting&&st.more&&!st.busy&&$('mmApp').dataset.tab!=='home')load(false);},{rootMargin:'700px'}).observe($('mmSentinel'));
 
 /* ---------- tiles + hover/in-view video previews ---------- */
@@ -441,11 +477,14 @@ async function show(it,from,dir){
   }catch(e){note(e.message);}
 }
 function openLB(it,from){
+  if(lb.hidden&&!lbPushed){ try{history.pushState({mm:'lb'},'');lbPushed=true;}catch(e){} }
   lb.style.opacity=''; lb.hidden=false; document.documentElement.style.overflow='hidden';
   show(it,from,0);
 }
-function closeLB(){
-  if(lb.hidden) return; cur=null;
+var lbPushed=false;
+function closeLB(){ if(lb.hidden) return; if(lbPushed) history.back(); else hideLB(); }
+function hideLB(){
+  if(lb.hidden) return; lbPushed=false; cur=null;
   var fin=function(){lb.hidden=true;lb.style.opacity='';stage.textContent='';document.documentElement.style.overflow='';};
   anim(lb,{opacity:[1,0]},{duration:.25}).finished.then(fin,fin);
 }
