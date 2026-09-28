@@ -303,6 +303,17 @@ html,body{overflow-x:clip!important;}
 .mm-reel-row{will-change:transform;}
 /* title intro without filter:blur (filter animations can't run on the compositor) */
 @keyframes mmRise{from{opacity:0;transform:translateY(70%) rotate(5deg);}to{opacity:1;transform:none;}}
+/* ===== page scrolls only when its content really overflows (class set by JS) ===== */
+html.pg-lock{overflow-y:hidden!important;overscroll-behavior:none;}
+/* touch screens: no sticky :hover motion when a tile/reel is touched */
+@media(hover:none){
+  .mm-tile:hover{transform:perspective(900px) rotateX(0deg) rotateY(0deg);box-shadow:0 14px 30px -18px rgba(29,29,31,.45);}
+  .mm-tile:hover img{transform:none;}
+  .mm-tile:hover::before{opacity:0;}
+  .mm-tile:not(.is-video):hover::after{opacity:0;}
+  .mm-reel:hover .mm-reel-row{animation-play-state:running;}
+  .mm-reel img:hover{transform:none;opacity:.85;}
+}
 </style>
 </head>
 <body>
@@ -775,6 +786,24 @@ $('mmFilter').onclick=function(e){e.stopPropagation(); if(!$('mmPop').hidden){cl
 $('mmClear').onclick=function(){st.by=null; updateFilterUI(); load(true);};
 document.addEventListener('click',function(e){var p=$('mmPop'); if(!p.hidden&&!p.contains(e.target)) closePop();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape') closePop();});
+
+/* ---------- scroll lock: the page scrolls only when its content really overflows ---------- */
+var docEl=document.documentElement, lockQ=0;
+function fitCheck(){
+  lockQ=0;
+  docEl.classList.toggle('pg-lock', !(docEl.scrollHeight>docEl.clientHeight+2));
+}
+function fitSoon(){ if(!lockQ) lockQ=requestAnimationFrame(fitCheck); }
+if(window.ResizeObserver) new ResizeObserver(fitSoon).observe(sec);
+addEventListener('resize',fitSoon); addEventListener('orientationchange',fitSoon); addEventListener('load',fitSoon);
+fitSoon();
+/* iOS still rubber-bands a page that fits; cancel single-finger drags while locked (pinch-zoom and inner scrollers untouched) */
+document.addEventListener('touchmove',function(e){
+  if(e.touches.length!==1||!docEl.classList.contains('pg-lock')||!lb.hidden) return;
+  if(window.visualViewport&&visualViewport.scale>1.01) return;
+  if(e.target.closest&&e.target.closest('.mm-pop,select,input')) return;
+  if(e.cancelable) e.preventDefault();
+},{passive:false});
 
 /* ---------- start when the section first scrolls near view ---------- */
 var started=false;
