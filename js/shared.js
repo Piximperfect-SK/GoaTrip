@@ -466,3 +466,62 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+
+/* ============================================================
+   THEME TOGGLE — light / dark, remembered across pages and visits
+   ------------------------------------------------------------
+   The <html data-theme="light|dark"> attribute is set by a tiny
+   inline script in every page's <head> (so there's no flash of the
+   wrong theme); this block just adds the floating toggle button,
+   persists the choice under localStorage['goaTheme'], keeps other
+   open tabs in sync, and updates <meta name="theme-color">.
+   To default to the visitor's OS setting instead of light, change
+   the head snippet's fallback (see THEME_DEFAULT below).
+   Fires a 'goa-theme' window event ({detail:'dark'|'light'}) so any
+   page with canvas/chart colours can re-render on change.
+   ============================================================ */
+(function(){
+  var KEY = 'goaTheme', root = document.documentElement;
+  var LIGHT_META = '#FBFBFD', DARK_META = '#0F0F12';
+  function current(){ return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  function paintMeta(t){
+    var m = document.querySelector('meta[name="theme-color"]');
+    if(!m){ m = document.createElement('meta'); m.setAttribute('name','theme-color'); document.head.appendChild(m); }
+    if(!m.hasAttribute('data-light')) m.setAttribute('data-light', m.getAttribute('content') || LIGHT_META);
+    m.setAttribute('content', t === 'dark' ? DARK_META : m.getAttribute('data-light'));
+  }
+  function paintButton(btn, t){
+    if(!btn) return;
+    var next = t === 'dark' ? 'light' : 'dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' theme');
+    btn.setAttribute('title', 'Switch to ' + next + ' theme');
+    btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+  }
+  function apply(t, persist){
+    root.setAttribute('data-theme', t);
+    if(persist){ try{ localStorage.setItem(KEY, t); }catch(e){} }
+    paintMeta(t);
+    paintButton(document.getElementById('themeToggle'), t);
+    try{ window.dispatchEvent(new CustomEvent('goa-theme', { detail: t })); }catch(e){}
+  }
+  window.setTheme = function(t){ apply(t === 'dark' ? 'dark' : 'light', true); };
+  window.toggleTheme = function(){ apply(current() === 'dark' ? 'light' : 'dark', true); };
+
+  function mount(){
+    if(document.getElementById('themeToggle')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.id = 'themeToggle'; btn.className = 'theme-toggle';
+    btn.innerHTML =
+      '<svg class="tt-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>' +
+      '<svg class="tt-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    btn.addEventListener('click', window.toggleTheme);
+    document.body.appendChild(btn);
+    paintButton(btn, current());
+  }
+  paintMeta(current());
+  if(document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
+  window.addEventListener('storage', function(e){
+    if(e.key === KEY && (e.newValue === 'dark' || e.newValue === 'light') && e.newValue !== current()) apply(e.newValue, false);
+  });
+})();

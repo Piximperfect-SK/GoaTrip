@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>/* theme bootstrap: set before first paint to avoid a flash. THEME_DEFAULT = 'light' (use matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light' to follow the OS instead) */(function(){var t='light';try{t=localStorage.getItem('goaTheme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
 <meta charset="UTF-8" />
 <!-- CSP is set via the [[headers]] block in netlify.toml (site-wide,
      covers every page including this one) — deliberately not
@@ -1362,6 +1363,83 @@ html.cursor-trail-on, html.cursor-trail-on *{ cursor:none !important; }
 
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<style id="dark-theme">
+/* Dark theme — generated from this page's CSS + shared.css by gen-dark.js; every rule is scoped to html[data-theme="dark"], so light mode is untouched. */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#F2F2F4; --paper:#0F0F12; --sand-2:#1C1C21; --line:#2F2F36;
+  --azulejo:#5B8DFF; --azulejo-2:#7CA3FF; --surface:#17171B; --surface-2:#1F1F25; --text-2:#C6C6CD;
+}
+html[data-theme="light"]{ color-scheme:light; }
+html[data-theme="dark"] ::selection{ background:var(--mango); color:#fff; }
+
+:root:where([data-theme="dark"]){--ink:rgb(240,240,241);--bp-ink:rgb(80,145,225);--bp-cardbg:rgb(23,23,27)}
+html:where([data-theme="dark"]) .btn-danger{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .panel{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) label,html:where([data-theme="dark"]) .field-label{color:var(--text-2)}
+html:where([data-theme="dark"]) .field-row input,html:where([data-theme="dark"]) .field-row select,html:where([data-theme="dark"]) .field-row textarea,html:where([data-theme="dark"]) input[type="text"],html:where([data-theme="dark"]) input[type="date"],html:where([data-theme="dark"]) input[type="number"],html:where([data-theme="dark"]) input[type="time"],html:where([data-theme="dark"]) textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .theme-toggle{background:var(--surface, rgb(23,23,27))}
+:root:where([data-theme="dark"]){--ink:rgb(240,240,241)}
+html:where([data-theme="dark"]) #topnav.scrolled{background:rgba(23,23,27,0.96)}
+html:where([data-theme="dark"]) #heroCountdown .flipdown .rotor:after{border-top:solid 1px rgba(255,255,255,0.2)}
+html:where([data-theme="dark"]) #heroCountdown .flipdown.flipdown__theme-goa .rotor,html:where([data-theme="dark"]) #heroCountdown .flipdown.flipdown__theme-goa .rotor-top,html:where([data-theme="dark"]) #heroCountdown .flipdown.flipdown__theme-goa .rotor-leaf-front{background:#2B2B32}
+html:where([data-theme="dark"]) #mobileTabbar{background:linear-gradient(0deg, rgba(23,23,27,0.6) 0%, rgba(255,255,255,0) 60%),
+    rgba(23,23,27,0.86);border-top:1px solid rgba(255,255,255,0.09)}
+html:where([data-theme="dark"]) #mobileTabbar .tabbar-item{color:var(--text-2)}
+html:where([data-theme="dark"]) #mobileTabbar .tabbar-item.tabbar-wallet{color:var(--text-2)}
+html:where([data-theme="dark"]) .rail-track{background:repeating-linear-gradient(90deg, rgba(23,23,27,0.4) 0 1.5px, transparent 1.5px 13px) bottom / 100% 6px no-repeat,
+    linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.16)) bottom / 100% 1px no-repeat}
+html:where([data-theme="dark"]) #mobilemenu{background:linear-gradient(155deg, rgba(23,23,27,0.6) 0%, rgba(255,255,255,0) 30%),
+    rgba(23,23,27,0.92);border-top:1px solid rgba(48,48,56,0.7)}
+html:where([data-theme="dark"]) #mobilemenu-handle{color:var(--text-2)}
+html:where([data-theme="dark"]) .hero-pill{color:var(--text-2)}
+html:where([data-theme="dark"]) .hero-fact-card{background:linear-gradient(155deg, rgba(23,23,27,0.55) 0%, rgba(255,255,255,0) 30%),
+    rgba(23,23,27,0.55);border:1px solid rgba(48,48,56,0.6)}
+html:where([data-theme="dark"]) .hero-fact-card-head{color:var(--text-2);border-bottom:1px solid rgba(48,48,56,0.5)}
+html:where([data-theme="dark"]) .hero-fact-row span{color:var(--text-2)}
+html:where([data-theme="dark"]) .dep-board{background:linear-gradient(155deg, rgba(23,23,27,0.5) 0%, rgba(255,255,255,0) 30%),
+    rgba(23,23,27,0.45);border:1px solid rgba(48,48,56,0.6)}
+html:where([data-theme="dark"]) .dep-board-head{border-bottom:1px solid rgba(48,48,56,0.5)}
+html:where([data-theme="dark"]) .scroll-cue .line{background:linear-gradient(var(--surface), transparent)}
+html:where([data-theme="dark"]) .lineup-close{background:rgba(23,23,27,0.92)}
+html:where([data-theme="dark"]) .lineup-close svg{stroke:rgb(240,240,241)}
+html:where([data-theme="dark"]) .lineup-dot{background:var(--surface)}
+html:where([data-theme="dark"]) .card3d-pill{background:rgb(23,23,27);color:rgb(245,245,245)}
+html:where([data-theme="dark"]) .fsc-shell{background:var(--sand-2,rgb(29,29,34))}
+html:where([data-theme="dark"]) .fsc-card{background:rgb(37,37,43)}
+html:where([data-theme="dark"]) .fsc-panel-bg{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .fsc-kicker{color:rgba(240,240,241,0.55)}
+html:where([data-theme="dark"]) .fsc-title{color:var(--ink,rgb(240,240,241))}
+html:where([data-theme="dark"]) .fsc-subtitle{color:rgba(240,240,241,0.55)}
+html:where([data-theme="dark"]) .fsc-toggle{background:rgba(23,23,27,0.92)}
+html:where([data-theme="dark"]) .route-label{stroke:rgba(38,155,224,0.85)}
+html:where([data-theme="dark"]) .btn-primary:disabled{color:rgb(176,173,169)}
+html:where([data-theme="dark"]) label{color:var(--ink)}
+html:where([data-theme="dark"]) .reg-status.pending{color:rgb(174,145,48)}
+html:where([data-theme="dark"]) .reg-banner.err{background:rgb(62,37,28);color:rgb(230,114,79)}
+html:where([data-theme="dark"]) .reg-banner.ok{background:rgb(29,29,34);color:rgb(65,170,113)}
+html:where([data-theme="dark"]) .wiz-input::placeholder{color:rgba(63,159,142,0.32)}
+html:where([data-theme="dark"]) .choice-card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .choice-card.selected .ck::after{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .wiz-textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .polaroid{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .polaroid figcaption .pn{color:var(--ink)}
+html:where([data-theme="dark"]) .pin-string{background:repeating-linear-gradient(90deg, rgba(23,23,27,0.35) 0 8px, transparent 8px 14px)}
+html:where([data-theme="dark"]) .tb-track{stroke:rgba(240,240,241,0.1)}
+
+/* ---- inline style="" fallbacks: inline styles beat normal rules, so these need !important ---- */
+html[data-theme="dark"] [style*="background:white"], html[data-theme="dark"] [style*="background: white"],
+html[data-theme="dark"] [style*="background:#fff"], html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background:var(--sand)"], html[data-theme="dark"] [style*="background: var(--sand)"]{ background:var(--surface) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-700)"], html[data-theme="dark"] [style*="color: var(--teal-700)"]{ color:var(--text-2) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-800)"], html[data-theme="dark"] [style*="color: var(--teal-800)"],
+html[data-theme="dark"] [style*="color:var(--teal-900)"], html[data-theme="dark"] [style*="color: var(--teal-900)"]{ color:var(--ink) !important; }
+html[data-theme="dark"] [style*="background:rgba(29,29,31"], html[data-theme="dark"] [style*="background: rgba(29,29,31"]{ background:rgba(255,255,255,.08) !important; }
+/* info tooltip keeps a saturated blue with white text in dark mode */
+html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
+
+</style>
 </head>
 <body>
 

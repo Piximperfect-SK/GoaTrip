@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>/* theme bootstrap: set before first paint to avoid a flash. THEME_DEFAULT = 'light' (use matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light' to follow the OS instead) */(function(){var t='light';try{t=localStorage.getItem('goaTheme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
 <meta charset="UTF-8" />
 <!-- CSP is set via the [[headers]] block in netlify.toml (site-wide) —
      see the matching comment in index.html for why this isn't
@@ -162,6 +163,55 @@ select:not([multiple]){appearance:none; -webkit-appearance:none; padding-right:3
 .add-activity-btn:hover{ color:var(--mango-2); }
 
 .empty-state{ text-align:center; padding:48px 20px; opacity:.5; font-size:13.5px; }
+</style>
+<style id="dark-theme">
+/* Dark theme — generated from this page's CSS + shared.css by gen-dark.js; every rule is scoped to html[data-theme="dark"], so light mode is untouched. */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#F2F2F4; --paper:#0F0F12; --sand-2:#1C1C21; --line:#2F2F36;
+  --azulejo:#5B8DFF; --azulejo-2:#7CA3FF; --surface:#17171B; --surface-2:#1F1F25; --text-2:#C6C6CD;
+}
+html[data-theme="light"]{ color-scheme:light; }
+html[data-theme="dark"] ::selection{ background:var(--mango); color:#fff; }
+
+:root:where([data-theme="dark"]){--ink:rgb(240,240,241);--bp-ink:rgb(80,145,225);--bp-cardbg:rgb(23,23,27)}
+html:where([data-theme="dark"]) .btn-danger{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .panel{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) label,html:where([data-theme="dark"]) .field-label{color:var(--text-2)}
+html:where([data-theme="dark"]) .field-row input,html:where([data-theme="dark"]) .field-row select,html:where([data-theme="dark"]) .field-row textarea,html:where([data-theme="dark"]) input[type="text"],html:where([data-theme="dark"]) input[type="date"],html:where([data-theme="dark"]) input[type="number"],html:where([data-theme="dark"]) input[type="time"],html:where([data-theme="dark"]) textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .theme-toggle{background:var(--surface, rgb(23,23,27))}
+html:where([data-theme="dark"]) #topbar{background:rgba(23,23,27,0.92)}
+html:where([data-theme="dark"]) .btn-icon{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) label{color:var(--text-2)}
+html:where([data-theme="dark"]) input[type="text"],html:where([data-theme="dark"]) input[type="date"],html:where([data-theme="dark"]) input[type="time"],html:where([data-theme="dark"]) input:not([type]),html:where([data-theme="dark"]) select,html:where([data-theme="dark"]) textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .banner.err{background:rgb(62,37,28);color:rgb(230,114,79)}
+html:where([data-theme="dark"]) .banner.ok{background:rgb(29,29,34);color:rgb(65,170,113)}
+html:where([data-theme="dark"]) .banner.warn{background:rgb(65,56,29);color:rgb(178,136,25)}
+html:where([data-theme="dark"]) .day-tab{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .day-tab:hover{border-color:rgba(255,255,255,0.2)}
+html:where([data-theme="dark"]) .day-tab.active{border-color:#2B2B32;background:#2B2B32}
+html:where([data-theme="dark"]) .day-tab-add{color:var(--text-2)}
+html:where([data-theme="dark"]) .tag-chip{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .tag-chip.active{background:#2B2B32;border-color:#2B2B32}
+html:where([data-theme="dark"]) .tl-node{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .place-thumb{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .place-row input{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .tl-mini-btn{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .add-activity-card{background:rgba(23,23,27,0.5)}
+html:where([data-theme="dark"]) .add-activity-btn{color:var(--text-2)}
+
+/* ---- inline style="" fallbacks: inline styles beat normal rules, so these need !important ---- */
+html[data-theme="dark"] [style*="background:white"], html[data-theme="dark"] [style*="background: white"],
+html[data-theme="dark"] [style*="background:#fff"], html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background:var(--sand)"], html[data-theme="dark"] [style*="background: var(--sand)"]{ background:var(--surface) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-700)"], html[data-theme="dark"] [style*="color: var(--teal-700)"]{ color:var(--text-2) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-800)"], html[data-theme="dark"] [style*="color: var(--teal-800)"],
+html[data-theme="dark"] [style*="color:var(--teal-900)"], html[data-theme="dark"] [style*="color: var(--teal-900)"]{ color:var(--ink) !important; }
+html[data-theme="dark"] [style*="background:rgba(29,29,31"], html[data-theme="dark"] [style*="background: rgba(29,29,31"]{ background:rgba(255,255,255,.08) !important; }
+/* info tooltip keeps a saturated blue with white text in dark mode */
+html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
+
 </style>
 </head>
 <body>
