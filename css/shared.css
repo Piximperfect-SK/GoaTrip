@@ -264,3 +264,104 @@ input:focus, textarea:focus, select:focus{
 }
 #topbar a{ color:var(--sand); opacity:.8; text-decoration:none; font-size:13px; transition:.15s; }
 #topbar a:hover{ opacity:1; }
+
+
+/* ============================================================
+   MOBILE FX LAYER  (phones / small tablets, <= 767px)
+   ------------------------------------------------------------
+   Goal: every page gets colour, gradients, one illustration and
+   motion on mobile — while staying smooth. Rules used here:
+
+   1. Motion is transform/opacity only (compositor-thread, no
+      layout/paint per frame). No filter:blur animation, no
+      backdrop-filter, no mix-blend-mode on big layers.
+   2. Softness comes from radial-gradient falloff or a mask, not
+      from filter:blur().
+   3. Each decoration is ONE fixed pseudo-element painted once
+      and only moved with transform (single motif principle).
+   4. Pages that already ship their own ambient background
+      (index #siteBg, itinerary .page-gradient) are skipped by
+      the :has() guards so nothing is drawn twice. Browsers
+      without :has() simply skip the layer (safe fallback).
+   ============================================================ */
+@media (max-width:767px){
+
+  /* ---- A. Ambient gradient scene: coral / blue / pink / marigold ---- */
+  html:not(:has(#siteBg, .page-gradient)) body::before{
+    content:""; position:fixed; inset:-22%; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(circle 62vw at 18% 16%, rgba(255,107,74,.30), rgba(255,107,74,0) 100%),
+      radial-gradient(circle 66vw at 86% 42%, rgba(46,111,242,.22), rgba(46,111,242,0) 100%),
+      radial-gradient(circle 60vw at 30% 86%, rgba(242,111,160,.24), rgba(242,111,160,0) 100%),
+      radial-gradient(circle 46vw at 82% 8%,  rgba(245,185,66,.26), rgba(245,185,66,0) 100%);
+    will-change:transform;
+    animation:fxAmbient 32s ease-in-out infinite alternate;
+  }
+  @keyframes fxAmbient{
+    from{ transform:translate3d(0,0,0) scale(1); }
+    to  { transform:translate3d(4vw,-3vh,0) scale(1.08); }
+  }
+
+  /* ---- B. Illustration: layered waves along the bottom edge (every
+          page except index, which has its own hero/ocean artwork) ---- */
+  html:not(:has(#siteBg)) body::after{
+    content:""; position:fixed; left:-12%; right:-12%; bottom:0; height:20vh; z-index:-1;
+    pointer-events:none; opacity:.55;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'><path d='M0 120 C150 70 300 170 450 120 S750 70 900 120 S1100 160 1200 110 V200 H0Z' fill='%232E6FF2' fill-opacity='.16'/><path d='M0 150 C160 110 320 190 480 150 S780 110 940 150 S1110 180 1200 145 V200 H0Z' fill='%23F26FA0' fill-opacity='.20'/><path d='M0 178 C170 150 330 205 500 178 S800 150 960 178 S1120 198 1200 176 V200 H0Z' fill='%23FF6B4A' fill-opacity='.26'/></svg>") center bottom / 100% 100% no-repeat;
+    will-change:transform;
+    animation:fxWaves 9s ease-in-out infinite alternate;
+  }
+  @keyframes fxWaves{
+    from{ transform:translate3d(-3%,0,0); }
+    to  { transform:translate3d(3%,0,0); }
+  }
+
+  /* moments.html paints an opaque background on <body> itself, which would sit
+     on top of the layers above — let the (identical) <html> colour show instead. */
+  html:has(#moments) body{ background:transparent !important; }
+
+  /* ---- C. Remove the latency sources ---- */
+  /* backdrop-filter re-blurs everything behind the element on every scroll
+     frame and is the #1 cause of janky sticky headers / sheets on phones. */
+  *, *::before, *::after{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+
+  /* Big blurred blobs (itinerary .pg-blob, index .hero-blob): filter:blur(80-120px)
+     + mix-blend-mode force a huge offscreen render every frame. Same look via a
+     radial mask; the layer is rasterised once and only translated. */
+  .pg-blob, .hero-blob{
+    filter:none !important; mix-blend-mode:normal !important;
+    -webkit-mask-image:radial-gradient(circle closest-side, #000 0%, rgba(0,0,0,.55) 42%, transparent 100%);
+            mask-image:radial-gradient(circle closest-side, #000 0%, rgba(0,0,0,.55) 42%, transparent 100%);
+    will-change:transform !important;
+  }
+
+  /* index.html word-by-word heading reveal animated filter:blur (main-thread). */
+  .text-reveal-word{ filter:none !important; will-change:transform, opacity !important; }
+
+  /* Full-screen film-grain overlay uses mix-blend-mode:overlay — invisible on a
+     phone at .05 opacity but expensive to composite. */
+  .grain{ display:none !important; }
+
+  /* ---- D. Instant-feeling touch ---- */
+  html{ -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+  a, button, [role="button"], label, select, input, textarea, summary,
+  .btn-primary, .btn-ghost, .btn-icon, .btn-danger, .navitem, .day-tab{
+    touch-action:manipulation;              /* no 300ms double-tap-zoom wait */
+  }
+  .btn-primary, .btn-ghost, .btn-danger, .btn-icon{
+    transition:transform .12s ease, background-color .15s ease, box-shadow .15s ease;
+  }
+  .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-icon:active{
+    transform:scale(.96);                    /* immediate press feedback */
+  }
+}
+
+/* Touch devices: :hover sticks after a tap — don't lift buttons on it. */
+@media (hover:none){
+  .btn-primary:hover{ transform:none; }
+}
+
+/* Respect reduced-motion + save battery when the OS asks. */
+@media (prefers-reduced-motion:reduce){
+  body::before, body::after{ animation:none !important; }
+}
