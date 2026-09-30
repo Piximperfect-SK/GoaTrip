@@ -36,6 +36,15 @@
   .pill.todo{ color:#8A6D0B; background:rgba(245,185,66,.14); border-color:rgba(245,185,66,.5); }
   .pill.prog{ color:var(--azulejo); background:rgba(46,111,242,.1); border-color:rgba(46,111,242,.35); }
   .pill.done{ color:var(--palm); background:rgba(46,139,87,.1); border-color:rgba(46,139,87,.35); }
+  .metrics{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px; }
+  @media(max-width:700px){ .metrics{ grid-template-columns:repeat(2,1fr); } }
+  .metric{ display:flex; align-items:center; gap:13px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background:var(--surface,#fff); }
+  .metric .ico{ width:40px; height:40px; border-radius:11px; display:flex; align-items:center; justify-content:center; border:1px solid; flex-shrink:0; }
+  .metric b{ font-family:'Fraunces',serif; font-size:1.65rem; line-height:1; display:block; } .metric span{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; opacity:.6; display:block; margin-top:5px; }
+  .ico.cyan{ background:rgba(6,182,212,.12); color:#0891b2; border-color:rgba(6,182,212,.35); } .ico.amber{ background:rgba(245,158,11,.12); color:#d97706; border-color:rgba(245,158,11,.35); }
+  .ico.green{ background:rgba(16,185,129,.12); color:#059669; border-color:rgba(16,185,129,.35); } .ico.rose{ background:rgba(244,63,94,.1); color:#e11d48; border-color:rgba(244,63,94,.35); }
+  .track{ height:8px; border-radius:9999px; background:var(--sand-2,#eee); overflow:hidden; } .track i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#06b6d4,#10b981); border-radius:9999px; transition:width .6s ease; }
+  .resolve{ padding:12px 16px; border:1px solid var(--line); border-radius:14px; background:var(--surface,#fff); margin-bottom:6px; } .resolve .top{ display:flex; justify-content:space-between; font-size:12.5px; opacity:.75; margin-bottom:8px; }
   .flash{ animation:flash 1.6s ease; }
   @keyframes flash{ 0%{ box-shadow:0 0 0 3px rgba(255,107,74,.45); } 100%{ box-shadow:0 0 0 0 rgba(255,107,74,0); } }
   .msg{ border-radius:12px; padding:12px 16px; font-size:13.5px; margin-bottom:14px; }
@@ -89,6 +98,13 @@ html[data-theme="dark"] .pill.todo{ color:#F5B942; }
     <h2 class="display" style="font-size:1.5rem;margin:0;">Live status</h2>
     <div class="sync"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></div>
   </div>
+  <div class="metrics" id="metrics">
+    <div class="metric"><div class="ico cyan"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div><div><b id="m-total">–</b><span>Total tasks</span></div></div>
+    <div class="metric"><div class="ico amber"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2"/></svg></div><div><b id="m-prog">–</b><span>In progress</span></div></div>
+    <div class="metric"><div class="ico green"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1M22 4L12 14l-3-3"/></svg></div><div><b id="m-fixed">–</b><span>Fixed</span></div></div>
+    <div class="metric"><div class="ico rose"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg></div><div><b id="m-high">–</b><span>High priority open</span></div></div>
+  </div>
+  <div class="resolve"><div class="top"><span id="m-text">Loading…</span><b id="m-pct"></b></div><div class="track"><i id="m-bar"></i></div></div>
   <div id="board"><p class="empty">Loading reports…</p></div>
 </main>
 
@@ -104,6 +120,17 @@ function ago(iso){
   if(s < 3600) return Math.floor(s/60) + ' min ago';
   if(s < 86400) return Math.floor(s/3600) + ' h ago';
   return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+}
+function renderStats(st){
+  if(!st) return;
+  animateValue(document.getElementById('m-total'), st.total);
+  animateValue(document.getElementById('m-prog'), st.inProgress);
+  animateValue(document.getElementById('m-fixed'), st.fixed);
+  animateValue(document.getElementById('m-high'), st.highOpen);
+  const pct = st.total ? Math.round(st.fixed / st.total * 100) : 0;
+  document.getElementById('m-bar').style.width = pct + '%';
+  document.getElementById('m-pct').textContent = pct + '% fixed';
+  document.getElementById('m-text').textContent = st.fixed + ' of ' + st.total + ' reported issues resolved';
 }
 function render(bugs){
   const board = document.getElementById('board');
@@ -125,7 +152,7 @@ async function poll(){
     const res = await fetch(API + '?action=public&v=' + encodeURIComponent(version));
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-    if(!data.unchanged){ version = data.version; render(data.bugs); }
+    if(!data.unchanged){ version = data.version; renderStats(data.stats); render(data.bugs); }
     lastOk = Date.now(); setSyncStatus('ok');
     document.getElementById('syncLabel').textContent = 'Live · synced';
   }catch(e){ setSyncStatus('bad'); document.getElementById('syncLabel').textContent = 'Offline — retrying'; }

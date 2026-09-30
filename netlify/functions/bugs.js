@@ -54,6 +54,15 @@ async function version() {
   const { rows } = await query(`SELECT count(*)::int AS n, coalesce(extract(epoch from max(updated_at)),0)::text AS m FROM bug_reports`);
   return `${rows[0].n}:${rows[0].m}`;
 }
+// Aggregate counts over ALL tasks (public and admin-only). Numbers only, so nothing about individual admin-only tasks is exposed.
+async function stats() {
+  const { rows } = await query(`SELECT count(*)::int AS total,
+    count(*) FILTER (WHERE status = 'In Progress')::int AS in_progress,
+    count(*) FILTER (WHERE status = 'Completed')::int AS fixed,
+    count(*) FILTER (WHERE priority = 'High' AND status <> 'Completed')::int AS high_open FROM bug_reports`);
+  const r = rows[0];
+  return { total: r.total, inProgress: r.in_progress, fixed: r.fixed, highOpen: r.high_open };
+}
 const adminRow = (r) => ({
   id: r.id, title: r.title, category: r.category, priority: r.priority, status: r.status, dueDate: r.due_date,
   description: r.description, tag: r.tag, source: r.source, isPublic: r.is_public, reporterName: r.reporter_name,
@@ -91,7 +100,7 @@ exports.handler = async (event) => {
       const v = await version();
       if (params.v && params.v === v) return ok({ unchanged: true, version: v });
       const { rows } = await query(`SELECT * FROM bug_reports WHERE is_public = true ORDER BY created_at DESC LIMIT 200`);
-      return ok({ version: v, bugs: rows.map(publicRow) });
+      return ok({ version: v, stats: await stats(), bugs: rows.map(publicRow) });
     }
 
     if (event.httpMethod !== 'POST') return badRequest('Unsupported method.');
