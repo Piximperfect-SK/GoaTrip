@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t='light';try{t=localStorage.getItem('goaTheme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Fix bugs — GoaTrip admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  h1,h2,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+  #topbar{ position:sticky; top:0; z-index:30; background:rgba(11,61,58,.96); color:var(--sand); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  #topbar a{ color:var(--sand); opacity:.85; text-decoration:none; font-size:13px; margin-left:16px; }
+  .tb-brand{ font-family:'Fraunces', serif; font-weight:700; font-size:17px; }
+  .sync{ font-family:'Space Mono',monospace; font-size:11.5px; display:inline-flex; align-items:center; gap:8px; }
+  main{ max-width:1180px; margin:0 auto; padding:26px 18px 80px; }
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  @media(max-width:700px){ .stats{ grid-template-columns:repeat(2,1fr); } input,select,textarea{ font-size:16px !important; } }
+  .stat{ padding:14px 16px; } .stat b{ font-family:'Fraunces',serif; font-size:1.7rem; display:block; } .stat span{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; opacity:.55; }
+  .bar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; align-items:center; }
+  .bar input, .bar select{ width:auto; flex:1; min-width:140px; }
+  select, textarea{ width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--surface,#fff); color:var(--ink); font-family:inherit; font-size:14px; }
+  textarea{ min-height:130px; resize:vertical; }
+  .cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+  .task{ padding:16px; display:flex; flex-direction:column; gap:10px; justify-content:space-between; }
+  .task h3{ font-family:'Space Grotesk',sans-serif; font-size:14.5px; margin:6px 0 4px; line-height:1.35; }
+  .task.done h3{ text-decoration:line-through; opacity:.5; }
+  .task p{ font-size:12.5px; opacity:.65; margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; cursor:pointer; line-height:1.5; }
+  .task p.open{ -webkit-line-clamp:unset; }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{ font-family:'Space Mono',monospace; font-size:10px; letter-spacing:.05em; padding:3px 8px; border-radius:9999px; border:1px solid var(--line); }
+  .chip.High{ color:var(--mango-2); border-color:rgba(232,84,54,.4); } .chip.Medium{ color:#8A6D0B; border-color:rgba(245,185,66,.5); }
+  .chip.user{ color:var(--azulejo); border-color:rgba(46,111,242,.4); } .chip.pub{ color:var(--palm); border-color:rgba(46,139,87,.4); }
+  .foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--line); padding-top:10px; }
+  .foot small{ font-family:'Space Mono',monospace; font-size:10px; opacity:.5; }
+  .sbtn{ border:1.5px solid var(--line); background:transparent; color:var(--ink); border-radius:9999px; padding:6px 12px; font-weight:600; font-size:12px; cursor:pointer; }
+  .sbtn:hover{ border-color:var(--ink); }
+  .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background:#9a9a9a; } .dot.prog{ background:var(--yellow); } .dot.done{ background:var(--palm); }
+  .ibtn{ border:none; background:none; cursor:pointer; color:var(--ink); opacity:.5; font-size:13px; padding:4px 7px; } .ibtn:hover{ opacity:1; }
+  .modal{ position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:16px; }
+  .modal.show{ display:flex; } .modal .card{ width:100%; max-width:560px; max-height:92vh; overflow:auto; padding:24px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; } @media(max-width:560px){ .row2{ grid-template-columns:1fr; } }
+  .field{ margin-bottom:12px; }
+  .note{ padding:12px 16px; border-radius:12px; margin-bottom:14px; font-size:13.5px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .note.info{ background:rgba(46,111,242,.08); border:1px solid rgba(46,111,242,.25); } .note.bad{ background:rgba(232,84,54,.1); border:1px solid rgba(232,84,54,.3); color:var(--mango-2); }
+  #toasts{ position:fixed; right:16px; bottom:16px; z-index:80; display:flex; flex-direction:column; gap:8px; }
+  .toast{ background:var(--ink); color:var(--paper); padding:10px 16px; border-radius:12px; font-size:13px; box-shadow:0 10px 30px -10px rgba(0,0,0,.4); }
+  .hidden{ display:none !important; }
+</style>
+<style id="dark-theme">
+html[data-theme="dark"]{ color-scheme:dark; --ink:#F2F2F4; --paper:#0F0F12; --sand-2:#1C1C21; --line:#2F2F36; --surface:#17171B; --text-2:#C6C6CD; }
+html[data-theme="light"]{ color-scheme:light; }
+html[data-theme="dark"] .card, html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea{ background:#17171B; }
+html[data-theme="dark"] label{ color:var(--text-2); }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="tb-brand">GoaTrip · Fix bugs</div>
+  <div><span class="sync"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></span>
+    <a href="admin.html">← Admin console</a></div>
+</div>
+
+<main>
+  <div id="gate" class="note bad hidden"><span id="gateText"></span><a class="btn-primary" href="admin.html" style="text-decoration:none;">Go to admin login</a></div>
+  <div id="importNote" class="note info hidden"><span>A board saved in the old standalone todo file was found in this browser. Move it into the database?</span>
+    <span><button class="sbtn" onclick="importLocal()">Import it</button> <button class="sbtn" onclick="dismissImport()">Not now</button></span></div>
+
+  <div id="app" class="hidden">
+    <div class="stats">
+      <div class="card stat"><b id="s-total">0</b><span>Total</span></div>
+      <div class="card stat"><b id="s-prog">0</b><span>In progress</span></div>
+      <div class="card stat"><b id="s-done">0</b><span>Fixed</span></div>
+      <div class="card stat"><b id="s-high">0</b><span>High priority open</span></div>
+    </div>
+    <div class="bar">
+      <input type="text" id="f-q" placeholder="Search title, description, tag…" oninput="render()" />
+      <select id="f-status" onchange="render()"><option value="">All statuses</option><option>To Do</option><option>In Progress</option><option>Completed</option></select>
+      <select id="f-prio" onchange="render()"><option value="">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+      <select id="f-cat" onchange="render()"><option value="">All types</option><option>Bug Fix</option><option>Sync/API</option><option>Feature</option><option>Adjustment</option><option>General</option></select>
+      <select id="f-src" onchange="render()"><option value="">All sources</option><option value="user">Reported by users</option><option value="seed">Code audit</option><option value="admin">Added by admins</option></select>
+      <button class="btn-primary" onclick="openModal()">+ New task</button>
+    </div>
+    <div class="cards" id="cards"></div>
+    <p id="empty" class="hidden" style="text-align:center;opacity:.5;padding:30px 0;">No tasks match these filters.</p>
+  </div>
+</main>
+
+<div class="modal" id="modal"><form class="card" id="form" onsubmit="saveTask(event)">
+  <h2 class="display" id="m-title" style="margin:0 0 16px;font-size:1.4rem;">Task</h2>
+  <input type="hidden" id="t-id" />
+  <div class="field"><label for="t-name">Title</label><input type="text" id="t-name" maxlength="160" required /></div>
+  <div class="row2">
+    <div class="field"><label>Type</label><select id="t-cat"><option>Bug Fix</option><option>Sync/API</option><option>Feature</option><option>Adjustment</option><option>General</option></select></div>
+    <div class="field"><label>Priority</label><select id="t-prio"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+    <div class="field"><label>Status</label><select id="t-status"><option>To Do</option><option>In Progress</option><option>Completed</option></select></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Due date</label><input type="date" id="t-due" /></div>
+    <div class="field" style="grid-column:span 2;"><label>Tag</label><input type="text" id="t-tag" maxlength="40" placeholder="e.g. Root cause, Verified fixed" /></div>
+  </div>
+  <div class="field"><label>Description / root cause</label><textarea id="t-desc" maxlength="4000"></textarea></div>
+  <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;"><input type="checkbox" id="t-pub" style="width:auto;" /> Show title &amp; status on the public Report a Bug page</label>
+  <p id="t-reporter" class="hidden" style="font-size:12.5px;opacity:.7;"></p>
+  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;"><button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-primary" type="submit">Save</button></div>
+</form></div>
+<div id="toasts"></div>
+
+<script src="/js/shared.js"></script>
+<script>
+const API = FUNCTIONS_BASE + '/bugs';
+const TOKEN = sessionStorage.getItem('goaAdminToken');
+const LOCAL_KEY = 'taskflow_studio_tasks_v1';
+const NEXT = { 'To Do':'In Progress', 'In Progress':'Completed', 'Completed':'To Do' };
+let bugs = [], version = '', inflight = 0, timer = null;
+
+function toast(m){ const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 3200); }
+function gate(text){ document.getElementById('gate').classList.remove('hidden'); document.getElementById('gateText').textContent = text; document.getElementById('app').classList.add('hidden'); clearInterval(timer); setSyncStatus('bad'); }
+
+async function call(body){
+  const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...body, token: TOKEN }) });
+  const data = await res.json();
+  if(res.status === 401){ gate('Your admin session has expired or is missing. Log in from the admin console, then open Fix Bug again.'); throw new Error('auth'); }
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+
+async function poll(){
+  if(inflight) return; // don't overwrite an optimistic edit that is still being saved
+  try{
+    const data = await call({ action:'list', v: version });
+    if(!data.unchanged){ version = data.version; bugs = data.bugs; render(); openFromUrl(); }
+    setSyncStatus('ok'); document.getElementById('syncLabel').textContent = 'Live · synced with database';
+  }catch(e){ if(e.message !== 'auth'){ setSyncStatus('bad'); document.getElementById('syncLabel').textContent = 'Offline — retrying'; } }
+}
+
+function render(){
+  const q = document.getElementById('f-q').value.toLowerCase();
+  const f = { status:'f-status', priority:'f-prio', category:'f-cat', source:'f-src' };
+  const list = bugs.filter(b => (!q || (b.title + ' ' + b.description + ' ' + b.tag).toLowerCase().includes(q))
+    && Object.entries(f).every(([k, id]) => { const v = document.getElementById(id).value; return !v || b[k] === v; }));
+  document.getElementById('s-total').textContent = bugs.length;
+  document.getElementById('s-prog').textContent = bugs.filter(b => b.status === 'In Progress').length;
+  document.getElementById('s-done').textContent = bugs.filter(b => b.status === 'Completed').length;
+  document.getElementById('s-high').textContent = bugs.filter(b => b.priority === 'High' && b.status !== 'Completed').length;
+  document.getElementById('empty').classList.toggle('hidden', list.length > 0);
+  document.getElementById('cards').innerHTML = list.map(b => `
+    <div class="card task${b.status === 'Completed' ? ' done' : ''}"><div>
+      <div class="chips"><span class="chip ${b.priority}">${b.priority}</span><span class="chip">${escapeHtml(b.category)}</span>
+        ${b.tag ? `<span class="chip">${escapeHtml(b.tag)}</span>` : ''}${b.source === 'user' ? '<span class="chip user">user report</span>' : ''}${b.isPublic ? '<span class="chip pub">public</span>' : ''}</div>
+      <h3>${escapeHtml(b.title)}</h3>
+      <p onclick="this.classList.toggle('open')" title="Click to expand">${escapeHtml(b.description || 'No description.')}</p></div>
+      <div class="foot"><button class="sbtn" onclick="cycle('${b.id}')"><span class="dot ${b.status === 'Completed' ? 'done' : b.status === 'In Progress' ? 'prog' : ''}"></span>${b.status}</button>
+        <small>${b.updatedBy ? 'by ' + escapeHtml(b.updatedBy) : escapeHtml(b.dueDate || '')}</small>
+        <span><button class="ibtn" onclick="openModal('${b.id}')" title="Edit">✎</button><button class="ibtn" onclick="del('${b.id}')" title="Delete">🗑</button></span></div></div>`).join('');
+}
+
+async function cycle(id){
+  const b = bugs.find(x => x.id === id); if(!b) return;
+  const prev = b.status; b.status = NEXT[prev]; render(); inflight++; setSyncStatus('pending');
+  try{ await call({ action:'save', payload:{ ...b } }); version = ''; toast('Status: ' + b.status); }
+  catch(e){ b.status = prev; render(); if(e.message !== 'auth') toast('Could not save: ' + e.message); }
+  inflight--; poll();
+}
+async function del(id){
+  const b = bugs.find(x => x.id === id);
+  if(!b || !confirm('Delete "' + b.title + '" for everyone?')) return;
+  inflight++;
+  try{ await call({ action:'delete', id }); bugs = bugs.filter(x => x.id !== id); render(); version = ''; toast('Deleted'); }
+  catch(e){ if(e.message !== 'auth') toast('Could not delete: ' + e.message); }
+  inflight--; poll();
+}
+
+function openModal(id){
+  const b = id ? bugs.find(x => x.id === id) : null;
+  const v = (k, val) => document.getElementById(k).value = val;
+  document.getElementById('m-title').textContent = b ? 'Edit task' : 'New task';
+  v('t-id', b ? b.id : ''); v('t-name', b ? b.title : ''); v('t-cat', b ? b.category : 'Bug Fix'); v('t-prio', b ? b.priority : 'Medium');
+  v('t-status', b ? b.status : 'To Do'); v('t-due', b ? b.dueDate : ''); v('t-tag', b ? b.tag : ''); v('t-desc', b ? b.description : '');
+  document.getElementById('t-pub').checked = b ? b.isPublic : false;
+  const r = document.getElementById('t-reporter');
+  r.classList.toggle('hidden', !(b && b.source === 'user'));
+  if(b && b.source === 'user') r.textContent = 'Reported by ' + (b.reporterName || 'anonymous') + (b.reporterContact ? ' · ' + b.reporterContact : '') + (b.page ? ' · ' + b.page : '');
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('show'); history.replaceState(null, '', location.pathname); }
+async function saveTask(e){
+  e.preventDefault();
+  const g = k => document.getElementById(k).value;
+  const payload = { id:g('t-id'), title:g('t-name'), category:g('t-cat'), priority:g('t-prio'), status:g('t-status'), dueDate:g('t-due'), tag:g('t-tag'), description:g('t-desc'), isPublic:document.getElementById('t-pub').checked };
+  inflight++; setSyncStatus('pending');
+  try{ await call({ action:'save', payload }); version = ''; toast('Saved to database'); closeModal(); }
+  catch(err){ if(err.message !== 'auth') toast('Could not save: ' + err.message); }
+  inflight--; poll();
+}
+// Deep link from the admin console / other pages: todo.html?bug=<id> opens that task.
+let opened = false;
+function openFromUrl(){
+  const id = new URLSearchParams(location.search).get('bug');
+  if(id && !opened && bugs.some(b => b.id === id)){ opened = true; openModal(id); }
+}
+
+function localBoard(){ try{ return JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null'); }catch(e){ return null; } }
+function dismissImport(){ localStorage.setItem('goa_bug_import_dismissed', '1'); document.getElementById('importNote').classList.add('hidden'); }
+async function importLocal(){
+  const tasks = localBoard(); if(!tasks) return;
+  try{
+    const r = await call({ action:'importLocal', tasks });
+    localStorage.removeItem(LOCAL_KEY); document.getElementById('importNote').classList.add('hidden');
+    toast('Imported ' + r.imported + ' tasks'); version = ''; poll();
+  }catch(e){ if(e.message !== 'auth') toast('Import failed: ' + e.message); }
+}
+
+(function init(){
+  if(!TOKEN){ gate('You need to be logged in as an admin to fix bugs.'); return; }
+  document.getElementById('app').classList.remove('hidden');
+  if(localBoard() && !localStorage.getItem('goa_bug_import_dismissed')) document.getElementById('importNote').classList.remove('hidden');
+  poll(); timer = setInterval(poll, 4000);
+  document.addEventListener('visibilitychange', () => { clearInterval(timer); if(!document.hidden && TOKEN){ poll(); timer = setInterval(poll, 4000); } });
+})();
+</script>
+</body>
+</html>

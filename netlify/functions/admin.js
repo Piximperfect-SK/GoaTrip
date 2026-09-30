@@ -521,4 +521,6 @@ exports.handler = async (event) => {
 };
 
 module.exports.approveAdmin = approveAdmin;
+// Used by bugs.js: same live-session check every admin action uses (rejects logged-out / revoked admins).
+module.exports.requireAdminSession = async (token) => { await ensureAdminSchema(); return requireSession(token); };
 module.exports.rejectAdmin = rejectAdmin;

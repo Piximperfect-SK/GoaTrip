@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){var t='light';try{t=localStorage.getItem('goaTheme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0B3D3A" />
+<title>Report a bug — GoaTrip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shared.css">
+<style>
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  h1,h2,.display{ font-family:'Fraunces', serif; letter-spacing:-0.01em; }
+  #topbar{ position:sticky; top:0; z-index:30; background:rgba(11,61,58,.96); color:var(--sand); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  #topbar a{ color:var(--sand); opacity:.85; text-decoration:none; font-size:13px; margin-left:16px; }
+  #topbar a:hover, #topbar a.on{ opacity:1; }
+  .tb-brand{ font-family:'Fraunces', serif; font-weight:700; font-size:17px; }
+  main{ max-width:900px; margin:0 auto; padding:36px 18px 80px; }
+  .hero{ text-align:center; margin-bottom:26px; }
+  .hero h1{ font-size:2.1rem; margin:6px 0 8px; }
+  .hero p{ opacity:.7; max-width:540px; margin:0 auto; font-size:14.5px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:640px){ .grid2{ grid-template-columns:1fr; } input,select,textarea{ font-size:16px !important; } }
+  .field{ margin-bottom:14px; }
+  select, textarea{ width:100%; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; background:var(--surface,#fff); color:var(--ink); font-family:inherit; font-size:14px; }
+  input[type=email], input[type=text]{ width:100%; }
+  textarea{ min-height:110px; resize:vertical; }
+  .hp{ position:absolute; left:-9999px; height:0; overflow:hidden; }
+  .sec-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:38px 0 12px; flex-wrap:wrap; }
+  .sync{ font-family:'Space Mono',monospace; font-size:11.5px; display:flex; align-items:center; gap:8px; opacity:.75; }
+  .bug{ display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background:var(--surface,#fff); margin-bottom:10px; }
+  .bug h3{ margin:0 0 4px; font-size:15px; font-family:'Space Grotesk',sans-serif; font-weight:600; }
+  .bug .meta{ font-family:'Space Mono',monospace; font-size:10.5px; opacity:.55; letter-spacing:.04em; }
+  .pill{ flex-shrink:0; font-family:'Space Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 10px; border-radius:9999px; border:1px solid; white-space:nowrap; }
+  .pill.todo{ color:#8A6D0B; background:rgba(245,185,66,.14); border-color:rgba(245,185,66,.5); }
+  .pill.prog{ color:var(--azulejo); background:rgba(46,111,242,.1); border-color:rgba(46,111,242,.35); }
+  .pill.done{ color:var(--palm); background:rgba(46,139,87,.1); border-color:rgba(46,139,87,.35); }
+  .flash{ animation:flash 1.6s ease; }
+  @keyframes flash{ 0%{ box-shadow:0 0 0 3px rgba(255,107,74,.45); } 100%{ box-shadow:0 0 0 0 rgba(255,107,74,0); } }
+  .msg{ border-radius:12px; padding:12px 16px; font-size:13.5px; margin-bottom:14px; }
+  .msg.ok{ background:rgba(46,139,87,.1); color:var(--palm); border:1px solid rgba(46,139,87,.3); }
+  .msg.bad{ background:rgba(232,84,54,.1); color:var(--mango-2); border:1px solid rgba(232,84,54,.3); }
+  .empty{ text-align:center; opacity:.5; padding:26px 0; font-size:14px; }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none !important; } }
+</style>
+<style id="dark-theme">
+html[data-theme="dark"]{ color-scheme:dark; --ink:#F2F2F4; --paper:#0F0F12; --sand-2:#1C1C21; --line:#2F2F36; --surface:#17171B; --text-2:#C6C6CD; }
+html[data-theme="light"]{ color-scheme:light; }
+html[data-theme="dark"] .card, html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea{ background:#17171B; }
+html[data-theme="dark"] label{ color:var(--text-2); }
+html[data-theme="dark"] .pill.todo{ color:#F5B942; }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="tb-brand">GoaTrip · Support</div>
+  <div><a href="cancellation.html">Cancel a trip</a><a href="report-bug.html" class="on">Report a bug</a><a href="index.html">← Back to trip site</a></div>
+</div>
+
+<main>
+  <div class="hero">
+    <div class="section-eyebrow">Support · Report a bug</div>
+    <h1>Something broken?</h1>
+    <p>Tell us what went wrong. Your report goes straight into the organisers' fix list, and its status below updates live as it gets worked on.</p>
+  </div>
+
+  <form id="bugForm" class="card" style="padding:24px;" novalidate>
+    <div id="formMsg"></div>
+    <div class="field"><label for="b-title">What went wrong? (short title)</label>
+      <input type="text" id="b-title" maxlength="160" placeholder="e.g. Save changes button does nothing on the wallet" /></div>
+    <div class="grid2">
+      <div class="field"><label for="b-page">Where did it happen?</label>
+        <select id="b-page"><option>Home page</option><option>Itinerary</option><option>Boarding pass</option><option>Wallet</option><option>Moments</option><option>Cancellation</option><option>Admin console</option><option>Somewhere else</option></select></div>
+      <div class="field"><label for="b-cat">Type</label>
+        <select id="b-cat"><option value="Bug Fix">Something is broken</option><option value="Sync/API">Data not saving / out of sync</option><option value="Feature">Missing or unclear feature</option><option value="General">Other</option></select></div>
+    </div>
+    <div class="field"><label for="b-desc">What happened, and what did you expect?</label>
+      <textarea id="b-desc" maxlength="2000" placeholder="Steps you took, what you saw, what you expected. Mention your phone / browser if it seems to matter."></textarea></div>
+    <div class="grid2">
+      <div class="field"><label for="b-name">Your name (optional)</label><input type="text" id="b-name" maxlength="80" autocomplete="name" /></div>
+      <div class="field"><label for="b-contact">Phone or email (optional, only shared with organisers)</label><input type="text" id="b-contact" maxlength="120" /></div>
+    </div>
+    <div class="hp" aria-hidden="true"><label>Website<input type="text" id="b-website" tabindex="-1" autocomplete="off" /></label></div>
+    <button type="submit" class="btn-primary" id="b-submit">Send report</button>
+  </form>
+
+  <div class="sec-head">
+    <h2 class="display" style="font-size:1.5rem;margin:0;">Live status</h2>
+    <div class="sync"><span class="sync-dot pending" id="syncDot"></span><span id="syncLabel">Connecting…</span></div>
+  </div>
+  <div id="board"><p class="empty">Loading reports…</p></div>
+</main>
+
+<script src="/js/shared.js"></script>
+<script>
+const API = FUNCTIONS_BASE + '/bugs';
+const PILL = { 'To Do':['todo','Reported'], 'In Progress':['prog','Being fixed'], 'Completed':['done','Fixed'] };
+let version = '', lastOk = 0, known = {}, first = true;
+
+function ago(iso){
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if(s < 60) return 'just now';
+  if(s < 3600) return Math.floor(s/60) + ' min ago';
+  if(s < 86400) return Math.floor(s/3600) + ' h ago';
+  return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+}
+function render(bugs){
+  const board = document.getElementById('board');
+  if(!bugs.length){ board.innerHTML = '<p class="empty">No bugs reported yet — that\u2019s a good sign.</p>'; return; }
+  board.innerHTML = bugs.map(b => {
+    const [cls, label] = PILL[b.status] || PILL['To Do'];
+    const changed = !first && known[b.id] !== undefined && known[b.id] !== b.status;
+    const isNew = !first && known[b.id] === undefined;
+    return `<div class="bug${changed || isNew ? ' flash' : ''}">
+      <div><h3>${escapeHtml(b.title)}</h3>
+      <div class="meta">${escapeHtml(b.page || 'General')} · reported ${ago(b.createdAt)} · updated ${ago(b.updatedAt)}</div></div>
+      <span class="pill ${cls}">${label}</span></div>`;
+  }).join('');
+  known = Object.fromEntries(bugs.map(b => [b.id, b.status]));
+  first = false;
+}
+async function poll(){
+  try{
+    const res = await fetch(API + '?action=public&v=' + encodeURIComponent(version));
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    if(!data.unchanged){ version = data.version; render(data.bugs); }
+    lastOk = Date.now(); setSyncStatus('ok');
+    document.getElementById('syncLabel').textContent = 'Live · synced';
+  }catch(e){ setSyncStatus('bad'); document.getElementById('syncLabel').textContent = 'Offline — retrying'; }
+}
+let timer = setInterval(poll, 5000);
+document.addEventListener('visibilitychange', () => {
+  clearInterval(timer);
+  if(!document.hidden){ poll(); timer = setInterval(poll, 5000); }
+});
+poll();
+
+document.getElementById('bugForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('formMsg'), btn = document.getElementById('b-submit');
+  const payload = {
+    title: document.getElementById('b-title').value, description: document.getElementById('b-desc').value,
+    category: document.getElementById('b-cat').value, page: document.getElementById('b-page').value,
+    name: document.getElementById('b-name').value, contact: document.getElementById('b-contact').value,
+    website: document.getElementById('b-website').value,
+  };
+  btn.disabled = true; btn.textContent = 'Sending…'; msg.innerHTML = '';
+  try{
+    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'report', payload }) });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    msg.innerHTML = '<div class="msg ok">Thanks — your report is in. You can follow it in the live status list below.</div>';
+    e.target.reset(); poll();
+  }catch(err){
+    msg.innerHTML = '<div class="msg bad">' + escapeHtml(err.message) + '</div>';
+  }
+  btn.disabled = false; btn.textContent = 'Send report';
+});
+</script>
+</body>
+</html>

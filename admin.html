@@ -207,6 +207,12 @@
   .dash-tab.sb-link:hover{ background:rgba(255,255,255,.06); color:var(--sand); }
   .dash-tab.sb-link.active{ background:linear-gradient(90deg, rgba(255,122,69,.22), rgba(255,255,255,.04)); color:white; box-shadow:inset 3px 0 0 var(--mango); }
   .dash-tab.sb-link.active .sb-ic{ background:var(--mango); }
+  a.sb-link{ display:flex; align-items:center; gap:11px; width:100%; text-decoration:none; color:rgba(239,230,214,.72); font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13.5px; padding:11px 12px; border-radius:10px; margin-bottom:3px; transition:.15s ease; }
+  a.sb-link .sb-ic{ width:26px; height:26px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.06); }
+  a.sb-link .sb-ic svg{ width:14px; height:14px; }
+  a.sb-link .sb-badge-count{ margin-left:auto; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; padding:2px 7px; border-radius:9999px; background:rgba(255,255,255,.1); color:rgba(239,230,214,.6); min-width:18px; text-align:center; }
+  a.sb-link .sb-badge-count.warn{ background:var(--mango); color:white; }
+  a.sb-link:hover{ background:rgba(255,255,255,.06); color:var(--sand); }
   .dash-tab.sb-link.active .sb-badge-count.warn{ background:var(--mango); color:white; }
   .sb-badge-count.warn{ background:rgba(232,93,42,.35); color:#FFD9C4; }
 
@@ -728,6 +734,11 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
         <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
         Page content
       </button>
+      <a class="sb-link" href="todo.html" id="fixBugLink">
+        <span class="sb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4Z"/></svg></span>
+        Fix Bug
+        <span class="sb-badge-count" id="sbBugBadge" style="display:none;">0</span>
+      </a>
     </nav>
 
     <div class="sb-foot">
@@ -1178,6 +1189,17 @@ function showLoggedOut(){
   document.body.classList.remove('dash-mode');
   document.body.classList.add('gate-mode');
 }
+
+// Fix Bug sidebar badge: open bug count (accent colour when users have reported new ones). Best-effort; hidden on failure.
+async function loadBugBadge(){
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/bugs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'count', token:getToken() }) });
+    const d = await res.json();
+    if(d.error) return;
+    const b = el('sbBugBadge'); b.textContent = d.open; b.style.display = d.open ? '' : 'none'; b.classList.toggle('warn', d.fresh > 0);
+    b.title = d.fresh ? d.fresh + ' new user report(s) waiting' : d.open + ' open';
+  }catch(e){}
+}
 function showLoggedIn(name){
   el('gateWrap').classList.add('hidden');
   el('dashboardWrap').classList.remove('hidden');
@@ -1185,6 +1207,7 @@ function showLoggedIn(name){
   document.body.classList.add('dash-mode');
   el('whoName').textContent = name;
   el('tbAvatar').textContent = (name||'A').trim()[0].toUpperCase();
+  loadBugBadge();
   loadFlags();
   loadPendingAdmins();
   loadAdminList();

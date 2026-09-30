@@ -1,0 +1,672 @@
+[
+ {
+  "id": "task-1",
+  "title": "Save changes button is not working",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "2026-10-01",
+  "description": "Not an event-handler problem. ROOT CAUSE (goa-wallet.html L3639-3650): updateDepositSubmitState() applies the 'withdrawal needs balance > 0' rule while EDITING too, and only approved rows count. So Save changes stays disabled for a withdrawal that empties a balance, or whose deposit is still pending, with no message. See the 'Deposit/withdrawal button state' task.",
+  "tag": "Root cause"
+ },
+ {
+  "id": "task-2",
+  "title": "Data not in sync across components/backend",
+  "category": "Sync/API",
+  "priority": "High",
+  "status": "In Progress",
+  "dueDate": "2026-10-02",
+  "description": "ROOT CAUSES (goa-wallet.html): (1) adjustments, renames and merges live only in localStorage but change balances, and the 5 s poll overwrites the wallet from the server (L1881-1925); (2) failed writes say 'saved locally, will retry' but are never queued (L1998-2075); (3) a paid-from-deposit expense is 3 separate writes (L2560-2585). wallet.js itself is consistent: every POST returns full state. See the linked tasks.",
+  "tag": "Root cause"
+ },
+ {
+  "id": "task-3",
+  "title": "Record withdrawal is not working",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "2026-09-29",
+  "description": "ROOT CAUSE (goa-wallet.html L3639-3650): the button is silently disabled when the pot or the person's APPROVED balance is <= 0 (pending deposits don't count), while nothing checks amount <= balance on the client or in wallet.js. Valid withdrawals look blocked; oversized ones go through. See 'Deposit/withdrawal button state' and 'Paid-from-deposit' tasks.",
+  "tag": "Root cause"
+ },
+ {
+  "id": "task-4",
+  "title": "Add deposit button should be disabled for normal users",
+  "category": "Feature",
+  "priority": "Medium",
+  "status": "In Progress",
+  "dueDate": "2026-09-28",
+  "description": "NOT actually done. The button is only hidden when the wallet is LOCKED and the user isn't admin (applyWalletLockUI, goa-wallet.html L4673-4680). Otherwise a normal user can open the form and only fails at submit (checkWalletAdmin needs an admin session), and wallet.js still accepts their addDeposit. Moved back to In Progress. See the 'admin-only deposits' task.",
+  "tag": "Reopened"
+ },
+ {
+  "id": "task-5",
+  "title": "Deposit option should be disabled if amount is zero or negative",
+  "category": "Adjustment",
+  "priority": "Medium",
+  "status": "Completed",
+  "dueDate": "2026-09-30",
+  "description": "Verified in code: updateDepositSubmitState() disables the button for empty, NaN or <= 0 amounts (goa-wallet.html L3639-3650), the submit handler re-checks (L3692), and wallet.js enforces min 0.01 for deposits. Remaining gap: addExpense/addSettlement accept 0 server-side (min 0). Moved to Completed.",
+  "tag": "Verified fixed"
+ },
+ {
+  "id": "task-6",
+  "title": "Continue button should be disabled until user selects people for splitting amount",
+  "category": "Feature",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "2026-10-05",
+  "description": "Not implemented. exwizValidateStep() (goa-wallet.html L2298-2313) checks only steps 0 and 3, so the split step is never validated, and an empty selection silently becomes everyone (L2503-2504). Review text also hard-codes 'Everyone (11)' (L2331). See the 'Split step never validated' task.",
+  "tag": "Root cause"
+ },
+ {
+  "id": "task-7",
+  "title": "Apply adjustment is not working",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "2026-09-27",
+  "description": "Works only locally: the form (goa-wallet.html L4047-4065) saves to localStorage and says it isn't pushed to the shared sheet, so no other device or admin ever sees it. It also needs an admin session via checkWalletAdmin. Needs a server action and table. See 'Adjustments, renames and merges exist only in one browser'.",
+  "tag": "Root cause"
+ },
+ {
+  "id": "bug-c1",
+  "title": "[auth.js] Any participant has admin powers",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "verifySessionToken accepts role:'user' tokens, so every admin gate (trips, content, crew, registration, login.setPassword, cancellation, admin.js) is open to participants. Fix: return the name only when role === 'admin'. Re-checked: wallet.js, moments.js and itinerary.js use verifySessionTokenFull with a role check, so they are unaffected. admin.js additionally needs a name match in the admins table, but trips, content, crew, registration, cancellation and login.setPassword accept ANY participant token.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h1",
+  "title": "[admin.js] Revoked and logged-out admins keep access",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "requireSession never checks status, revokeAdmin doesn't set session_invalidated_at, and other endpoints never hit the DB. Fix: require status Approved, invalidate on revoke, use one shared helper everywhere. Also: wallet.js derives isAdmin from the token role alone, so a revoked admin keeps approve/reject/delete/reset rights there for up to 12 h.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h2",
+  "title": "[wallet.js] Any participant can edit others' expenses/deposits",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "editExpense/editDeposit update by id only and demote the record to draft, hiding it from the ledger. Fix: non-admins must own the row (created_by / logged_by); error on zero rows. Also: a zero-row UPDATE still writes an activity entry and returns success, and ids are client-generated from Date.now(), so they are easy to guess.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h3",
+  "title": "[auth/login/moments] Tokens not bound to a trip",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "A token from trip A works with ?tripId=B, and moments.js accepts made-up tripIds that each get a fresh 30 GB quota. Fix: put tripId in user tokens and verify the trip exists. Also see the tripSegment() collision task: different tripIds can map to the same R2 prefix.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h4",
+  "title": "[cancellation.js] Public status leaks PII; archivePdf can be poisoned",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "ID + name returns email, mobile and signature; IDs are sequential; the first archivePdf caller stores any PDF and it is emailed out. Fix: unguessable IDs, minimal public response, server-side letter or hash. The status response also returns adminRemarks, processedBy and boardSignatures, not just email, mobile and signature.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h5",
+  "title": "[boarding-pass.js] Unauthenticated ticket list",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "tripId alone returns every passenger's PNR, seat and fare. Fix: require a session; non-admins only see their own tickets. boarding-pass.html (fetchTickets, L483-495) sends no token, so the fix needs a front-end sign-in step as well.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-h6",
+  "title": "[places.js] Transient failures cached forever; refresh is open",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "A Nominatim 429/5xx is stored as resolved=false permanently, and action=refresh needs no auth. Fix: cache only genuine no-match results; admin-only refresh.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-h7",
+  "title": "[trips.js] updateTrip wipes data on partial payloads",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Missing fields become [] or null (wallet_participants, gallery_places, villa coords); setActive doesn't check the trip or use a transaction. Fix: update only present fields; wrap setActive in a transaction.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-h8",
+  "title": "[package.json] Lockfile out of sync",
+  "category": "Sync/API",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "@aws-sdk/* (used by moments.js) missing from package-lock.json and unused @netlify/blobs listed, so npm ci fails. Fix: run npm install, commit the lockfile, pin the Node version.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m1",
+  "title": "[admin.js] Login attempt counter race",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "failed_attempts is read, incremented in JS and written back, so parallel guesses skip the lockout. Fix: SET failed_attempts = failed_attempts + 1 ... RETURNING.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m2",
+  "title": "[admin.js] Anyone can lock out any admin",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Five bad guesses lock an admin (including the master) for 10 minutes. Fix: add per-IP throttling.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m3",
+  "title": "[admin.js] Login messages reveal which names are admins",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "'No approved admin found' vs 'Incorrect PIN' allows enumeration. Fix: return one generic message.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m4",
+  "title": "[admin.js] listPendingAdmins returns approve/reject tokens",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Any admin can approve requests without the designated approver. Fix: approve via an authenticated action; don't return tokens.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m5",
+  "title": "[admin.js] bootstrapAdminPin secret check",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Secret compared with !== and no rate limit. Fix: crypto.timingSafeEqual plus throttling.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m6",
+  "title": "[approve.js] State change on GET",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Email scanners prefetching the link can approve or reject. Fix: POST only; approve.html already confirms first. admin.html's pending-admin Approve/Reject buttons also call GET /approve, so change both callers together.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-m7",
+  "title": "[approve.html] Real error message never shown",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Page reads data.message but errors come back as data.error. Fix: read both.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m8",
+  "title": "[cancellation.js] COUNT(*)+1 IDs collide",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Concurrent submits hit the UNIQUE constraint (500) and deleting a row reuses an ID. Fix: use a Postgres SEQUENCE.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m9",
+  "title": "[cancellation.js] decide can re-decide a finished request",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "An approved request with an archived, emailed letter can be flipped to REJECTED. Fix: require status = 'IN REVIEW'.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m10",
+  "title": "[cancellation.js] submit is unauthenticated and unvalidated",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "No rate limit or email/mobile validation; decision emails go to unverified addresses. Fix: throttle, validate, verify.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m11",
+  "title": "[moments.js] Presigned PUT not size-bound and reusable",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "ContentLength isn't signed and the URL is reusable for 30 minutes, so objects can be overwritten after confirm while the DB keeps the old size. Fix: sign ContentLength, shorten expiry.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m12",
+  "title": "[moments.js] Unconfirmed uploads orphaned in R2",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Uploads never confirmed stay forever and aren't counted in quota. Fix: cleanup job or pending-prefix lifecycle rule.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m13",
+  "title": "[wallet.js] Server trusts client expense content",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "payer, split, settlement from/to and splitAmounts sum aren't validated. Fix: validate against wallet_participants and amount. Related: nothing checks that a withdrawal is <= the person's balance either (see the Paid-from-deposit task).",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-m14",
+  "title": "[login.js] No rate limit; scryptSync blocks",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Shared password can be brute-forced and sync scrypt blocks the event loop. Fix: throttle, use async crypto.scrypt.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-m15",
+  "title": "[registration.js] Duplicate-phone race",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Check-then-insert with no unique constraint. Fix: UNIQUE (trip_id, phone). Note: the registrations DDL isn't in the uploaded files, so an existing constraint could not be checked.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-m16",
+  "title": "[content.js] Invalid JSON crash and unvalidated banner.linkUrl",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Missing if (!body) returns 500, and a javascript: URL is accepted. Fix: return 400; allow only http(s), mailto, # and relative links. Correction: invalid JSON returns a 500 (the TypeError is caught), not a crash. Chain with the auth bug: any participant can set banner.linkUrl, and index.html (L4103-4108) only HTML-escapes it, so a javascript: URL runs on click.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-m17",
+  "title": "[netlify.toml] unsafe-inline CSP and 1-hour HTML cache",
+  "category": "Adjustment",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "script-src 'unsafe-inline' cancels most XSS protection and stale HTML can be served for an hour. Fix: nonces or external scripts; Cache-Control no-cache for HTML. 'unsafe-inline' is what makes the new stored-XSS findings exploitable, so treat it as a blocker for them.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-l1",
+  "title": "[sw.js] Precaches wrong paths",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Lists /shared.css and /shared.js but pages load /css/shared.css and /js/shared.js, so addAll fails silently. Fix: correct paths; don't cache JS/CSS cache-first. admin.html also loads a relative shared.js while every other page uses /js/shared.js.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-l2",
+  "title": "[site-hold] Overlay is cosmetic only",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Page and API still work underneath. Fix: enforce the hold server-side with a flag check.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l3",
+  "title": "[test_itenary.html] No error handling; Maps link limits",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Failures leave 'Loading…' forever; waypoints use a raw | and exceed Google's 9-waypoint cap. Fix: add catch/res.ok, encode, cap waypoints.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l4",
+  "title": "[moments-test.html] Temporary page deployed publicly",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Labelled temporary but live, and can orphan R2 objects. Fix: delete it once uploads work.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l5",
+  "title": "[places.js] Wikipedia ordering and User-Agent",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Results unsorted and no descriptive User-Agent. Fix: sort by p.index; add a User-Agent.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l6",
+  "title": "[crew.js / content.js] Non-transactional batch saves",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Reorder and batch content saves can partially apply. Fix: wrap in a transaction.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l7",
+  "title": "[itinerary.js] Weak payload validation",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Only the number of days is checked, not the shape or size of entries. Fix: validate each day and activity.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l8",
+  "title": "[db.js] withTransaction hides the original error",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "If BEGIN fails, ROLLBACK throws and masks it. Fix: guard the rollback.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l9",
+  "title": "[wallet.js] Token in GET query string; activity leak; reset not transactional",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Session token lands in logs, activity log exposes others' draft amounts, resetWallet runs four deletes without a transaction. Fix: Authorization header, filter activity, transaction. goa-wallet.html polls this GET every 5 s, so the token lands in server logs on every poll.",
+  "tag": "Corrected"
+ },
+ {
+  "id": "bug-l10",
+  "title": "[admin.js] changePin needs no old PIN",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "And doesn't invalidate other sessions. Fix: require the current PIN and bump session_invalidated_at.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l11",
+  "title": "[cancellation.js] MAX_PDF_LEN exceeds Netlify body limit",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "7 MB of base64 vs roughly 6 MB limit, so large PDFs fail before validation. Fix: lower the cap.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l12",
+  "title": "[moments.js] Non-atomic quota check",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Parallel confirms can overshoot quota slightly. Fix: lock or atomic insert-with-check.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l13",
+  "title": "[netlify.toml] Stale comments; geolocation blocked",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Comments mention Apps Script hosts no longer in the CSP; Permissions-Policy blocks geolocation for future pages.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-l14",
+  "title": "[netlify.toml] Immutable caching on /videos and /icons",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "30-day immutable means replacing a file without renaming it won't reach users. Fix: version filenames.",
+  "tag": "Verified"
+ },
+ {
+  "id": "bug-n1",
+  "title": "[goa-wallet.html] Stored XSS via registered names (public registration to wallet)",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Registration accepts any name (2+ chars with one letter; < > \" ' allowed) with no login. goa-wallet.html writes PARTICIPANTS into innerHTML unescaped at ~25 sites (options L2086, L2153-2172, L3658; chips L2210, L2228; cards L3519-3581; onclick attributes). It runs on the page holding goaAdminToken/goaUserToken, and CSP 'unsafe-inline' does not stop it. Fix: escape or use textContent/data-attributes, reject markup characters in names server-side, drop unsafe-inline.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n2",
+  "title": "[goa-wallet.html + wallet.js] Stored XSS via expense/deposit ids, titles, notes and activity",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Any signed-in participant can plant markup that admins then render. Ids go straight into onclick strings (L2665, L3465-3467, L3605-3606, L4153); titles, settlement names and the activity detail render raw (L2719-2720, L4149, L4254). wallet.js only strips control characters and accepts any id up to 60 chars. Fix: whitelist ids (/^[A-Za-z0-9_-]{1,60}$/) or generate them server-side, escape every interpolation, use data-* plus event delegation instead of inline onclick.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n3",
+  "title": "[goa-wallet.html] Adjustments, renames and merges exist only in one browser's localStorage",
+  "category": "Sync/API",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Apply adjustment, rename and merge (L3940-4065) write to localStorage only ('isn't pushed to the shared sheet') yet feed computeNetBalances(). Other devices and admins see different balances, and the 5 s poll swaps wallet for the server copy, so expense names revert while PARTICIPANTS keeps the new name (phantom duplicate person). Fix: server actions plus a table for adjustments, rename and merge in one transaction; stop using localStorage as the source of truth.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n4",
+  "title": "[goa-wallet.html] Failed writes say 'saved locally, will retry' but are never queued",
+  "category": "Sync/API",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "pushToSheet (L1998-2075) queues only network errors. On a 401 or a backend rejection nothing is queued, yet the banner promises a retry, and removeExpense ignores the result entirely (L2594-2610). The optimistic local row is wiped by the next poll. Queued ops carry no token, so they replay under whoever signs in next on that browser, and a 401 during flush drops the op. Fix: keep failed rows visible as 'unsynced', bind queued ops to the session that made them, never dequeue on 401.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n5",
+  "title": "[goa-wallet.html + wallet.js] Paid-from-deposit expense is 3 separate writes and can overdraw the deposit",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "The submit handler (L2560-2585) sends addExpense, then addDeposit(withdrawal) even if the expense was rejected, then two separate approval submits, so an admin can approve one and reject the other. It only checks depositedByPerson() > 0, never amount <= balance, and wallet.js has no balance check either. Fix: one server action that creates both rows atomically and validates amount <= approved balance.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n6",
+  "title": "[goa-wallet.html] Deposit/withdrawal button state blocks valid edits and allows invalid amounts",
+  "category": "Bug Fix",
+  "priority": "High",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "updateDepositSubmitState (L3639-3650) applies 'withdrawal needs balance > 0' while editing as well, and counts approved rows only. A withdrawal that empties a balance, or one whose deposit is still pending, cannot be saved and no reason is shown. There is no upper bound, so any amount above the balance enables the button. Fix: run the rule on create only, compare against available balance excluding the record being edited, and show the reason under the button.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n7",
+  "title": "[goa-wallet.html + wallet.js] 'Deposits are admin-only' is only half implemented",
+  "category": "Feature",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "The Add deposit button is hidden only when the wallet is locked (applyWalletLockUI, L4673-4680). Otherwise a normal user fills the form and fails at submit because checkWalletAdmin needs an admin session, while wallet.js accepts addDeposit/editDeposit from any participant. The non-admin branch at L3707 is unreachable. Fix: disable for non-admins up front and add the actions to ALWAYS_ADMIN_ACTIONS if that is the rule.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n8",
+  "title": "[goa-wallet.html] Split step is never validated; an empty selection silently charges everyone",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "exwizValidateStep (L2298-2313) checks only steps 0 and 3, and submit turns no selection into every participant (L2503-2504), so Continue is never blocked. The review step hard-codes 'Everyone (11)' (L2331) though the group is 13. Because every registered name joins 'everyone', a junk registration also changes everyone's share. Fix: require at least one person or an explicit Everyone toggle, and count from PARTICIPANTS.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n9",
+  "title": "[boarding-pass.html] Ticket details are sent to a third-party QR service",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "buildQrPayload (L751-780) puts PNR, passenger, train, seat and fare into the URL of api.qrserver.com (renderQrSafely, shared.js qrApiUrl). That text lands in a third party's logs and the QR breaks if the host is blocked. Fix: generate the QR client-side with a bundled library and remove api.qrserver.com from the CSP img-src.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n10",
+  "title": "[moments.js] confirm can delete objects that are already saved or belong to someone else",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "actionConfirm trusts client-supplied key and thumbKey. If the key is already registered and the quota or size check fails (bucket nearly full, or a retried confirm), rejectAndCleanup() deletes the live R2 object while its DB row stays. A forged thumbKey can attach another member's thumbnail, which is deleted when that row is removed. Fix: look up object_key/thumb_key first, record presigned keys per user, only clean up keys issued to this session.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n11",
+  "title": "[itinerary.js] Whole-itinerary save is last-write-wins",
+  "category": "Sync/API",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "saveItinerary replaces itinerary_json outright with no revision check, so two editors silently overwrite each other. itinerary.html also seeds from a localStorage draft (goaItineraryDraft, L291-294), which can be stale if the server fetch fails. Fix: send the last-seen itinerary_updated_at and return 409 when it changed, or merge per day.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n12",
+  "title": "[all pages] Third-party scripts load without SRI; Tailwind Play CDN used in production",
+  "category": "Adjustment",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "cdn.tailwindcss.com (index, itinerary, goa-wallet), unpkg, jsdelivr (motion@11 is an unpinned major) and cdnjs (gsap, html2canvas, jsPDF) load with no integrity hashes. With script-src 'unsafe-inline', a CDN compromise runs inside pages that hold admin tokens. Fix: build Tailwind to a static CSS file, self-host or add SRI with exact versions, then tighten the CSP.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n13",
+  "title": "[registration.js] Public registration has no rate limit or CAPTCHA and feeds wallet and login",
+  "category": "Bug Fix",
+  "priority": "Medium",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Anyone can register fake names (the phone only has to look valid). Every registered name becomes a wallet participant, a login identity and part of 'Everyone' splits. Fix: per-IP throttling, optional admin approval of new registrants, and reject markup characters in names (also closes the XSS entry point).",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n14",
+  "title": "[moments.html] 12-hour member token kept in localStorage; user logout cannot revoke it",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "moments.html stores the login.js token in localStorage (L463, L494), so it survives browser restarts on shared phones, while wallet and admin use sessionStorage. Logout only deletes the local copy, and only admin tokens have server-side invalidation. Fix: use sessionStorage and add a per-user token version.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n15",
+  "title": "[moments.js] tripSegment() maps different tripIds to the same R2 prefix",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "tripSegment strips every character outside [A-Za-z0-9_-], so 'goa-2026' and 'goa-2026!' share moments/goa-2026/. Combined with the missing trip-exists check, a forged tripId can alias another trip's prefix in confirm. Fix: reject tripIds that change when sanitized and validate against the trips table.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n16",
+  "title": "[shared.js / goa-wallet.html] showBanner() writes backend text as HTML; helpers are duplicated",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "showBanner(kind, html) uses innerHTML and callers pass raw backend errors (L2057; wallet.js echoes the client's splitAmounts key). goa-wallet.html also redefines showBanner, setSyncStatus, initials and animateValue (L1856-1880, L3236, L3477), so shared.js fixes never reach it. Fix: escapeHtml(message) and delete the local copies.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n17",
+  "title": "[shared.js] A 'place not found' result is never cached in the browser",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "readPlaceCache returns null both for 'no entry' and for a stored null, so `cached !== null` is false for every miss and each re-render calls /places again (the server cache absorbs it, but it adds round-trips). Fix: store a sentinel such as {unresolved:true}.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n18",
+  "title": "[goa-wallet.html / wallet.js] Record ids are client-generated from Date.now()",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "'e'+Date.now(), 'dep'+Date.now() and 'adj'+Date.now() (L2549-2550, L3711, L4059) can collide when two people submit in the same millisecond and are guessable, which helps the edit-anyone attack. Fix: generate ids server-side with crypto.randomUUID and return them.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n19",
+  "title": "[registration.js] checkPhone reveals whether a phone number is registered",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "GET ?type=checkPhone&phone=... is unauthenticated and unthrottled and answers available true/false for any 10-digit number, so registrants can be enumerated by number. Fix: throttle per IP, or do the duplicate check only at submit.",
+  "tag": "New"
+ },
+ {
+  "id": "bug-n20",
+  "title": "[security.txt] Placeholder contact and non-standard location",
+  "category": "Adjustment",
+  "priority": "Low",
+  "status": "To Do",
+  "dueDate": "",
+  "description": "Contact is still mailto:REPLACE_WITH_YOUR_EMAIL@example.com. RFC 9116 expects the file at /.well-known/security.txt. Fix: add a real address and move or redirect the file.",
+  "tag": "New"
+ }
+]
