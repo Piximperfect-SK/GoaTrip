@@ -1319,7 +1319,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
       <!-- ---- Rename ---- -->
       <div class="panel p-5 mb-5">
         <h4 class="font-semibold mb-1">Rename</h4>
-        <p class="text-xs opacity-50 mb-3">Updates this name across every expense, settlement and activity entry. Saved on this device only — not pushed to the shared sheet.</p>
+        <p class="text-xs opacity-50 mb-3">Updates this name across every wallet view for everyone. The original registration name remains valid for sign-in.</p>
         <form id="renameForm" class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[180px]">
             <label>New name</label>
@@ -1370,7 +1370,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
            that already has money data on it. -->
       <div class="panel p-5 mt-5" style="border-color:rgba(30,96,145,.3); background:rgba(30,96,145,.04);">
         <h4 class="font-semibold mb-1" style="color:var(--azulejo)">Merge into another participant</h4>
-        <p class="text-xs opacity-60 mb-3">For a duplicate or typo'd name — moves every expense, settlement, deposit and adjustment from <b id="peMergeFromName"></b> onto whoever you pick below, then removes <b id="peMergeFromName2"></b> as a separate entry. Saved on this device only, same as renaming.</p>
+        <p class="text-xs opacity-60 mb-3">For a duplicate or typo'd name — combines every expense, settlement, deposit and adjustment from <b id="peMergeFromName"></b> into whoever you pick below for every wallet user.</p>
         <form id="mergeForm" class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[180px]">
             <label>Merge into</label>
@@ -1500,6 +1500,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
         <button type="submit" class="btn-primary flex-1" id="depositSubmitBtn">Add deposit</button>
         <button type="button" class="btn-ghost" onclick="closeModal('depositModal')">Cancel</button>
       </div>
+      <p id="depositFormHint" class="col-span-2 text-sm" style="display:none;color:#b4432f;margin-top:-6px;" role="alert"></p>
     </form>
   </div>
 </div>
@@ -1675,7 +1676,8 @@ async function syncParticipantsFromRegistrations(){
     const data = await res.json();
     if(data.error || !Array.isArray(data.participants)) return;
 
-    const registered = data.participants.map(n => String(n || '').trim()).filter(Boolean);
+    const registered = data.participants.map(n => resolveParticipantAlias(String(n || '').trim())).filter(Boolean)
+      .filter((n, i, list) => list.findIndex(x => x.toLowerCase() === n.toLowerCase()) === i);
     const registeredLower = new Set(registered.map(n => n.toLowerCase()));
 
     // Keep anyone currently listed who's fallen off the registration
@@ -1766,7 +1768,29 @@ function loadAdjustments(){
   catch(e){ return []; }
 }
 function persistAdjustments(){ localStorage.setItem('goaWalletAdjustments', JSON.stringify(adjustments)); }
-let adjustments = loadAdjustments();
+let adjustments = loadAdjustments(); // legacy/offline cache; server state replaces this after sign-in
+let participantAliases = {};
+function resolveParticipantAlias(name){
+  let value = name;
+  const seen = new Set();
+  while(participantAliases[value] && !seen.has(value)){
+    seen.add(value); value = participantAliases[value];
+  }
+  return value;
+}
+function applySharedWalletState(data){
+  if(!data) return;
+  if(Array.isArray(data.adjustments)){
+    adjustments = data.adjustments;
+    persistAdjustments(); // offline fallback, not the source of truth
+  }
+  if(data.participantAliases && typeof data.participantAliases === 'object'){
+    participantAliases = data.participantAliases;
+    const mapped = PARTICIPANTS.map(resolveParticipantAlias);
+    PARTICIPANTS = mapped.filter((p, i) => mapped.findIndex(x => x.toLowerCase() === p.toLowerCase()) === i);
+    persistParticipants();
+  }
+}
 
 /* ---------------------------------------------------------------
    Split-share helper — single place all balance/chart code reads
@@ -1909,7 +1933,8 @@ async function pullFromSheet(manual){
     // on every 5s tick even when nothing changed is what was causing the
     // visible "cards flashing" — this makes background polls invisible
     // unless there's actually something new to show.
-    const nextWallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+    applySharedWalletState(data);
+    const nextWallet = applyPendingOverlay({expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits});
     const dataChanged = JSON.stringify(nextWallet) !== JSON.stringify(wallet) || WALLET_LOCKED !== !!data.locked;
     wallet = nextWallet;
     persistLocal();
@@ -1918,6 +1943,8 @@ async function pullFromSheet(manual){
     applyWalletLockUI();
     if(manual && !WALLET_LOCKED) showBanner('warn','Refreshed from the backend.');
     if(dataChanged || manual) renderAll();
+    // Signed in and reachable: a good moment to replay anything queued for this person.
+    if(loadPendingOps().length) flushPendingOps();
   }catch(err){
     setSyncStatus('bad');
     showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
@@ -1943,16 +1970,25 @@ function loadPendingOps(){
   catch(e){ return []; }
 }
 function savePendingOps(ops){ localStorage.setItem(PENDING_OPS_KEY, JSON.stringify(ops)); }
+function opKey(action, payload){ return action + ':' + (payload && payload.id); }
+// Identity a queued op belongs to. Tokens are NOT stored in localStorage
+// (they live in sessionStorage on purpose); instead each op remembers
+// WHO made it, and is only ever replayed while that same person is signed
+// in. Replaying under whoever happens to sign in next would credit their
+// session with someone else's change.
+function currentOwner(){ return String(getSessionName() || '').trim().toLowerCase(); }
+function opOwner(o){ return String(o.owner || o.actor || '').trim().toLowerCase(); }
 function enqueuePendingOp(action, payload, actor){
-  const key = action + ':' + (payload && payload.id);
-  const ops = loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key);
-  ops.push({action, payload, actor, queuedAt:new Date().toISOString()});
+  const key = opKey(action, payload);
+  const ops = loadPendingOps().filter(o => opKey(o.action, o.payload) !== key);
+  ops.push({action, payload, actor, owner: String(getSessionName() || actor || ''),
+            tripId: (window.TRIP && TRIP.id) || null, queuedAt:new Date().toISOString()});
   savePendingOps(ops);
   updatePendingIndicator();
 }
 function dequeuePendingOp(action, payload){
-  const key = action + ':' + (payload && payload.id);
-  savePendingOps(loadPendingOps().filter(o => (o.action + ':' + (o.payload && o.payload.id)) !== key));
+  const key = opKey(action, payload);
+  savePendingOps(loadPendingOps().filter(o => opKey(o.action, o.payload) !== key));
   updatePendingIndicator();
 }
 function updatePendingIndicator(){
@@ -1960,19 +1996,94 @@ function updatePendingIndicator(){
   const label = document.getElementById('syncLabel');
   if(label) label.title = n > 0 ? `${n} change${n===1?'':'s'} waiting to sync` : '';
 }
+function discardPendingOps(){
+  const me = currentOwner();
+  savePendingOps(loadPendingOps().filter(o => opOwner(o) !== me));
+  updatePendingIndicator();
+  clearBanner();
+  pullFromSheet(true);
+}
+
+// Rows that only exist locally (their write is still queued) must survive a
+// poll: pullFromSheet() replaces `wallet` with the server snapshot, which
+// used to silently wipe them. Re-applying the owner's queued ops on top of
+// any snapshot keeps them visible, flagged `_unsynced`, until they land.
+function applyPendingOverlay(w, skipKey){
+  const tripId = window.TRIP && TRIP.id;
+  const me = currentOwner();
+  const ops = loadPendingOps().filter(o =>
+    (!o.tripId || o.tripId === tripId) && opOwner(o) === me && (!skipKey || opKey(o.action, o.payload) !== skipKey));
+  if(!ops.length) return w;
+  w.expenses = w.expenses.slice(); w.settlements = w.settlements.slice(); w.deposits = (w.deposits||[]).slice();
+  const upsert = (list, id, build, patch) => {
+    const i = list.findIndex(x => x.id === id);
+    if(i === -1){ if(build) list.push(Object.assign(build(), {_unsynced:true})); }
+    else if(patch){ list[i] = Object.assign({}, list[i], patch, {_unsynced:true}); }
+  };
+  for(const o of ops){
+    const p = o.payload || {};
+    const base = {createdBy:o.actor, createdAt:o.queuedAt, status:'draft'};
+    switch(o.action){
+      case 'addExpense':
+        upsert(w.expenses, p.id, () => Object.assign({}, p, {amount:Number(p.amount), split:p.split||[], unpaid:!!p.unpaid}, base));
+        if(p.paidFromDeposit && p.depositUsedFrom){
+          upsert(w.deposits, ('wd-'+p.id).slice(0,60), () => ({id:('wd-'+p.id).slice(0,60), person:p.depositUsedFrom, amount:Number(p.amount),
+            type:'withdrawal', date:p.date, note:`Paid for: ${p.title}`, loggedBy:o.actor, ts:o.queuedAt, linkedExpenseId:p.id, status:'draft'}));
+        }
+        break;
+      case 'editExpense': upsert(w.expenses, p.id, null, Object.assign({}, p, {amount:Number(p.amount), unpaid:!!p.unpaid})); break;
+      case 'removeExpense': w.expenses = w.expenses.filter(x => x.id !== p.id); break;
+      case 'addSettlement':
+        upsert(w.settlements, p.id, () => ({id:p.id, from:p.from, to:p.to, amount:Number(p.amount), note:p.note||'', actor:o.actor, ts:o.queuedAt, usedDeposit:!!p.usedDeposit, status:'draft'}));
+        break;
+      case 'removeSettlement': w.settlements = w.settlements.filter(x => x.id !== p.id); break;
+      case 'addDeposit':
+        upsert(w.deposits, p.id, () => ({id:p.id, person:p.person, amount:Number(p.amount), date:p.date, note:p.note||'', type:p.type||'deposit', loggedBy:o.actor, ts:o.queuedAt, status:'draft'}));
+        break;
+      case 'editDeposit': upsert(w.deposits, p.id, null, {person:p.person, amount:Number(p.amount), date:p.date, note:p.note||'', type:p.type||'deposit'}); break;
+      case 'deleteDeposit': w.deposits = w.deposits.filter(x => x.id !== p.id); break;
+      default: break; // submit/approve/reject: server status stays the source of truth
+    }
+  }
+  return w;
+}
+
 let flushingPendingOps = false;
+let stuckNoticeCount = -1;
+// After a queued add/edit lands, it still has to be SUBMITTED for review —
+// the live flow does that right after a successful push, but a replayed op
+// used to stop at "draft" (invisible to admins) because nothing followed up.
+const FOLLOWUP_SUBMIT = {addExpense:'expense', editExpense:'expense', addSettlement:'settlement', addDeposit:'deposit', editDeposit:'deposit'};
 async function flushPendingOps(){
   if(flushingPendingOps || !window.TRIP) return;
-  const ops = loadPendingOps();
+  const me = currentOwner();
+  if(!me) return; // nobody signed in — replaying now could only 401 (or, worse, run as someone else)
+  const ops = loadPendingOps().filter(o => (!o.tripId || o.tripId === TRIP.id) && opOwner(o) === me);
   if(!ops.length) return;
   flushingPendingOps = true;
-  let recovered = 0;
-  for(const op of ops){
-    const result = await pushToSheet(op.action, op.payload, op.actor, {fromQueue:true});
-    if(result !== null){ dequeuePendingOp(op.action, op.payload); recovered++; }
-  }
-  flushingPendingOps = false;
+  let recovered = 0, stuck = false;
+  try{
+    for(const op of ops){
+      const result = await pushToSheet(op.action, op.payload, op.actor, {fromQueue:true});
+      if(result !== null){
+        dequeuePendingOp(op.action, op.payload); recovered++;
+        const t = FOLLOWUP_SUBMIT[op.action];
+        if(t && !(op.action.startsWith('edit') && IS_WALLET_ADMIN)) await submitForApprovalAuto(t, op.payload.id, op.actor);
+      }else if(lastPushOutcome === 'network' || lastPushOutcome === 'auth'){
+        // Still offline, or this session can't write right now. The op STAYS
+        // queued (a 401 used to delete it); stop so one outage doesn't hammer
+        // the backend once per queued change.
+        stuck = true; break;
+      }
+      // 'rejected': pushToSheet already dropped it and said why — carry on.
+    }
+  }finally{ flushingPendingOps = false; }
   if(recovered > 0){ showBanner('ok', `Synced ${recovered} change${recovered===1?'':'s'} that were waiting offline.`); renderAll(); }
+  const left = loadPendingOps().filter(o => opOwner(o) === me).length;
+  if(stuck && left > 0 && left !== stuckNoticeCount){
+    stuckNoticeCount = left;
+    showBanner('warn', `${left} change${left===1?'':'s'} on this device ${left===1?"hasn't":"haven't"} synced yet and will retry automatically. <a href="#" onclick="discardPendingOps();return false;" style="text-decoration:underline;">Discard ${left===1?'it':'them'}</a>`);
+  }
 }
 window.addEventListener('online', flushPendingOps);
 setInterval(()=>{ if(loadPendingOps().length) flushPendingOps(); }, 30000);
@@ -1995,14 +2106,29 @@ async function submitForApprovalAuto(recordType, id, actor){
   return await pushToSheet('submitForApproval', {recordType, id}, actor);
 }
 
+// How the most recent pushToSheet() ended: 'ok' | 'network' (unreachable,
+// bad response or 5xx — queued, will retry) | 'auth' (401 — queued, waits
+// for the same person to sign in) | 'rejected' (the backend said no — NOT
+// queued, because retrying would never help) | 'noTrip'. Callers use it to
+// word their banner truthfully instead of always promising a retry.
+let lastPushOutcome = 'ok';
+function lastPushWasQueued(){ return lastPushOutcome === 'network' || lastPushOutcome === 'auth'; }
+function reportWrite(synced, html){
+  if(synced){ showBanner('ok', html); }
+  else if(lastPushOutcome === 'network'){ showBanner('warn', `${html} <b>Not synced yet</b> — kept on this device and will sync automatically.`); }
+  else if(lastPushOutcome === 'auth'){ showBanner('warn', `${html} <b>Not synced yet</b> — kept on this device; it will sync once you sign in again.`); }
+  // 'rejected': pushToSheet already showed the reason, and nothing was saved — don't paper over it with a ✅.
+}
+
 async function pushToSheet(action, payload, actor, opts){
   opts = opts || {};
-  if(!window.TRIP){ setSyncStatus('bad'); return null; }
+  if(!window.TRIP){ lastPushOutcome = 'noTrip'; setSyncStatus('bad'); return null; }
   // wallet.js now requires a verified session token on every write, no
   // exceptions — so this has to be whichever session is actually signed
   // in (admin or participant), not just the admin token.
   const token = getSessionToken();
   setSyncStatus('pending');
+  const queueIt = () => { if(!opts.fromQueue) enqueuePendingOp(action, payload, actor); };
   let res, text;
   try{
     res = await fetch(FUNCTIONS_BASE + '/wallet?tripId=' + encodeURIComponent(TRIP.id), {
@@ -2012,29 +2138,29 @@ async function pushToSheet(action, payload, actor, opts){
     });
     text = await res.text();
   }catch(networkErr){
-    // Fetch itself threw — no connection, DNS failure, etc. This is
-    // exactly the case worth queuing for an automatic retry.
-    setSyncStatus('bad');
-    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
-    showBanner('err', `<b>Change saved locally — couldn't reach the backend.</b> It'll sync automatically once you're back online.`);
+    // Fetch itself threw — no connection, DNS failure, etc.
+    lastPushOutcome = 'network'; setSyncStatus('bad'); queueIt();
+    if(!opts.fromQueue) showBanner('err', `<b>Change saved locally — couldn't reach the backend.</b> It'll sync automatically once you're back online.`);
     return null;
   }
   let data;
   try{ data = JSON.parse(text); }
   catch(parseErr){
-    setSyncStatus('bad');
-    if(!opts.fromQueue) enqueuePendingOp(action, payload, actor);
-    showBanner('err', `<b>Change saved locally — the backend response was invalid.</b> It'll retry automatically.`);
+    lastPushOutcome = 'network'; setSyncStatus('bad'); queueIt();
+    if(!opts.fromQueue) showBanner('err', `<b>Change saved locally — the backend response was invalid.</b> It'll retry automatically.`);
     return null;
   }
   if(res.status === 401){
-    // Not signed in at all, an admin token was invalid/expired, a
-    // participant token was invalid/expired, or the wallet is locked and
-    // this action needs an admin specifically — wallet.js's message tells
-    // us which. Either way: not a connectivity problem, so never
-    // queued/retried.
-    setSyncStatus('bad');
-    if(opts.fromQueue) dequeuePendingOp(action, payload);
+    // Not signed in, an expired admin/participant token, or the wallet is
+    // locked and this needs an admin. Not a rejection of the DATA, so the op
+    // is kept — bound to whoever made it (see enqueuePendingOp) — and is
+    // replayed only when that same person is signed in again. It used to be
+    // dropped here (and on every 401 during a queue flush).
+    // Queue BEFORE clearing the session below, so the owner is still known.
+    lastPushOutcome = 'auth'; setSyncStatus('bad'); queueIt();
+    // A background replay must not log anyone out or flash gates: an expired
+    // session is already caught by pullFromSheet()'s own 401 handling.
+    if(opts.fromQueue) return null;
     if(token && token === getWalletToken()){
       // Admin session was the one that failed — same admin-gate flow as before.
       clearWalletSession();
@@ -2049,15 +2175,31 @@ async function pushToSheet(action, payload, actor, opts){
     }
     return null;
   }
-  if(data.error){
-    // A real rejection (validation, feature flag, etc.) — not a
-    // connectivity problem, so never queued/retried.
-    setSyncStatus('bad');
-    if(opts.fromQueue) dequeuePendingOp(action, payload);
-    showBanner('err', `<b>Backend rejected this change:</b> ${data.error}`);
+  if(res.status >= 500){
+    // Server fault, not an answer about the data — keep it and retry.
+    lastPushOutcome = 'network'; setSyncStatus('bad'); queueIt();
+    if(!opts.fromQueue) showBanner('err', `<b>Change saved locally — the server had a problem.</b> ${data && data.error ? data.error + ' ' : ''}It'll retry automatically.`);
     return null;
   }
-  wallet = {expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits};
+  if(data.error){
+    // A real rejection (validation, balance, feature flag, etc.): retrying
+    // can never succeed, so it is NOT queued (and a queued one is dropped).
+    // The optimistic local row is removed by re-reading server state.
+    lastPushOutcome = 'rejected'; setSyncStatus('bad');
+    if(opts.fromQueue){
+      dequeuePendingOp(action, payload);
+      showBanner('err', `<b>A change made while offline was rejected:</b> ${data.error}`);
+    }else{
+      showBanner('err', `<b>Backend rejected this change:</b> ${data.error} <i>Nothing was saved.</i>`);
+    }
+    pullFromSheet().catch(()=>{});
+    return null;
+  }
+  lastPushOutcome = 'ok';
+  // Server state wins, but other still-queued local changes are laid back on
+  // top (minus this op's own key — it has just landed).
+  applySharedWalletState(data);
+  wallet = applyPendingOverlay({expenses:data.expenses||[], settlements:data.settlements||[], activity:data.activity||[], deposits: Array.isArray(data.deposits) ? data.deposits : wallet.deposits}, opKey(action, payload));
   persistLocal();
   if(typeof data.locked === 'boolean'){ WALLET_LOCKED = data.locked; applyWalletLockUI(); }
   setSyncStatus('ok');
@@ -2512,9 +2654,20 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     showBanner('warn', '⚠️ Select which person\'s deposit to use, or uncheck the box.');
     return;
   }
-  if(paidFromDeposit && depositUsedFrom && depositedByPerson(depositUsedFrom) <= 0){
-    showBanner('warn', `⚠️ ${depositUsedFrom} doesn't have a deposit to pay this from.`);
-    return;
+  if(paidFromDeposit && depositUsedFrom){
+    // When editing, this expense's own existing withdrawal is already
+    // counted in the balance — leave it out so a re-save isn't compared
+    // against money it has itself already taken.
+    const ownWithdrawal = editingId ? (wallet.deposits||[]).find(d=>d.linkedExpenseId===editingId) : null;
+    const available = availableBalanceFor(depositUsedFrom, ownWithdrawal ? ownWithdrawal.id : null);
+    if(available <= 0){
+      showBanner('warn', `⚠️ ${depositUsedFrom} doesn't have an approved deposit to pay this from.`);
+      return;
+    }
+    if(Number(amount) > available + 0.005){
+      showBanner('warn', `⚠️ ${depositUsedFrom}'s available deposit is ${fmtINR(available)} — not enough to pay ₹${Number(amount).toFixed(2)} from it.`);
+      return;
+    }
   }
 
   const splitType = currentSplitMode();
@@ -2547,7 +2700,9 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     const actor = await requestActor("Who's adding this expense?", `Confirm your name to log "${title}".`);
     if(!actor) return;
     const id = 'e'+Date.now();
-    const withdrawalId = 'dep'+Date.now();
+    // Must match wallet.js withdrawalIdFor() so the optimistic row and the
+    // server's row are the same record when the next state comes back.
+    const withdrawalId = ('wd-'+id).slice(0,60);
     wallet.expenses.push({id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, unpaid:isUnpaid, createdBy:actor, createdAt:new Date().toISOString()});
     
     // If paid from deposit, automatically create a withdrawal entry.
@@ -2566,6 +2721,8 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
         date,
         note: `Paid for: ${title}`,
         loggedBy: actor, 
+        linkedExpenseId: id,
+        status: 'draft',
         ts: new Date().toISOString()
       });
       // Log in activity
@@ -2580,15 +2737,13 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     
     persistLocal(); closeModal('expenseModal'); renderAll();
     const synced = await pushToSheet('addExpense', {id, title, amount, category, payer, split, date, splitType, splitAmounts, paidFromDeposit, depositUsedFrom, unpaid:isUnpaid}, actor);
-    // Persist the auto-withdrawal itself — without this call it only ever
-    // existed in memory/localStorage and never actually left anyone's pool.
-    if(paidFromDeposit && depositUsedFrom){
-      await pushToSheet('addDeposit', {id: withdrawalId, person: depositUsedFrom, amount: Number(amount), date, note: `Paid for: ${title}`, type: 'withdrawal'}, actor);
-      await submitForApprovalAuto('deposit', withdrawalId, actor);
-    }
+    // The server creates the paired withdrawal in the SAME statement as the
+    // expense (and validates it against the approved balance), and
+    // submitting/approving/rejecting the expense moves the withdrawal with
+    // it — so there is no separate addDeposit / submit call here any more.
     if(synced) await submitForApprovalAuto('expense', id, actor);
     renderAll();
-    showBanner('ok', `✅ Expense "${title}" sent for admin review${paidFromDeposit ? ` (and paid from ${depositUsedFrom}'s deposit)` : isUnpaid ? ' (logged as pre-logged / unpaid)' : ''}. It'll appear for everyone once approved.`);
+    reportWrite(synced, `✅ Expense "${title}" sent for admin review${paidFromDeposit ? ` (and paid from ${depositUsedFrom}'s deposit)` : isUnpaid ? ' (logged as pre-logged / unpaid)' : ''}. It'll appear for everyone once approved.`);
   }
 });
 async function removeExpense(id){
@@ -2604,8 +2759,12 @@ async function removeExpense(id){
     if(!actor) return;
     wallet.expenses = wallet.expenses.filter(x=>x.id!==id);
     persistLocal(); closeModal('detailModal'); renderAll();
-    await pushToSheet('removeExpense', {id}, actor);
+    const removed = await pushToSheet('removeExpense', {id}, actor);
     renderAll();
+    // On a rejection pushToSheet already explained why and re-read the
+    // server state (which brings the expense back); when it was only queued
+    // offline, say so instead of leaving the user to assume it's gone.
+    if(!removed) reportWrite(removed, `Expense removed on this device.`);
   });
 }
 function viewExpense(id){
@@ -2798,8 +2957,8 @@ async function recordEqualSettlementAt(idx){
   const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note}, actor);
   if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
-  if(row) row.innerHTML = `<span class="text-sm">✅ ${p.from} → ${p.to} sent for review (₹${p.amount.toFixed(0)})${synced ? '' : ' — saved locally, will sync when reachable'}</span>`;
-  showBanner(synced ? 'ok' : 'warn', `✅ Settlement sent for admin review: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  if(row) row.innerHTML = `<span class="text-sm">${synced ? '✅' : lastPushWasQueued() ? '⏳' : '⚠️'} ${p.from} → ${p.to} ${synced ? 'sent for review' : lastPushWasQueued() ? 'saved on this device — will sync automatically' : 'NOT saved (rejected)'} (₹${p.amount.toFixed(0)})</span>`;
+  reportWrite(synced, `✅ Settlement sent for admin review: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}`);
 }
 async function recordAllEqualSettlementsFromState(){
   const payments = equalCalcState.payments;
@@ -2809,18 +2968,23 @@ async function recordAllEqualSettlementsFromState(){
   if(!actor) return;
   const btn = document.getElementById('recordAllEqualBtn');
   if(btn){ btn.disabled = true; btn.textContent = 'Recording…'; }
-  let allSynced = true;
+  let syncedN = 0, queuedN = 0, rejectedN = 0;
   for(const p of payments){
     const id = 's'+Date.now()+Math.floor(Math.random()*1000);
     wallet.settlements.push({id, from:p.from, to:p.to, amount:p.amount, note, actor, ts:new Date().toISOString()});
     const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note}, actor);
-    if(!synced){ allSynced = false; }
-    else{ await submitForApprovalAuto('settlement', id, actor); }
+    if(synced){ syncedN++; await submitForApprovalAuto('settlement', id, actor); }
+    else if(lastPushWasQueued()){ queuedN++; }
+    else{ rejectedN++; }
   }
   persistLocal(); renderAll();
   equalCalcState = { payments: [], note: '' };
   closeModal('settlementModal');
-  showBanner(allSynced ? 'ok' : 'warn', `✅ Sent ${payments.length} settlements for admin review.${allSynced ? '' : ' Some may only be saved locally — check the sync status and hit Refresh.'}`);
+  const parts = [];
+  if(syncedN) parts.push(`✅ Sent ${syncedN} settlement${syncedN===1?'':'s'} for admin review.`);
+  if(queuedN) parts.push(`⏳ ${queuedN} not synced yet — kept on this device and will sync automatically.`);
+  if(rejectedN) parts.push(`⚠️ ${rejectedN} rejected by the backend and not saved.`);
+  showBanner(queuedN || rejectedN ? 'warn' : 'ok', parts.join(' '));
 }
 function updateSettlementDepositOption(){
   const fromPerson = document.getElementById('s-from').value;
@@ -2912,7 +3076,7 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
   if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
   const method = useDeposit ? ` via ${from}'s deposit` : '';
-  showBanner(synced ? 'ok' : 'warn', `✅ Settlement sent for admin review: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+  reportWrite(synced, `✅ Settlement sent for admin review: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}`);
 });
 async function removeSettlement(id){
   confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
@@ -2923,7 +3087,7 @@ async function removeSettlement(id){
     persistLocal(); renderAll();
     const synced = await pushToSheet('removeSettlement', {id}, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `Settlement removed.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    reportWrite(synced, `Settlement removed.`);
   });
 }
 
@@ -3004,7 +3168,8 @@ function canDeleteExpense(ex){
 }
 function isSelfOnlyRecord(status, approvedBy){ return (status || 'approved') === 'approved' && approvedBy === SELF_ONLY_MARKER; }
 
-function statusPillHtml(status, approvedBy){
+function statusPillHtml(status, approvedBy, unsynced){
+  if(unsynced) return `<span class="status-pill draft" title="Saved on this device only — not on the server yet">Unsynced</span>`;
   if(isSelfOnlyRecord(status, approvedBy)) return `<span class="status-pill selfonly">Self-only expense</span>`;
   const s = status || 'approved';
   const cls = s === 'pending_approval' ? 'pending' : (['draft','approved','rejected','published'].includes(s) ? s : 'draft');
@@ -3459,7 +3624,7 @@ function renderExpensesTable(){
       <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : ex.split.join(', ')}</td>
       <td class="mono text-xs">${ex.date||'—'}</td>
       <td class="text-xs opacity-60">${ex.updatedBy || ex.createdBy || '—'}</td>
-      <td>${statusPillHtml(ex.status, ex.approvedBy)}</td>
+      <td>${statusPillHtml(ex.status, ex.approvedBy, ex._unsynced)}</td>
       <td>
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
@@ -3600,10 +3765,10 @@ function renderWallet(){
       <td class="text-sm opacity-70">${escapeHtml(d.note||'—')}</td>
       <td class="text-sm">${d.date||'—'}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.loggedBy||'—')}</td>
-      <td>${statusPillHtml(d.status)}</td>
+      <td>${statusPillHtml(d.status, null, d._unsynced)}</td>
       <td class="text-right whitespace-nowrap">
-        <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
-        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>
+        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>`}
       </td>
     </tr>`;
   }).join('');
@@ -3626,24 +3791,61 @@ function setDepositMode(mode){
   updateDepositSubmitState();
 }
 
-// Live validation guard: the submit button is disabled whenever the
-// amount is empty, non-numeric, or <= 0 — not just relying on the
-// input's HTML5 min="0.01", since that only blocks submission (and
-// inconsistently across browsers) rather than making it visibly clear
-// upfront that a zero/negative amount won't go through.
-// For withdrawals specifically, also disabled when there's nothing in
-// the pot at all (totalDeposited() <= 0), or when the selected person
-// has no deposit of their own to withdraw from (depositedByPerson()
-// <= 0) — withdrawing against a deposit that doesn't exist shouldn't
-// be possible regardless of the amount typed.
-function updateDepositSubmitState(){
-  const amount = parseFloat(document.getElementById('d-amount').value);
+// Live validation guard for the deposit/withdrawal form.
+// getDepositFormError() is the single source of truth: it returns a
+// human-readable reason string when the form can't be submitted, or
+// null when it's fine. The button state, the reason text shown under
+// it, AND the submit handler all use it, so they can never disagree.
+//
+// Rules:
+//  - amount must be a number > 0 (any type, create or edit).
+//  - withdrawal "needs an approved balance" check runs on CREATE only —
+//    when editing, the record being edited is excluded from the balance
+//    and the amount is compared against what's left without it, so a
+//    withdrawal that empties a balance can still be re-saved.
+//  - withdrawal amount may never exceed the person's available
+//    (approved) balance, excluding the record being edited.
+//  - a pending deposit doesn't count (only approved rows do), and the
+//    reason says so instead of silently disabling the button.
+function availableBalanceFor(person, excludeId){
+  return countableDeposits()
+    .filter(d => d.person === person && d.id !== excludeId)
+    .reduce((s,d)=> s + (Number(d.amount||0) * (d.type === 'withdrawal' ? -1 : 1)), 0);
+}
+function pendingDepositsFor(person, excludeId){
+  return (wallet.deposits||[])
+    .filter(d => d.person === person && d.id !== excludeId && !isCountable(d.status) && d.status !== 'rejected' && d.type !== 'withdrawal')
+    .reduce((s,d)=> s + Number(d.amount||0), 0);
+}
+function fmtINR(n){ return '₹' + Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function getDepositFormError(){
+  const raw = document.getElementById('d-amount').value;
+  const amount = parseFloat(raw);
   const person = document.getElementById('d-person').value;
-  let valid = Number.isFinite(amount) && amount > 0;
-  if(valid && depositMode === 'withdrawal'){
-    valid = totalDeposited() > 0 && depositedByPerson(person) > 0;
+  if(!raw) return null; // nothing typed yet: button stays disabled, no scolding
+  if(!Number.isFinite(amount) || amount <= 0) return 'Enter an amount greater than ₹0.';
+  if(depositMode === 'withdrawal'){
+    const available = availableBalanceFor(person, depositEditingId);
+    if(!depositEditingId && available <= 0){
+      const pending = pendingDepositsFor(person);
+      return pending > 0
+        ? `${person} has no approved balance yet — ${fmtINR(pending)} in deposits is still waiting for admin approval.`
+        : `${person} has no approved deposit to withdraw from.`;
+    }
+    if(amount > available + 0.005){
+      return `Withdrawal can't exceed ${person}'s available balance of ${fmtINR(Math.max(available,0))}.`;
+    }
   }
-  document.getElementById('depositSubmitBtn').disabled = !valid;
+  return null;
+}
+function updateDepositSubmitState(){
+  const raw = document.getElementById('d-amount').value;
+  const amount = parseFloat(raw);
+  const err = getDepositFormError();
+  const empty = !raw || !Number.isFinite(amount) || amount <= 0;
+  document.getElementById('depositSubmitBtn').disabled = empty || !!err;
+  const hint = document.getElementById('depositFormHint');
+  if(hint){ hint.textContent = err || ''; hint.style.display = err ? 'block' : 'none'; }
 }
 document.getElementById('d-amount').addEventListener('input', updateDepositSubmitState);
 document.getElementById('d-person').addEventListener('change', updateDepositSubmitState);
@@ -3688,6 +3890,8 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
   const note = document.getElementById('d-note').value.trim();
   const type = depositMode;
   if(!person || !amount || amount <= 0) return;
+  const formErr = getDepositFormError();
+  if(formErr){ updateDepositSubmitState(); return; }
 
   const editing = depositEditingId;
   const actor = await checkWalletAdmin(editing ? (type==='deposit' ? 'edit deposits' : 'edit withdrawals') : (type==='deposit' ? 'add deposits' : 'add withdrawals'));
@@ -3706,7 +3910,7 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     // the backend, so resubmit it for approval automatically.
     if(synced && !IS_WALLET_ADMIN) await submitForApprovalAuto('deposit', editing, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} updated for <b>${person}</b>.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    reportWrite(synced, `✅ ${typeLabel} updated for <b>${person}</b>.`);
   } else {
     const id = 'dep'+Date.now();
     wallet.deposits = wallet.deposits || [];
@@ -3715,7 +3919,7 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     const synced = await pushToSheet('addDeposit', {id, person, amount, date, note, type}, actor);
     if(synced) await submitForApprovalAuto('deposit', id, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `✅ ${typeLabel} of ₹${amount.toFixed(2)} for <b>${person}</b> sent for admin review.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    reportWrite(synced, `✅ ${typeLabel} of ₹${amount.toFixed(2)} for <b>${person}</b> sent for admin review.`);
   }
   if(pdReturnPerson){ const rp = pdReturnPerson; pdReturnPerson = null; viewPersonDeposits(rp); }
 });
@@ -3729,7 +3933,7 @@ async function removeDeposit(id, forPerson){
     persistLocal(); renderAll();
     const synced = await pushToSheet('deleteDeposit', {id}, actor);
     renderAll();
-    showBanner(synced ? 'ok' : 'warn', `Deposit removed.${synced ? '' : ' (saved locally — sheet sync will retry)'}`);
+    reportWrite(synced, `Deposit removed.`);
     if(forPerson) viewPersonDeposits(forPerson);
   });
 }
@@ -3769,8 +3973,8 @@ function viewPersonDeposits(person){
         <p class="text-xs opacity-50">${d.date||'—'}${d.note ? ' · '+escapeHtml(d.note) : ''} · logged by ${escapeHtml(d.loggedBy||'—')}</p>
       </div>
       <div class="flex gap-1.5">
-        <span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✎</span>
-        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✕</span>
+        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✕</span>`}
       </div>
     </div>`;
   }).join('');
@@ -3945,33 +4149,11 @@ document.getElementById('renameForm').addEventListener('submit', async e=>{
   const actor = await checkWalletAdmin('rename participants');
   if(!actor) return;
 
-  const idx = PARTICIPANTS.indexOf(oldName);
-  if(idx === -1) return;
-  PARTICIPANTS[idx] = trimmed;
-  persistParticipants();
-
-  wallet.expenses.forEach(ex=>{
-    if(ex.payer === oldName) ex.payer = trimmed;
-    ex.split = (ex.split||[]).map(p => p === oldName ? trimmed : p);
-    if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, oldName)){
-      ex.splitAmounts[trimmed] = ex.splitAmounts[oldName];
-      delete ex.splitAmounts[oldName];
-    }
-  });
-  wallet.settlements.forEach(s=>{
-    if(s.from === oldName) s.from = trimmed;
-    if(s.to === oldName) s.to = trimmed;
-  });
-  wallet.activity.forEach(a=>{
-    if(a.actor === oldName) a.actor = trimmed;
-  });
-  adjustments.forEach(a=>{ if(a.person === oldName) a.person = trimmed; });
-  persistAdjustments();
-
-  persistLocal();
+  const result = await pushToSheet('renameParticipant', {oldName, newName:trimmed}, actor);
+  if(!result) return;
   closeModal('participantEditModal');
   renderAll();
-  showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
+  showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b> for everyone.`);
 });
 
 /* ---------------------------------------------------------------
@@ -3991,56 +4173,11 @@ document.getElementById('mergeForm').addEventListener('submit', async e=>{
   const actor = await checkWalletAdmin('merge participants');
   if(!actor) return;
 
-  // Expenses: reassign payer; merge split membership + individual amounts.
-  wallet.expenses.forEach(ex=>{
-    if(ex.payer === source) ex.payer = target;
-    if((ex.split||[]).includes(source)){
-      if(ex.split.includes(target)){
-        // Both source and target are already in this split — drop the
-        // source slot rather than leaving a duplicate entry for the
-        // same (now-merged) person.
-        ex.split = ex.split.filter(p => p !== source);
-        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
-          const sourceAmt = Number(ex.splitAmounts[source]) || 0;
-          const targetAmt = Number(ex.splitAmounts[target]) || 0;
-          ex.splitAmounts[target] = sourceAmt + targetAmt;
-          delete ex.splitAmounts[source];
-        }
-      }else{
-        ex.split = ex.split.map(p => p === source ? target : p);
-        if(ex.splitAmounts && Object.prototype.hasOwnProperty.call(ex.splitAmounts, source)){
-          ex.splitAmounts[target] = ex.splitAmounts[source];
-          delete ex.splitAmounts[source];
-        }
-      }
-    }
-  });
-
-  // Settlements: reassign from/to. A settlement directly between source
-  // and target becomes self-referential after merging (paying yourself)
-  // — drop those rather than keep a meaningless record.
-  wallet.settlements = wallet.settlements.filter(s=>{
-    const newFrom = s.from === source ? target : s.from;
-    const newTo = s.to === source ? target : s.to;
-    if(newFrom === newTo) return false;
-    s.from = newFrom; s.to = newTo;
-    return true;
-  });
-
-  // Deposits, activity log, manual adjustments — simple rename onto target.
-  (wallet.deposits||[]).forEach(d=>{ if(d.person === source) d.person = target; });
-  wallet.activity.forEach(a=>{ if(a.actor === source) a.actor = target; });
-  adjustments.forEach(a=>{ if(a.person === source) a.person = target; });
-  persistAdjustments();
-
-  const idx = PARTICIPANTS.indexOf(source);
-  if(idx !== -1) PARTICIPANTS.splice(idx, 1);
-  persistParticipants();
-
-  persistLocal();
+  const result = await pushToSheet('mergeParticipant', {source, target}, actor);
+  if(!result) return;
   closeModal('participantEditModal');
   renderAll();
-  showBanner('ok', `Merged <b>${source}</b> into <b>${target}</b>. This is saved on this device — it isn't pushed to the shared sheet.`);
+  showBanner('ok', `Merged <b>${source}</b> into <b>${target}</b> for everyone.`);
 });
 
 document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
@@ -4057,22 +4194,24 @@ document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
 
   const signedAmount = direction === 'subtract' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
   const id = 'adj'+Date.now();
-  adjustments.push({id, person, amount:signedAmount, note, actor, ts:new Date().toISOString()});
-  persistAdjustments();
+  const result = await pushToSheet('addAdjustment', {id, person, amount:signedAmount, note}, actor);
+  if(!result) return;
   renderAll();
   openParticipantEditModal(person); // refresh the modal's own numbers in place
-  showBanner('ok', `Applied a ${signedAmount>=0?'+':'−'}₹${Math.abs(signedAmount).toFixed(0)} adjustment to <b>${person}</b>. Saved on this device — it isn't pushed to the shared sheet.`);
+  showBanner('ok', `Applied a ${signedAmount>=0?'+':'−'}₹${Math.abs(signedAmount).toFixed(0)} adjustment to <b>${person}</b> for everyone.`);
 });
 
 function removeAdjustment(id){
   const a = adjustments.find(x=>x.id===id);
-  confirmAction('Remove this adjustment?', a ? `"${a.note}" (${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}) will be undone.` : 'This adjustment will be removed.', ()=>{
+  confirmAction('Remove this adjustment?', a ? `"${a.note}" (${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}) will be undone.` : 'This adjustment will be removed.', async ()=>{
     const person = a ? a.person : peCurrentPerson;
-    adjustments = adjustments.filter(x=>x.id!==id);
-    persistAdjustments();
+    const actor = await checkWalletAdmin('remove manual balance adjustments');
+    if(!actor) return;
+    const result = await pushToSheet('deleteAdjustment', {id}, actor);
+    if(!result) return;
     renderAll();
     if(peCurrentPerson) openParticipantEditModal(peCurrentPerson);
-    showBanner('ok', 'Adjustment removed.');
+    showBanner('ok', 'Adjustment removed for everyone.');
   });
 }
 
@@ -4149,7 +4288,7 @@ function renderSettlements(){
       <td>${s.from}</td><td>${s.to}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
       <td class="text-xs opacity-60">${method} ${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
       <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
-      <td>${statusPillHtml(s.status)}</td>
+      <td>${statusPillHtml(s.status, null, s._unsynced)}</td>
       <td>${IS_WALLET_ADMIN ? `<span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span>` : ''}</td>
     </tr>`;
   }).join('');
@@ -4233,7 +4372,7 @@ function renderMySubmissions(){
         </div>
         <div class="flex items-center gap-2">
           <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
-          ${statusPillHtml(r.status, r.approvedBy)}
+          ${statusPillHtml(r.status, r.approvedBy, r._unsynced)}
         </div>
       </div>
       ${submissionStepperHtml(r.status, r.approvedBy)}
@@ -4353,7 +4492,7 @@ function renderApprovals(){
         </div>
         <div class="flex items-center gap-2">
           <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
-          ${statusPillHtml(r.status, r.approvedBy)}
+          ${statusPillHtml(r.status, r.approvedBy, r._unsynced)}
         </div>
       </div>
       <p class="text-xs opacity-50">by ${escapeHtml(r.who || '—')}</p>

@@ -75,6 +75,8 @@
   .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#64748b; } .dot.prog{ background:#fbbf24; box-shadow:0 0 6px rgba(251,191,36,.6); } .dot.done{ background:#34d399; box-shadow:0 0 6px rgba(52,211,153,.6); }
   .ibtn{ border:none; background:none; cursor:pointer; color:#94A3B8; font-size:14px; padding:6px; border-radius:8px; } .ibtn.e:hover{ color:#22d3ee; background:#1e293b; } .ibtn.d:hover{ color:#fb7185; background:#1e293b; }
   .by{ font-size:10.5px; color:#64748B; font-family:'Space Mono',monospace; }
+  .resolution{ margin-top:11px; padding:10px 12px; border-left:3px solid #34d399; border-radius:0 8px 8px 0; background:rgba(16,185,129,.09); color:#bbf7d0; font-size:12.5px; line-height:1.5; }
+  .resolution b{ display:block; margin-bottom:2px; color:#6ee7b7; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; }
   /* modal, notes, toasts */
   .modal{ position:fixed; inset:0; z-index:60; background:rgba(2,6,23,.8); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:16px; } .modal.show{ display:flex; }
   .modal .card{ width:100%; max-width:560px; max-height:92vh; overflow:auto; padding:24px; } .modal h2{ font-family:'Space Grotesk',sans-serif !important; font-size:1.15rem !important; color:#fff; display:flex; align-items:center; gap:9px; } .modal h2 .i{ color:#22d3ee; }
@@ -152,6 +154,7 @@
   html[data-theme="light"] .ibtn.e:hover{ color:#0891b2; background:#F1F5F9; }
   html[data-theme="light"] .ibtn.d:hover{ color:#e11d48; background:#F1F5F9; }
   html[data-theme="light"] .by{ color:#94A3B8; }
+  html[data-theme="light"] .resolution{ background:#ECFDF5; color:#065F46; border-left-color:#10B981; } html[data-theme="light"] .resolution b{ color:#047857; }
   html[data-theme="light"] .modal{ background:rgba(15,23,42,.45); }
   html[data-theme="light"] .modal h2{ color:#0F172A; }
   html[data-theme="light"] .modal h2 .i{ color:#0891b2; }
@@ -214,6 +217,7 @@
     <div class="field" style="grid-column:span 2;"><label>Tag</label><input type="text" id="t-tag" maxlength="40" placeholder="e.g. Root cause, Verified fixed" /></div>
   </div>
   <div class="field"><label>Description / root cause</label><textarea id="t-desc" maxlength="4000"></textarea></div>
+  <div class="field"><label>Resolution note</label><textarea id="t-resolution" maxlength="4000" placeholder="What changed, why it fixes the root cause, and how it was verified."></textarea></div>
   <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;"><input type="checkbox" id="t-pub" style="width:auto;" /> Show title &amp; status on the public Report a Bug page</label>
   <p id="t-reporter" class="hidden" style="font-size:12.5px;opacity:.7;"></p>
   <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;"><button type="button" class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-primary" type="submit">Save</button></div>
@@ -253,7 +257,7 @@ async function poll(){
 function render(){
   const q = document.getElementById('f-q').value.toLowerCase();
   const f = { status:'f-status', priority:'f-prio', category:'f-cat', source:'f-src' };
-  const list = bugs.filter(b => (!q || (b.title + ' ' + b.description + ' ' + b.tag).toLowerCase().includes(q))
+  const list = bugs.filter(b => (!q || (b.title + ' ' + b.description + ' ' + b.resolutionNote + ' ' + b.tag).toLowerCase().includes(q))
     && Object.entries(f).every(([k, id]) => { const v = document.getElementById(id).value; return !v || b[k] === v; }));
   document.getElementById('s-total').textContent = bugs.length;
   document.getElementById('s-prog').textContent = bugs.filter(b => b.status === 'In Progress').length;
@@ -273,7 +277,8 @@ function render(){
         ${b.source === 'user' ? `<span class="chip user">${ic('user')} user report</span>` : ''}${b.isPublic ? `<span class="chip pub">${ic('globe')} public</span>` : ''}</div>
         <span class="due${late ? ' late' : ''}">${ic('cal')} ${escapeHtml(b.dueDate || 'No date')}</span></div>
       <h3>${escapeHtml(b.title)}</h3>
-      <p onclick="this.classList.toggle('open')" title="Click to expand">${escapeHtml(b.description || 'No description provided.')}</p></div>
+      <p onclick="this.classList.toggle('open')" title="Click to expand">${escapeHtml(b.description || 'No description provided.')}</p>
+      ${b.resolutionNote ? `<div class="resolution"><b>Resolution note</b>${escapeHtml(b.resolutionNote)}</div>` : ''}</div>
       <div class="foot"><span class="cat ${ck[1]}">${ic(ck[0])} ${escapeHtml(b.category)}</span>
         <span style="display:flex;align-items:center;gap:4px;">${b.updatedBy ? `<span class="by">${escapeHtml(b.updatedBy)}</span>` : ''}
         <button class="sbtn" onclick="cycle('${b.id}')" title="Change status"><span class="dot ${b.status === 'Completed' ? 'done' : b.status === 'In Progress' ? 'prog' : ''}"></span>${b.status}</button>
@@ -301,7 +306,7 @@ function openModal(id){
   const v = (k, val) => document.getElementById(k).value = val;
   document.getElementById('m-title').innerHTML = (b ? ic('pen') + ' Edit task' : ic('plus') + ' Create new task');
   v('t-id', b ? b.id : ''); v('t-name', b ? b.title : ''); v('t-cat', b ? b.category : 'Bug Fix'); v('t-prio', b ? b.priority : 'Medium');
-  v('t-status', b ? b.status : 'To Do'); v('t-due', b ? b.dueDate : ''); v('t-tag', b ? b.tag : ''); v('t-desc', b ? b.description : '');
+  v('t-status', b ? b.status : 'To Do'); v('t-due', b ? b.dueDate : ''); v('t-tag', b ? b.tag : ''); v('t-desc', b ? b.description : ''); v('t-resolution', b ? b.resolutionNote || '' : '');
   document.getElementById('t-pub').checked = b ? b.isPublic : false;
   const r = document.getElementById('t-reporter');
   r.classList.toggle('hidden', !(b && b.source === 'user'));
@@ -312,7 +317,7 @@ function closeModal(){ document.getElementById('modal').classList.remove('show')
 async function saveTask(e){
   e.preventDefault();
   const g = k => document.getElementById(k).value;
-  const payload = { id:g('t-id'), title:g('t-name'), category:g('t-cat'), priority:g('t-prio'), status:g('t-status'), dueDate:g('t-due'), tag:g('t-tag'), description:g('t-desc'), isPublic:document.getElementById('t-pub').checked };
+  const payload = { id:g('t-id'), title:g('t-name'), category:g('t-cat'), priority:g('t-prio'), status:g('t-status'), dueDate:g('t-due'), tag:g('t-tag'), description:g('t-desc'), resolutionNote:g('t-resolution'), isPublic:document.getElementById('t-pub').checked };
   inflight++; setSyncStatus('pending');
   try{ await call({ action:'save', payload }); version = ''; toast('Saved to database'); closeModal(); }
   catch(err){ if(err.message !== 'auth') toast('Could not save: ' + err.message, 'rose'); }

@@ -95,6 +95,21 @@ const SCHEMAS = {
     id: { type: 'string', maxLen: 60, required: true },
     reason: { type: 'string', maxLen: 300 },
   },
+  addAdjustment: {
+    id: { type: 'string', maxLen: 60, required: true },
+    person: { type: 'string', maxLen: 80, required: true },
+    amount: { type: 'number', min: -10000000, max: 10000000, required: true },
+    note: { type: 'string', maxLen: 200, required: true },
+  },
+  deleteAdjustment: { id: { type: 'string', maxLen: 60, required: true } },
+  renameParticipant: {
+    oldName: { type: 'string', maxLen: 80, required: true },
+    newName: { type: 'string', maxLen: 80, required: true },
+  },
+  mergeParticipant: {
+    source: { type: 'string', maxLen: 80, required: true },
+    target: { type: 'string', maxLen: 80, required: true },
+  },
 };
 
 function validateSplitAmounts(action, payload) {
@@ -147,6 +162,50 @@ async function ensureUnpaidExpenseSchema() {
   unpaidExpenseSchemaEnsured = true;
 }
 
+// Shared administrative wallet state. Keeping adjustments and name aliases in
+// dedicated tables makes them visible on every device and preserves the raw
+// registration identity used by login.js.
+let sharedWalletStateSchemaEnsured = false;
+async function ensureSharedWalletStateSchema() {
+  if (sharedWalletStateSchemaEnsured) return;
+  await query(`CREATE TABLE IF NOT EXISTS wallet_adjustments (
+    id TEXT PRIMARY KEY, trip_id TEXT NOT NULL, person TEXT NOT NULL,
+    amount NUMERIC NOT NULL, note TEXT NOT NULL, actor TEXT NOT NULL,
+    ts TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`CREATE TABLE IF NOT EXISTS wallet_participant_aliases (
+    trip_id TEXT NOT NULL, source_name TEXT NOT NULL, target_name TEXT NOT NULL,
+    PRIMARY KEY (trip_id, source_name)
+  )`);
+  sharedWalletStateSchemaEnsured = true;
+}
+
+function resolveAlias(name, aliases) {
+  let value = name;
+  const seen = new Set();
+  while (aliases[value] && !seen.has(value)) {
+    seen.add(value);
+    value = aliases[value];
+  }
+  return value;
+}
+
+function remapExpensePeople(expense, person) {
+  const split = [];
+  (expense.split || []).map(person).forEach((name) => {
+    if (!split.includes(name)) split.push(name);
+  });
+  let splitAmounts = expense.splitAmounts;
+  if (splitAmounts) {
+    splitAmounts = {};
+    Object.entries(expense.splitAmounts).forEach(([name, amount]) => {
+      const mapped = person(name);
+      splitAmounts[mapped] = (Number(splitAmounts[mapped]) || 0) + (Number(amount) || 0);
+    });
+  }
+  return { ...expense, payer: person(expense.payer), depositUsedFrom: person(expense.depositUsedFrom), split, splitAmounts };
+}
+
 // Phase 2 schema, added here (not just once at boot) for the same
 // cold-start-independence reason as ensureWalletLockSchema above.
 // DEFAULT 'approved' on the new status column is deliberate: it's a
@@ -169,6 +228,10 @@ async function ensureApprovalSchema() {
     await query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ`);
     await query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
   }
+  // A "paid from deposit" expense owns exactly one withdrawal row; this
+  // column points that row back at its expense so the two can be
+  // created, submitted, approved, rejected and deleted as one unit.
+  await query('ALTER TABLE deposits ADD COLUMN IF NOT EXISTS linked_expense_id TEXT');
   approvalSchemaEnsured = true;
 }
 
@@ -180,6 +243,48 @@ async function getRecordForApproval(tripId, recordType, id) {
   const { rows } = await query(`SELECT * FROM ${def.table} WHERE trip_id=$1 AND id=$2`, [tripId, id]);
   if (!rows.length) return null;
   return { ...rows[0], _table: def.table, _ownerColumn: def.ownerColumn };
+}
+
+// Deterministic id for the withdrawal that belongs to an expense, so the
+// client can predict it and retries can't create a second one.
+function withdrawalIdFor(expenseId) { return ('wd-' + expenseId).slice(0, 60); }
+
+// A person's spendable deposit balance = APPROVED deposits minus APPROVED
+// withdrawals (same rule the frontend uses via isCountable). excludeId
+// leaves one row out, used when that row is being edited/replaced.
+async function approvedDepositBalance(tripId, person, excludeId) {
+  const { rows } = await query(
+    `SELECT COALESCE(SUM(CASE WHEN COALESCE(type,'deposit')='withdrawal' THEN -amount ELSE amount END), 0) AS bal
+       FROM deposits
+      WHERE trip_id=$1 AND person=$2
+        AND COALESCE(status,'approved') IN ('approved','published')
+        AND ($3::text IS NULL OR id <> $3::text)`,
+    [tripId, person, excludeId || null]
+  );
+  return Number(rows[0] && rows[0].bal) || 0;
+}
+function insufficientBalanceMsg(person, bal, amount) {
+  return `${person}'s approved deposit balance is Rs.${Math.max(bal, 0).toFixed(2)} — not enough for Rs.${Number(amount).toFixed(2)}.`;
+}
+
+// Expense <-> auto-withdrawal pairing. Returns the OTHER half of the pair
+// (plus the withdrawal's own details, needed for the balance check), or
+// null when the record isn't part of a pair.
+async function getLinkedPair(tripId, recordType, record) {
+  if (recordType === 'expense') {
+    const { rows } = await query(
+      'SELECT id, status, person, amount FROM deposits WHERE trip_id=$1 AND linked_expense_id=$2 LIMIT 1', [tripId, record.id]);
+    if (!rows.length) return null;
+    return { table: 'deposits', id: rows[0].id, status: rows[0].status || 'approved',
+      withdrawal: { id: rows[0].id, person: rows[0].person, amount: Number(rows[0].amount) } };
+  }
+  if (recordType === 'deposit' && record.linked_expense_id) {
+    const { rows } = await query('SELECT id, status FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, record.linked_expense_id]);
+    if (!rows.length) return null;
+    return { table: 'expenses', id: rows[0].id, status: rows[0].status || 'approved',
+      withdrawal: { id: record.id, person: record.person, amount: Number(record.amount) } };
+  }
+  return null;
 }
 
 // A "self-only" expense: the actor paid it themselves, out of their own
@@ -240,13 +345,18 @@ async function readState(tripId, viewer) {
   await ensureWalletLockSchema();
   await ensureApprovalSchema();
   await ensureUnpaidExpenseSchema();
-  const [expenses, settlements, deposits, activity, trip] = await Promise.all([
+  await ensureSharedWalletStateSchema();
+  const [expenses, settlements, deposits, activity, trip, adjustments, aliases] = await Promise.all([
     query('SELECT * FROM expenses WHERE trip_id=$1 ORDER BY created_at', [tripId]),
     query('SELECT * FROM settlements WHERE trip_id=$1 ORDER BY ts', [tripId]),
     query('SELECT * FROM deposits WHERE trip_id=$1 ORDER BY ts', [tripId]),
     query('SELECT * FROM activity WHERE trip_id=$1 ORDER BY ts', [tripId]),
     query('SELECT wallet_participants, wallet_locked FROM trips WHERE id=$1', [tripId]),
+    query('SELECT id, person, amount, note, actor, ts FROM wallet_adjustments WHERE trip_id=$1 ORDER BY ts', [tripId]),
+    query('SELECT source_name, target_name FROM wallet_participant_aliases WHERE trip_id=$1', [tripId]),
   ]);
+  const aliasMap = Object.fromEntries(aliases.rows.map((r) => [r.source_name, r.target_name]));
+  const person = (name) => resolveAlias(name, aliasMap);
   const mappedExpenses = expenses.rows.map((r) => ({
     id: r.id, title: r.title, category: r.category, amount: Number(r.amount), payer: r.payer,
     split: r.split || [], date: r.date, createdBy: r.created_by, createdAt: r.created_at,
@@ -254,23 +364,25 @@ async function readState(tripId, viewer) {
     splitAmounts: r.split_amounts, paidFromDeposit: r.paid_from_deposit, depositUsedFrom: r.deposit_used_from,
     unpaid: !!r.unpaid,
     ...approvalFields(r),
-  }));
+  })).map((r) => remapExpensePeople(r, person));
   const mappedSettlements = settlements.rows.map((r) => ({
-    id: r.id, from: r.from_person, to: r.to_person, amount: Number(r.amount), note: r.note,
+    id: r.id, from: person(r.from_person), to: person(r.to_person), amount: Number(r.amount), note: r.note,
     actor: r.actor, ts: r.ts, usedDeposit: r.used_deposit,
     ...approvalFields(r),
   }));
   const mappedDeposits = deposits.rows.map((r) => ({
-    id: r.id, person: r.person, amount: Number(r.amount), date: r.date, note: r.note,
-    loggedBy: r.logged_by, ts: r.ts, type: normalizeDepositType(r.type),
+    id: r.id, person: person(r.person), amount: Number(r.amount), date: r.date, note: r.note,
+    loggedBy: r.logged_by, ts: r.ts, type: normalizeDepositType(r.type), linkedExpenseId: r.linked_expense_id || null,
     ...approvalFields(r),
   }));
   return {
     expenses: filterVisible(mappedExpenses, 'createdBy', viewer),
     settlements: filterVisible(mappedSettlements, 'actor', viewer),
     deposits: filterVisible(mappedDeposits, 'loggedBy', viewer),
-    activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: r.actor, action: r.action, detail: r.detail })),
-    participants: (trip.rows[0] && trip.rows[0].wallet_participants) || [],
+    activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: person(r.actor), action: r.action, detail: r.detail })),
+    adjustments: adjustments.rows.map((r) => ({ id: r.id, person: person(r.person), amount: Number(r.amount), note: r.note, actor: r.actor, ts: r.ts })),
+    participantAliases: aliasMap,
+    participants: ((trip.rows[0] && trip.rows[0].wallet_participants) || []).map(person),
     // Signed-in users (admin or participant) get this back so
     // goa-wallet.html can switch itself into read-only mode client-side,
     // on top of the real enforcement below on POST.
@@ -341,7 +453,7 @@ exports.handler = async (event) => {
     // records (and those still go through the approval queue), but
     // deleting a record removes it outright with no review step, so that
     // stays admin-only the same way resetWallet/approveRecord do.
-    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'removeExpense', 'removeSettlement', 'deleteDeposit'];
+    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'removeExpense', 'removeSettlement', 'deleteDeposit', 'addAdjustment', 'deleteAdjustment', 'renameParticipant', 'mergeParticipant'];
     const locked = await getWalletLockState(tripId);
     // Exception: a user may delete their OWN self-only expense (private,
     // never reviewed by anyone) — unless the wallet is locked.
@@ -376,6 +488,7 @@ exports.handler = async (event) => {
     // (submitForApproval/approveRecord/rejectRecord).
     await ensureApprovalSchema();
     await ensureUnpaidExpenseSchema();
+    await ensureSharedWalletStateSchema();
 
     if (action === 'addExpense' || action === 'editExpense') {
       // Conditional payer requirement: schema no longer enforces it
@@ -392,10 +505,28 @@ exports.handler = async (event) => {
       const splitType = payload.splitType === 'individual' ? 'individual' : 'equal';
       const isUnpaid = !!payload.unpaid;
       const selfOnly = !isAdmin && isSelfOnlyExpense(payload, actor);
-      await query(
-        `INSERT INTO expenses (id, trip_id, title, category, amount, payer, split, date, created_by, split_type,
+      // Paid-from-deposit: the expense and its withdrawal are created in ONE
+      // statement (a data-modifying CTE), so either both rows exist or
+      // neither does — the old client flow sent them as separate writes and
+      // could leave an expense without a withdrawal or vice versa.
+      const depositPerson = sanitizeText(payload.depositUsedFrom || '', 80);
+      const fromDeposit = !!payload.paidFromDeposit;
+      if (fromDeposit) {
+        if (isUnpaid) return badRequest("A pre-logged / unpaid expense can't also be paid from a deposit.");
+        if (!depositPerson) return badRequest("Pick whose deposit this expense is paid from.");
+        if (!(amount > 0)) return badRequest('Amount must be greater than 0 to pay from a deposit.');
+        const bal = await approvedDepositBalance(tripId, depositPerson, null);
+        if (amount > bal + 0.005) return badRequest(insufficientBalanceMsg(depositPerson, bal, amount));
+      }
+      const expenseInsertSql = `INSERT INTO expenses (id, trip_id, title, category, amount, payer, split, date, created_by, split_type,
            split_amounts, paid_from_deposit, deposit_used_from, status, unpaid, approved_by, approved_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$15,$14,$16,$17)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$15,$14,$16,$17)`;
+      const withdrawalCte = `WITH wd AS (
+           INSERT INTO deposits (id, trip_id, person, amount, date, note, logged_by, type, status, linked_expense_id)
+           VALUES ($18,$19,$20,$21,$22,$23,$24,'withdrawal','draft',$25) RETURNING id
+         ) `;
+      await query(
+        (fromDeposit ? withdrawalCte : '') + expenseInsertSql,
         [
           sanitizeText(payload.id, 60), tripId, sanitizeText(payload.title, 120), sanitizeText(payload.category || 'Misc', 40),
           amount, isUnpaid ? '' : sanitizeText(payload.payer, 80), JSON.stringify((payload.split || []).map((s) => sanitizeText(s, 80))),
@@ -403,6 +534,10 @@ exports.handler = async (event) => {
           payload.splitAmounts ? JSON.stringify(payload.splitAmounts) : null,
           !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80), isUnpaid,
           selfOnly ? 'approved' : 'draft', selfOnly ? AUTO_APPROVED_BY : null, selfOnly ? new Date().toISOString() : null,
+          ...(fromDeposit ? [
+            withdrawalIdFor(sanitizeText(payload.id, 60)), tripId, depositPerson, amount, sanitizeText(payload.date || '', 20),
+            sanitizeText(`Paid for: ${sanitizeText(payload.title, 120)}`, 200), actor, sanitizeText(payload.id, 60),
+          ] : []),
         ]
       );
       // Private self-only expenses leave no trace in the shared activity log.
@@ -432,6 +567,24 @@ exports.handler = async (event) => {
         ownsRecord = cur.length > 0 && cur[0].created_by === actor;
       }
       const selfOnly = !isAdmin && ownsRecord && isSelfOnlyExpense(payload, actor);
+
+      // Keep the paired withdrawal consistent with the edited expense, and
+      // validate BEFORE touching anything so a rejected edit changes nothing.
+      const depositPerson = sanitizeText(payload.depositUsedFrom || '', 80);
+      if (payload.paidFromDeposit && isUnpaid) return badRequest("A pre-logged / unpaid expense can't also be paid from a deposit.");
+      if (payload.paidFromDeposit && !depositPerson) return badRequest('Pick whose deposit this expense is paid from.');
+      const wantsDeposit = !!payload.paidFromDeposit;
+      const { rows: curExp } = await query('SELECT paid_from_deposit, status FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      const { rows: linkedRows } = await query('SELECT id, status FROM deposits WHERE trip_id=$1 AND linked_expense_id=$2', [tripId, payload.id]);
+      const linked = linkedRows[0] || null;
+      // Expenses created before the pairing existed have a withdrawal we
+      // can't identify — leave those alone rather than creating a duplicate.
+      const legacyPaidFromDeposit = !!(curExp[0] && curExp[0].paid_from_deposit) && !linked;
+      if (wantsDeposit && !legacyPaidFromDeposit) {
+        if (!(amount > 0)) return badRequest('Amount must be greater than 0 to pay from a deposit.');
+        const bal = await approvedDepositBalance(tripId, depositPerson, linked ? linked.id : null);
+        if (amount > bal + 0.005) return badRequest(insufficientBalanceMsg(depositPerson, bal, amount));
+      }
       const statusClause = isAdmin ? '' : selfOnly
         ? `, status='approved', submitted_by=NULL, submitted_at=NULL, approved_by='${AUTO_APPROVED_BY}', approved_at=now(),
            rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`
@@ -450,6 +603,30 @@ exports.handler = async (event) => {
           !!payload.paidFromDeposit, sanitizeText(payload.depositUsedFrom || '', 80), isUnpaid,
         ]
       );
+      const wdNote = sanitizeText(`Paid for: ${sanitizeText(payload.title, 120)}`, 200);
+      const wdDate = sanitizeText(payload.date || '', 20);
+      if (linked && !wantsDeposit) {
+        await query('DELETE FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, linked.id]);
+      } else if (linked && wantsDeposit) {
+        // A non-admin edit sends the expense back to draft, so its withdrawal goes back too.
+        const wdReset = isAdmin ? '' : `, status='draft', submitted_by=NULL, submitted_at=NULL,
+           approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
+        await query(
+          `UPDATE deposits SET person=$3, amount=$4, date=$5, note=$6${wdReset} WHERE trip_id=$1 AND id=$2`,
+          [tripId, linked.id, depositPerson, amount, wdDate, wdNote]
+        );
+      } else if (!linked && wantsDeposit && !legacyPaidFromDeposit) {
+        // Admin edits keep the expense's status (see above), so the new
+        // withdrawal mirrors it; non-admin edits always restart at draft.
+        const expStatus = (curExp[0] && curExp[0].status) || 'draft';
+        const wdStatus = isAdmin && expStatus !== 'rejected' ? expStatus : 'draft';
+        await query(
+          `INSERT INTO deposits (id, trip_id, person, amount, date, note, logged_by, type, status, linked_expense_id, approved_by, approved_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,'withdrawal',$8,$9,$10,$11)`,
+          [withdrawalIdFor(sanitizeText(payload.id, 60)), tripId, depositPerson, amount, wdDate, wdNote, actor, wdStatus,
+            sanitizeText(payload.id, 60), wdStatus === 'approved' ? actor : null, wdStatus === 'approved' ? new Date().toISOString() : null]
+        );
+      }
       // Editing an unpaid record to finally add a payer (isUnpaid now
       // false, but the row previously had none) is the "someone settled
       // this" moment — worth its own activity-log wording rather than a
@@ -462,7 +639,11 @@ exports.handler = async (event) => {
           : `${sanitizeText(payload.title, 120)} (Rs.${amount})`
       );
     } else if (action === 'removeExpense') {
-      await query('DELETE FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      await query(
+        `WITH wd AS (DELETE FROM deposits WHERE trip_id=$1 AND linked_expense_id=$2)
+         DELETE FROM expenses WHERE trip_id=$1 AND id=$2`,
+        [tripId, payload.id]
+      );
       // Private self-only deletions leave no trace in the shared activity log.
       if (!ownSelfOnlyDelete) await logActivity(tripId, payload.id, actor, 'remove_expense', payload.id);
     } else if (action === 'addSettlement') {
@@ -480,6 +661,10 @@ exports.handler = async (event) => {
     } else if (action === 'addDeposit') {
       const amount = sanitizeNumber(payload.amount, 0.01, 10000000) || 0;
       const type = normalizeDepositType(payload.type);
+      if (type === 'withdrawal') {
+        const bal = await approvedDepositBalance(tripId, sanitizeText(payload.person, 80), null);
+        if (amount > bal + 0.005) return badRequest(insufficientBalanceMsg(sanitizeText(payload.person, 80), bal, amount));
+      }
       await query(
         `INSERT INTO deposits (id, trip_id, person, amount, date, note, logged_by, type, status)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft')`,
@@ -491,6 +676,14 @@ exports.handler = async (event) => {
     } else if (action === 'editDeposit') {
       const amount = sanitizeNumber(payload.amount, 0.01, 10000000) || 0;
       const type = normalizeDepositType(payload.type);
+      const { rows: depRows } = await query('SELECT linked_expense_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      if (depRows[0] && depRows[0].linked_expense_id) {
+        return badRequest('This withdrawal belongs to an expense — edit the expense instead.');
+      }
+      if (type === 'withdrawal') {
+        const bal = await approvedDepositBalance(tripId, sanitizeText(payload.person, 80), sanitizeText(payload.id, 60));
+        if (amount > bal + 0.005) return badRequest(insufficientBalanceMsg(sanitizeText(payload.person, 80), bal, amount));
+      }
       // Same re-approval-on-edit rule as editExpense above.
       const statusClause = isAdmin ? '' : `, status='draft', submitted_by=NULL, submitted_at=NULL,
            approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
@@ -502,6 +695,10 @@ exports.handler = async (event) => {
       await logActivity(tripId, payload.id, actor, type === 'withdrawal' ? 'edit_withdrawal' : 'edit_deposit',
         `${sanitizeText(payload.person, 80)} updated to Rs.${amount}`);
     } else if (action === 'deleteDeposit') {
+      const { rows: delRows } = await query('SELECT linked_expense_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      if (delRows[0] && delRows[0].linked_expense_id) {
+        return badRequest('This withdrawal belongs to an expense — delete or edit the expense instead.');
+      }
       await query('DELETE FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
       await logActivity(tripId, payload.id, actor, 'delete_deposit', payload.id);
     } else if (action === 'submitForApproval') {
@@ -516,12 +713,19 @@ exports.handler = async (event) => {
       if (record.status !== 'draft' && record.status !== 'rejected') {
         return badRequest(`This record is already ${record.status} and can't be resubmitted.`);
       }
-      await query(
-        `UPDATE ${record._table} SET status='pending_approval', submitted_by=$3, submitted_at=now(),
-           approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL
-         WHERE trip_id=$1 AND id=$2`,
-        [tripId, payload.id, actor]
-      );
+      const pair = await getLinkedPair(tripId, payload.recordType, record);
+      const submitSet = `status='pending_approval', submitted_by=$3, submitted_at=now(),
+           approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
+      if (pair) {
+        // One statement: the expense and its withdrawal enter the queue together.
+        await query(
+          `WITH a AS (UPDATE ${record._table} SET ${submitSet} WHERE trip_id=$1 AND id=$2 RETURNING id)
+           UPDATE ${pair.table} SET ${submitSet} WHERE trip_id=$1 AND id=$4 AND status IN ('draft','rejected')`,
+          [tripId, payload.id, actor, pair.id]
+        );
+      } else {
+        await query(`UPDATE ${record._table} SET ${submitSet} WHERE trip_id=$1 AND id=$2`, [tripId, payload.id, actor]);
+      }
       await logActivity(tripId, payload.id, actor, 'submit_for_approval', `${payload.recordType} ${payload.id}`);
     } else if (action === 'approveRecord') {
       const record = await getRecordForApproval(tripId, payload.recordType, payload.id);
@@ -529,12 +733,34 @@ exports.handler = async (event) => {
       if (record.status !== 'pending_approval') {
         return badRequest('Only records pending approval can be approved.');
       }
-      await query(
-        `UPDATE ${record._table} SET status='approved', approved_by=$3, approved_at=now(),
-           rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL
-         WHERE trip_id=$1 AND id=$2`,
-        [tripId, payload.id, actor]
-      );
+      const pair = await getLinkedPair(tripId, payload.recordType, record);
+      if (pair && pair.status !== 'pending_approval') {
+        return badRequest('The linked expense/withdrawal pair is out of sync — ask the submitter to edit and resubmit it.');
+      }
+      // The authoritative overdraw gate: a withdrawal (standalone or the half
+      // of a paid-from-deposit expense) may only be approved while it still
+      // fits inside the person's APPROVED balance right now. Two pending
+      // withdrawals that each looked fine at submit time can't both pass.
+      const wd = pair ? pair.withdrawal
+        : (payload.recordType === 'deposit' && normalizeDepositType(record.type) === 'withdrawal'
+          ? { id: record.id, person: record.person, amount: Number(record.amount) } : null);
+      if (wd) {
+        const bal = await approvedDepositBalance(tripId, wd.person, wd.id);
+        if (wd.amount > bal + 0.005) {
+          return badRequest(`Can't approve: ${insufficientBalanceMsg(wd.person, bal, wd.amount)}`);
+        }
+      }
+      const approveSet = `status='approved', approved_by=$3, approved_at=now(),
+           rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
+      if (pair) {
+        await query(
+          `WITH a AS (UPDATE ${record._table} SET ${approveSet} WHERE trip_id=$1 AND id=$2 RETURNING id)
+           UPDATE ${pair.table} SET ${approveSet} WHERE trip_id=$1 AND id=$4 AND status='pending_approval'`,
+          [tripId, payload.id, actor, pair.id]
+        );
+      } else {
+        await query(`UPDATE ${record._table} SET ${approveSet} WHERE trip_id=$1 AND id=$2`, [tripId, payload.id, actor]);
+      }
       await logActivity(tripId, payload.id, actor, 'approve_record', `${payload.recordType} ${payload.id}`);
     } else if (action === 'rejectRecord') {
       const record = await getRecordForApproval(tripId, payload.recordType, payload.id);
@@ -543,18 +769,45 @@ exports.handler = async (event) => {
         return badRequest('Only records pending approval can be rejected.');
       }
       const reason = sanitizeText(payload.reason || '', 300);
-      await query(
-        `UPDATE ${record._table} SET status='rejected', rejected_by=$3, rejected_at=now(), rejection_reason=$4,
-           approved_by=NULL, approved_at=NULL
-         WHERE trip_id=$1 AND id=$2`,
-        [tripId, payload.id, actor, reason]
-      );
+      const pair = await getLinkedPair(tripId, payload.recordType, record);
+      const rejectSet = `status='rejected', rejected_by=$3, rejected_at=now(), rejection_reason=$4,
+           approved_by=NULL, approved_at=NULL`;
+      if (pair) {
+        await query(
+          `WITH a AS (UPDATE ${record._table} SET ${rejectSet} WHERE trip_id=$1 AND id=$2 RETURNING id)
+           UPDATE ${pair.table} SET ${rejectSet} WHERE trip_id=$1 AND id=$5 AND status='pending_approval'`,
+          [tripId, payload.id, actor, reason, pair.id]
+        );
+      } else {
+        await query(`UPDATE ${record._table} SET ${rejectSet} WHERE trip_id=$1 AND id=$2`, [tripId, payload.id, actor, reason]);
+      }
       await logActivity(tripId, payload.id, actor, 'reject_record', `${payload.recordType} ${payload.id}${reason ? `: ${reason}` : ''}`);
+    } else if (action === 'addAdjustment') {
+      if (!payload.amount) return badRequest('Adjustment amount cannot be zero.');
+      await query(
+        'INSERT INTO wallet_adjustments (id, trip_id, person, amount, note, actor) VALUES ($1,$2,$3,$4,$5,$6)',
+        [payload.id, tripId, sanitizeText(payload.person, 80), payload.amount, sanitizeText(payload.note, 200), actor]
+      );
+      await logActivity(tripId, payload.id, actor, 'add_adjustment', `${payload.person}: Rs.${payload.amount} (${payload.note})`);
+    } else if (action === 'deleteAdjustment') {
+      await query('DELETE FROM wallet_adjustments WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      await logActivity(tripId, payload.id, actor, 'delete_adjustment', payload.id);
+    } else if (action === 'renameParticipant' || action === 'mergeParticipant') {
+      const source = sanitizeText(action === 'renameParticipant' ? payload.oldName : payload.source, 80);
+      const target = sanitizeText(action === 'renameParticipant' ? payload.newName : payload.target, 80);
+      if (source === target) return badRequest('Choose a different participant name.');
+      await query('UPDATE wallet_participant_aliases SET target_name=$3 WHERE trip_id=$1 AND target_name=$2', [tripId, source, target]);
+      await query(`INSERT INTO wallet_participant_aliases (trip_id, source_name, target_name) VALUES ($1,$2,$3)
+        ON CONFLICT (trip_id, source_name) DO UPDATE SET target_name=EXCLUDED.target_name`, [tripId, source, target]);
+      await logActivity(tripId, `participant_${crypto.randomUUID()}`, actor,
+        action === 'renameParticipant' ? 'rename_participant' : 'merge_participant', `${source} -> ${target}`);
     } else if (action === 'resetWallet') {
       await query('DELETE FROM expenses WHERE trip_id=$1', [tripId]);
       await query('DELETE FROM settlements WHERE trip_id=$1', [tripId]);
       await query('DELETE FROM deposits WHERE trip_id=$1', [tripId]);
       await query('DELETE FROM activity WHERE trip_id=$1', [tripId]);
+      await query('DELETE FROM wallet_adjustments WHERE trip_id=$1', [tripId]);
+      await query('DELETE FROM wallet_participant_aliases WHERE trip_id=$1', [tripId]);
       await logActivity(tripId, `reset_${crypto.randomUUID()}`, actor, 'reset_wallet', 'Wallet reset');
     }
 

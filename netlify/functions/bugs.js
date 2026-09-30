@@ -25,6 +25,7 @@ async function ensureSchema() {
     status TEXT NOT NULL DEFAULT 'To Do',
     due_date TEXT NOT NULL DEFAULT '',
     description TEXT NOT NULL DEFAULT '',
+    resolution_note TEXT NOT NULL DEFAULT '',
     tag TEXT NOT NULL DEFAULT '',
     source TEXT NOT NULL DEFAULT 'admin',          -- 'seed' | 'user' | 'admin'
     is_public BOOLEAN NOT NULL DEFAULT false,      -- shown on the public Report a Bug status board
@@ -35,15 +36,18 @@ async function ensureSchema() {
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
+  // Existing deployments already have the table, so CREATE TABLE alone would
+  // not add this new field.
+  await query(`ALTER TABLE bug_reports ADD COLUMN IF NOT EXISTS resolution_note TEXT NOT NULL DEFAULT ''`);
   await query(`CREATE TABLE IF NOT EXISTS bug_meta (key TEXT PRIMARY KEY, value TEXT)`);
   // One-time seed. The marker row (not "table is empty") decides, so deleting every task never re-seeds.
   const { rows } = await query(`INSERT INTO bug_meta (key, value) VALUES ('seeded_v1', now()::text) ON CONFLICT DO NOTHING RETURNING key`);
   if (rows.length) {
     for (const t of SEED) {
       await query(
-        `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, tag, source, is_public, updated_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'seed',false,'seed') ON CONFLICT (id) DO NOTHING`,
-        [t.id, t.title, t.category, t.priority, t.status, t.dueDate || '', t.description || '', t.tag || '']
+        `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, resolution_note, tag, source, is_public, updated_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'seed',false,'seed') ON CONFLICT (id) DO NOTHING`,
+        [t.id, t.title, t.category, t.priority, t.status, t.dueDate || '', t.description || '', t.resolutionNote || '', t.tag || '']
       );
     }
   }
@@ -65,7 +69,7 @@ async function stats() {
 }
 const adminRow = (r) => ({
   id: r.id, title: r.title, category: r.category, priority: r.priority, status: r.status, dueDate: r.due_date,
-  description: r.description, tag: r.tag, source: r.source, isPublic: r.is_public, reporterName: r.reporter_name,
+  description: r.description, resolutionNote: r.resolution_note, tag: r.tag, source: r.source, isPublic: r.is_public, reporterName: r.reporter_name,
   reporterContact: r.reporter_contact, page: r.page, updatedBy: r.updated_by, createdAt: r.created_at, updatedAt: r.updated_at,
 });
 // Public view: only rows flagged is_public, and never contact details or internal descriptions.
@@ -77,6 +81,7 @@ function clean(p) {
     title: sanitizeText(p.title, 160), category: pick(p.category, CATEGORIES, 'General'),
     priority: pick(p.priority, PRIORITIES, 'Medium'), status: pick(p.status, STATUSES, 'To Do'),
     dueDate: /^\d{4}-\d{2}-\d{2}$/.test(p.dueDate || '') ? p.dueDate : '', description: sanitizeText(p.description, 4000),
+    resolutionNote: sanitizeText(p.resolutionNote, 4000),
     tag: sanitizeText(p.tag, 40), isPublic: !!p.isPublic,
   };
 }
@@ -149,17 +154,17 @@ exports.handler = async (event) => {
       const id = sanitizeText(p.id, 60);
       if (id) {
         const { rows } = await query(
-          `UPDATE bug_reports SET title=$2, category=$3, priority=$4, status=$5, due_date=$6, description=$7, tag=$8,
-             is_public=$9, updated_by=$10, updated_at=now() WHERE id=$1 RETURNING *`,
-          [id, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.tag, c.isPublic, who]);
+          `UPDATE bug_reports SET title=$2, category=$3, priority=$4, status=$5, due_date=$6, description=$7, resolution_note=$8, tag=$9,
+             is_public=$10, updated_by=$11, updated_at=now() WHERE id=$1 RETURNING *`,
+          [id, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.resolutionNote, c.tag, c.isPublic, who]);
         if (!rows.length) return badRequest('Task not found — it may have been deleted.');
         return ok({ ok: true, bug: adminRow(rows[0]) });
       }
       const newId = 'task-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       const { rows } = await query(
-        `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, tag, source, is_public, updated_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'admin',$9,$10) RETURNING *`,
-        [newId, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.tag, c.isPublic, who]);
+        `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, resolution_note, tag, source, is_public, updated_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'admin',$10,$11) RETURNING *`,
+        [newId, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.resolutionNote, c.tag, c.isPublic, who]);
       return ok({ ok: true, bug: adminRow(rows[0]) });
     }
     if (body.action === 'delete') {
@@ -176,10 +181,10 @@ exports.handler = async (event) => {
         const id = sanitizeText(t.id, 60);
         if (!id || !c.title) continue;
         await query(
-          `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, tag, source, is_public, updated_by)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'admin',false,$9)
-           ON CONFLICT (id) DO UPDATE SET title=$2, category=$3, priority=$4, status=$5, due_date=$6, description=$7, tag=$8, updated_by=$9, updated_at=now()`,
-          [id, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.tag, who]);
+          `INSERT INTO bug_reports (id, title, category, priority, status, due_date, description, resolution_note, tag, source, is_public, updated_by)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'admin',false,$10)
+           ON CONFLICT (id) DO UPDATE SET title=$2, category=$3, priority=$4, status=$5, due_date=$6, description=$7, resolution_note=$8, tag=$9, updated_by=$10, updated_at=now()`,
+          [id, c.title, c.category, c.priority, c.status, c.dueDate, c.description, c.resolutionNote, c.tag, who]);
         n++;
       }
       return ok({ ok: true, imported: n });

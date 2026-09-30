@@ -4,30 +4,33 @@
   "title": "Save changes button is not working",
   "category": "Bug Fix",
   "priority": "High",
-  "status": "To Do",
+  "status": "Completed",
   "dueDate": "2026-10-01",
   "description": "Not an event-handler problem. ROOT CAUSE (goa-wallet.html L3639-3650): updateDepositSubmitState() applies the 'withdrawal needs balance > 0' rule while EDITING too, and only approved rows count. So Save changes stays disabled for a withdrawal that empties a balance, or whose deposit is still pending, with no message. See the 'Deposit/withdrawal button state' task.",
-  "tag": "Root cause"
+  "tag": "Verified fixed",
+  "resolutionNote": "The withdrawal form now validates against the selected person's approved balance while excluding the record being edited. A valid withdrawal that empties a balance can be saved, and the UI explains any remaining block."
  },
  {
   "id": "task-2",
   "title": "Data not in sync across components/backend",
   "category": "Sync/API",
   "priority": "High",
-  "status": "In Progress",
+  "status": "Completed",
   "dueDate": "2026-10-02",
   "description": "ROOT CAUSES (goa-wallet.html): (1) adjustments, renames and merges live only in localStorage but change balances, and the 5 s poll overwrites the wallet from the server (L1881-1925); (2) failed writes say 'saved locally, will retry' but are never queued (L1998-2075); (3) a paid-from-deposit expense is 3 separate writes (L2560-2585). wallet.js itself is consistent: every POST returns full state. See the linked tasks.",
-  "tag": "Root cause"
+  "tag": "Verified fixed",
+  "resolutionNote": "Writes now use an owner-bound retry queue and preserve pending local changes during refresh. Paid-from-deposit expenses create a linked withdrawal server-side, while adjustments and participant aliases are stored in shared database tables."
  },
  {
   "id": "task-3",
   "title": "Record withdrawal is not working",
   "category": "Bug Fix",
   "priority": "High",
-  "status": "To Do",
+  "status": "Completed",
   "dueDate": "2026-09-29",
   "description": "ROOT CAUSE (goa-wallet.html L3639-3650): the button is silently disabled when the pot or the person's APPROVED balance is <= 0 (pending deposits don't count), while nothing checks amount <= balance on the client or in wallet.js. Valid withdrawals look blocked; oversized ones go through. See 'Deposit/withdrawal button state' and 'Paid-from-deposit' tasks.",
-  "tag": "Root cause"
+  "tag": "Verified fixed",
+  "resolutionNote": "Both the browser and wallet API reject withdrawals above the person's approved balance. The form now gives a specific message for a pending deposit, no approved funds, or an amount that exceeds the available balance."
  },
  {
   "id": "task-4",
@@ -64,10 +67,11 @@
   "title": "Apply adjustment is not working",
   "category": "Bug Fix",
   "priority": "High",
-  "status": "To Do",
+  "status": "Completed",
   "dueDate": "2026-09-27",
   "description": "Works only locally: the form (goa-wallet.html L4047-4065) saves to localStorage and says it isn't pushed to the shared sheet, so no other device or admin ever sees it. It also needs an admin session via checkWalletAdmin. Needs a server action and table. See 'Adjustments, renames and merges exist only in one browser'.",
-  "tag": "Root cause"
+  "tag": "Verified fixed",
+  "resolutionNote": "Adjustments are now admin-only server actions backed by wallet_adjustments. They are returned with every wallet snapshot and therefore remain visible across devices and refreshes."
  },
  {
   "id": "bug-c1",
