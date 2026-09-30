@@ -15,7 +15,7 @@ async function readParticipantNames(tripId) {
     'SELECT DISTINCT ON (lower(trim(name))) trim(name) AS name FROM registrations WHERE trip_id = $1 ORDER BY lower(trim(name)), ts ASC',
     [tripId]
   );
-  return rows.map((r) => r.name);
+  return rows.map((r) => r.name).filter(isSafeParticipantName);
 }
 
 // Catches the common "fake but format-valid" 10-digit patterns people
@@ -30,6 +30,13 @@ function isFakeLookingPhone(phone) {
   if (/^(\d{2})\1{4}$/.test(phone)) return true; // e.g. 1212121212
   if (/^(\d{5})\1$/.test(phone)) return true; // e.g. 1234512345
   return false;
+}
+
+// Names are later displayed in wallet labels and selectors. Restrict them to
+// ordinary name characters at the trust boundary rather than relying on every
+// downstream view to escape a newly registered value.
+function isSafeParticipantName(name) {
+  return /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .-]*$/.test(name);
 }
 
 const REGISTER_SCHEMA = {
@@ -118,8 +125,8 @@ exports.handler = async (event) => {
       // guard) is only a UX nicety — it can't be trusted as the actual
       // security boundary; anyone can POST directly to this endpoint.
       const cleanName = sanitizeText(payload.name, 120).trim();
-      if (cleanName.length < 2 || !/[A-Za-z]/.test(cleanName)) {
-        return badRequest('Please enter a valid name.');
+      if (cleanName.length < 2 || !isSafeParticipantName(cleanName)) {
+        return badRequest('Name may contain letters, spaces, periods and hyphens only.');
       }
       const cleanPhone = sanitizeText(payload.phone, 30).trim();
       if (!/^\d{10}$/.test(cleanPhone)) {

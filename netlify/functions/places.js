@@ -12,8 +12,20 @@
 // already-cleaned phrase to a canonical place + photo, and remembers
 // the answer.
 const { query } = require('./lib/db');
-const { ok, badRequest, serverError } = require('./lib/http');
+const { ok, json, badRequest, unauthorized, serverError } = require('./lib/http');
 const { sanitizeText } = require('./lib/validate');
+const { verifySessionTokenFull } = require('./lib/auth');
+
+// Thrown when an upstream (Nominatim / Wikipedia) fails for a reason that
+// says nothing about the place itself: 429 rate-limit, 5xx, bad body.
+// These must NEVER be written to resolved_places — only a genuine "the
+// service answered and has no confident match" is a cacheable miss.
+class UpstreamError extends Error {}
+
+// A cached miss expires, so a stray bad answer (including rows written
+// before this fix, which can't be told apart from genuine misses) heals
+// itself instead of sticking forever.
+const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const GOA_VIEWBOX = '73.4,15.85,74.35,14.85'; // lon1,lat1,lon2,lat2 — loose box around Goa, a ranking bias only
 const CONFIDENCE_FLOOR = 0.18;
@@ -104,9 +116,10 @@ async function geocodeViaNominatim(q, biasToGoa) {
       'User-Agent': 'GoaTripApp/1.0 (trip-planning tool; place resolution cache)',
     },
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new UpstreamError(`Nominatim responded ${res.status}`);
   const hits = await res.json();
-  if (!hits || !hits.length) return null;
+  if (!Array.isArray(hits)) throw new UpstreamError('Nominatim returned an unexpected body');
+  if (!hits.length) return null; // genuine "no such place" — safe to cache
 
   const best = hits[0];
   const importance = typeof best.importance === 'number' ? best.importance : 0;
@@ -167,7 +180,7 @@ async function fetchWikipediaPhotos(lat, lng) {
   const res = await fetch('https://en.wikipedia.org/w/api.php?' + params.toString(), {
     headers: { Accept: 'application/json' },
   });
-  if (!res.ok) return [];
+  if (!res.ok) throw new UpstreamError(`Wikipedia responded ${res.status}`);
   const data = await res.json();
   const pages = (data && data.query && data.query.pages) || {};
   return Object.values(pages)
@@ -185,7 +198,11 @@ async function matchPhoto(placeName, lat, lng) {
   try {
     candidates = await fetchWikipediaPhotos(lat, lng);
   } catch (e) {
-    return { photo: null, photoTitle: null, photoSource: '', photoCandidates: [] };
+    // Lookup FAILED (as opposed to finding nothing). photoSource stays
+    // null, which resolveAndCache treats as "not looked up yet" and
+    // retries on a later request, instead of recording '' (= "looked,
+    // nothing there") and never trying again.
+    return { photo: null, photoTitle: null, photoSource: null, photoCandidates: [] };
   }
   if (!candidates.length) return { photo: null, photoTitle: null, photoSource: '', photoCandidates: [] };
 
@@ -205,12 +222,14 @@ async function matchPhoto(placeName, lat, lng) {
   };
 }
 
-async function resolveAndCache(rawQuery) {
+async function resolveAndCache(rawQuery, { force = false } = {}) {
   const key = normalizeKey(rawQuery);
   if (!key) return { resolved: false };
 
-  const { rows } = await query('SELECT * FROM resolved_places WHERE query_key = $1', [key]);
-  if (rows.length) {
+  const { rows } = force ? { rows: [] } : await query('SELECT * FROM resolved_places WHERE query_key = $1', [key]);
+  const negativeExpired = rows.length && !rows[0].resolved
+    && (Date.now() - new Date(rows[0].created_at).getTime()) > NEGATIVE_CACHE_TTL_MS;
+  if (rows.length && !negativeExpired) {
     const cached = rows[0];
     // Rows written before photo matching existed are `resolved: true`
     // with no photo_source at all — that's different from a row where
@@ -219,19 +238,18 @@ async function resolveAndCache(rawQuery) {
     // 'wikipedia' or ''). Backfill the former once here rather than
     // requiring every old place to be manually hit with action=refresh.
     if (cached.resolved && cached.photo_source === null) {
-      let photoInfo = { photo: null, photoTitle: null, photoSource: '', photoCandidates: [] };
-      try {
-        photoInfo = await matchPhoto(cached.name, Number(cached.lat), Number(cached.lng));
-      } catch (e) {
-        // leave photoInfo at its empty default — still record photo_source
-        // as '' below so this row won't be treated as un-backfilled forever
+      const photoInfo = await matchPhoto(cached.name, Number(cached.lat), Number(cached.lng));
+      if (photoInfo.photoSource === null) {
+        // Wikipedia failed — leave the row un-backfilled so it's retried,
+        // and answer with what we have (no photo) without recording it.
+        return serializeCacheRow(cached);
       }
       await query(
         `UPDATE resolved_places SET photo = $2, photo_title = $3, photo_source = $4, photo_candidates = $5
          WHERE query_key = $1`,
         [key, photoInfo.photo, photoInfo.photoTitle, photoInfo.photoSource, JSON.stringify(photoInfo.photoCandidates)]
       );
-      return { ...serializeCacheRow(cached), ...photoInfo };
+      return { ...serializeCacheRow(cached), ...photoInfo, photoSource: photoInfo.photoSource || '' };
     }
     return serializeCacheRow(cached);
   }
@@ -242,7 +260,10 @@ async function resolveAndCache(rawQuery) {
   if (!result) {
     await query(
       `INSERT INTO resolved_places (query_key, resolved) VALUES ($1, false)
-       ON CONFLICT (query_key) DO NOTHING`,
+       ON CONFLICT (query_key) DO UPDATE SET
+         resolved = false, name = NULL, display_name = NULL, lat = NULL, lng = NULL, place_id = NULL,
+         place_type = NULL, confidence = NULL, photo = NULL, photo_title = NULL, photo_source = NULL,
+         photo_candidates = NULL, created_at = now()`,
       [key]
     );
     return { resolved: false };
@@ -251,12 +272,7 @@ async function resolveAndCache(rawQuery) {
   // Photo lookup is best-effort — a Wikipedia hiccup shouldn't fail the
   // whole place resolution; the caller already has a generic fallback
   // image for a null photo.
-  let photoInfo = { photo: null, photoTitle: null, photoSource: '', photoCandidates: [] };
-  try {
-    photoInfo = await matchPhoto(result.name, result.lat, result.lng);
-  } catch (e) {
-    // swallow — keep photoInfo at its empty default
-  }
+  const photoInfo = await matchPhoto(result.name, result.lat, result.lng);
 
   await query(
     `INSERT INTO resolved_places (query_key, resolved, name, display_name, lat, lng, place_id, place_type, confidence,
@@ -266,13 +282,13 @@ async function resolveAndCache(rawQuery) {
        name = EXCLUDED.name, display_name = EXCLUDED.display_name, lat = EXCLUDED.lat, lng = EXCLUDED.lng,
        place_id = EXCLUDED.place_id, place_type = EXCLUDED.place_type, confidence = EXCLUDED.confidence,
        photo = EXCLUDED.photo, photo_title = EXCLUDED.photo_title, photo_source = EXCLUDED.photo_source,
-       photo_candidates = EXCLUDED.photo_candidates`,
+       photo_candidates = EXCLUDED.photo_candidates, resolved = true, created_at = now()`,
     [
       key, result.name, result.displayName, result.lat, result.lng, result.placeId, result.type, result.confidence,
       photoInfo.photo, photoInfo.photoTitle, photoInfo.photoSource, JSON.stringify(photoInfo.photoCandidates),
     ]
   );
-  return { resolved: true, ...result, ...photoInfo };
+  return { resolved: true, ...result, ...photoInfo, photoSource: photoInfo.photoSource || '' };
 }
 
 exports.handler = async (event) => {
@@ -292,16 +308,32 @@ exports.handler = async (event) => {
     // Admin/debug convenience: force a place to be re-resolved (e.g. if
     // Nominatim's or Wikipedia's data for it changes, or a bad cache
     // entry needs clearing) without needing direct DB access.
+    // Admin-only: it forces fresh calls to Nominatim/Wikipedia, so an open
+    // endpoint lets anyone burn our rate limit (and get the app blocked)
+    // or churn the shared cache. Accepts the admin session token as a
+    // Bearer header (preferred — URLs get logged) or ?token=. A regular
+    // participant session is NOT enough: sessions carry a role.
     if (action === 'refresh') {
+      const authHeader = (event.headers && (event.headers.authorization || event.headers.Authorization)) || '';
+      const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      const session = verifySessionTokenFull(bearer || params.token);
+      if (!session) return unauthorized('Session expired or invalid — please log in again.');
+      if (session.role !== 'admin') return json(403, { error: 'Admin access required.' });
       const q = sanitizeText(params.q || '', 200);
       if (!q) return badRequest('q is required.');
-      const key = normalizeKey(q);
-      await query('DELETE FROM resolved_places WHERE query_key = $1', [key]);
-      return ok(await resolveAndCache(q));
+      // force = skip the cache read and overwrite on success. The old row
+      // is NOT deleted up front, so a failed refresh can't destroy a good entry.
+      return ok(await resolveAndCache(q, { force: true }));
     }
 
     return badRequest('Unknown action.');
   } catch (err) {
+    if (err instanceof UpstreamError) {
+      // Nothing was cached. 503 + transient tells the caller to retry later
+      // rather than treat this as "no such place".
+      console.warn('places: upstream failure —', err.message);
+      return json(503, { resolved: false, transient: true, error: 'Place lookup is temporarily unavailable. Please try again shortly.' });
+    }
     return serverError(err);
   }
 };

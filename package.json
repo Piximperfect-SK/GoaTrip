@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "GoaTrip multi-tenant trip platform backend (Netlify Functions + Neon Postgres)",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "netlify dev"
   },

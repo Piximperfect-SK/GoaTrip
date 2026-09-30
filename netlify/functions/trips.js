@@ -1,5 +1,5 @@
 // Trip registry: list/get/create/update. Create/update require an admin session token.
-const { query } = require('./lib/db');
+const { query, withTransaction } = require('./lib/db');
 const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { verifySessionToken } = require('./lib/auth');
 const { sanitizeText } = require('./lib/validate');
@@ -50,6 +50,70 @@ const TRIP_ROW_TO_JSON = (r) => ({
   isActive: r.is_active,
 });
 
+const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+const DEFAULT_CATEGORIES = ['Travel', 'Stay', 'Food', 'Activities', 'Shopping', 'Misc'];
+const CREATE_DEFAULTS = {
+  name: '', short_dates: '', start_date: null, end_date: null, origin: '', destination: '', waypoint: '', villa: '',
+  villa_lat: null, villa_lng: null, participant_count: 0,
+  route_legs: '[]', gallery_places: '[]', default_itinerary: '[]',
+  categories: JSON.stringify(DEFAULT_CATEGORIES), wallet_participants: '[]',
+};
+
+// payload key -> [column, kind, maxLen]. Column names here are the ONLY
+// ones that ever reach the SQL text in create/update.
+const TRIP_FIELD_MAP = {
+  name: ['name', 'text', 120],
+  shortDates: ['short_dates', 'text', 60],
+  origin: ['origin', 'text', 80],
+  destination: ['destination', 'text', 80],
+  waypoint: ['waypoint', 'text', 80],
+  villa: ['villa', 'text', 80],
+  startDate: ['start_date', 'date'],
+  endDate: ['end_date', 'date'],
+  villaLat: ['villa_lat', 'lat'],
+  villaLng: ['villa_lng', 'lng'],
+  participantCount: ['participant_count', 'count'],
+  routeLegs: ['route_legs', 'json-array'],
+  galleryPlaces: ['gallery_places', 'json-array'],
+  defaultItinerary: ['default_itinerary', 'json-array'],
+  categories: ['categories', 'json-array'],
+  walletParticipants: ['wallet_participants', 'names'],
+};
+
+// Returns { fields } containing ONLY the keys present in the payload,
+// or { error } for a present-but-invalid value.
+function parseTripFields(p) {
+  const fields = {};
+  for (const key of Object.keys(TRIP_FIELD_MAP)) {
+    if (!has(p, key)) continue;
+    const [col, kind, maxLen] = TRIP_FIELD_MAP[key];
+    const v = p[key];
+    if (kind === 'text') {
+      fields[col] = sanitizeText(v, maxLen);
+    } else if (kind === 'date') {
+      fields[col] = v || null; // explicit empty/null clears the date
+    } else if (kind === 'lat' || kind === 'lng') {
+      if (v === null || v === '') { fields[col] = null; continue; } // explicit clear
+      const n = Number(v);
+      const limit = kind === 'lat' ? 90 : 180;
+      if (!Number.isFinite(n) || n < -limit || n > limit) return { error: `${key} must be a number between -${limit} and ${limit}.` };
+      fields[col] = n;
+    } else if (kind === 'count') {
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < 0 || n > 1000) return { error: 'participantCount must be a whole number between 0 and 1000.' };
+      fields[col] = n;
+    } else if (kind === 'json-array') {
+      if (!Array.isArray(v)) return { error: `${key} must be a list.` };
+      fields[col] = JSON.stringify(v);
+    } else if (kind === 'names') {
+      if (!Array.isArray(v) || v.length > 100) return { error: `${key} must be a list of names.` };
+      fields[col] = JSON.stringify(v.map((n) => sanitizeText(n, 80)).filter(Boolean));
+    }
+  }
+  return { fields };
+}
+
 exports.handler = async (event) => {
   try {
     await ensureSchema();
@@ -80,63 +144,57 @@ exports.handler = async (event) => {
       const id = sanitizeText(p.id, 60);
       if (!id || !/^[a-z0-9-]+$/.test(id)) return badRequest('Trip id must be lowercase letters, numbers and hyphens only.');
 
-      const villaLat = Number(p.villaLat);
-      const villaLng = Number(p.villaLng);
-      const villaLatValid = Number.isFinite(villaLat) && villaLat >= -90 && villaLat <= 90;
-      const villaLngValid = Number.isFinite(villaLng) && villaLng >= -180 && villaLng <= 180;
-
-      const fields = {
-        name: sanitizeText(p.name, 120),
-        short_dates: sanitizeText(p.shortDates || '', 60),
-        start_date: p.startDate || null,
-        end_date: p.endDate || null,
-        origin: sanitizeText(p.origin || '', 80),
-        destination: sanitizeText(p.destination || '', 80),
-        waypoint: sanitizeText(p.waypoint || '', 80),
-        villa: sanitizeText(p.villa || '', 80),
-        villa_lat: villaLatValid ? villaLat : null,
-        villa_lng: villaLngValid ? villaLng : null,
-        participant_count: Number.isFinite(Number(p.participantCount)) ? Number(p.participantCount) : 0,
-        route_legs: JSON.stringify(p.routeLegs || []),
-        gallery_places: JSON.stringify(p.galleryPlaces || []),
-        default_itinerary: JSON.stringify(p.defaultItinerary || []),
-        categories: JSON.stringify(p.categories || ['Travel', 'Stay', 'Food', 'Activities', 'Shopping', 'Misc']),
-        wallet_participants: JSON.stringify(p.walletParticipants || []),
-      };
-
       if (body.action === 'createTrip') {
+        const parsed = parseTripFields(p);
+        if (parsed.error) return badRequest(parsed.error);
+        // A new trip starts from defaults for anything not supplied.
+        const fields = { ...CREATE_DEFAULTS, ...parsed.fields };
+        if (!fields.name) return badRequest('Trip name is required.');
+
         const { rows: existing } = await query('SELECT id FROM trips WHERE id = $1', [id]);
         if (existing.length) return badRequest('A trip with this id already exists.');
+        const cols = Object.keys(fields); // keys come from the fixed column map below, never from the request
+        const placeholders = cols.map((_, i) => `$${i + 2}`);
         await query(
-          `INSERT INTO trips (id, name, short_dates, start_date, end_date, origin, destination, waypoint, villa,
-             villa_lat, villa_lng, participant_count, route_legs, gallery_places, default_itinerary, categories, wallet_participants)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-          [id, fields.name, fields.short_dates, fields.start_date, fields.end_date, fields.origin, fields.destination,
-            fields.waypoint, fields.villa, fields.villa_lat, fields.villa_lng, fields.participant_count, fields.route_legs,
-            fields.gallery_places, fields.default_itinerary, fields.categories, fields.wallet_participants]
+          `INSERT INTO trips (id, ${cols.join(', ')}) VALUES ($1, ${placeholders.join(', ')})`,
+          [id, ...cols.map((c) => fields[c])]
         );
         const { rows } = await query('SELECT * FROM trips WHERE id = $1', [id]);
         return ok({ ok: true, trip: TRIP_ROW_TO_JSON(rows[0]) });
       }
 
       if (body.action === 'updateTrip') {
-        const { rows: existing } = await query('SELECT id FROM trips WHERE id = $1', [id]);
-        if (!existing.length) return badRequest('Trip not found.');
-        await query(
-          `UPDATE trips SET name=$2, short_dates=$3, start_date=$4, end_date=$5, origin=$6, destination=$7,
-             waypoint=$8, villa=$9, villa_lat=$10, villa_lng=$11, participant_count=$12, route_legs=$13, gallery_places=$14,
-             default_itinerary=$15, categories=$16, wallet_participants=$17 WHERE id=$1`,
-          [id, fields.name, fields.short_dates, fields.start_date, fields.end_date, fields.origin, fields.destination,
-            fields.waypoint, fields.villa, fields.villa_lat, fields.villa_lng, fields.participant_count, fields.route_legs,
-            fields.gallery_places, fields.default_itinerary, fields.categories, fields.wallet_participants]
+        // PARTIAL update: only keys actually present in the payload are
+        // written. A missing key leaves the stored value alone (it used
+        // to be coerced to []/null/'' and written, wiping wallet
+        // participants, gallery places, villa coordinates, etc.). To
+        // clear a field deliberately, send it explicitly (e.g. [] or null).
+        const parsed = parseTripFields(p);
+        if (parsed.error) return badRequest(parsed.error);
+        const cols = Object.keys(parsed.fields);
+        if (!cols.length) return badRequest('No fields to update.');
+        if (has(parsed.fields, 'name') && !parsed.fields.name) return badRequest('Trip name cannot be empty.');
+
+        const sets = cols.map((c, i) => `${c} = $${i + 2}`);
+        const result = await query(
+          `UPDATE trips SET ${sets.join(', ')} WHERE id = $1 RETURNING *`,
+          [id, ...cols.map((c) => parsed.fields[c])]
         );
-        const { rows } = await query('SELECT * FROM trips WHERE id = $1', [id]);
-        return ok({ ok: true, trip: TRIP_ROW_TO_JSON(rows[0]) });
+        if (!result.rows.length) return badRequest('Trip not found.');
+        return ok({ ok: true, trip: TRIP_ROW_TO_JSON(result.rows[0]) });
       }
 
       if (body.action === 'setActive') {
-        await query('UPDATE trips SET is_active = false');
-        await query('UPDATE trips SET is_active = true WHERE id = $1', [id]);
+        // One transaction, and the target is checked first: previously the
+        // "deactivate all" ran unconditionally, so an unknown id (or a
+        // failure between the two statements) left NO active trip.
+        const activated = await withTransaction(async (client) => {
+          const { rows } = await client.query('SELECT id FROM trips WHERE id = $1 FOR UPDATE', [id]);
+          if (!rows.length) return false;
+          await client.query('UPDATE trips SET is_active = (id = $1)', [id]);
+          return true;
+        });
+        if (!activated) return badRequest('Trip not found.');
         return ok({ ok: true });
       }
 

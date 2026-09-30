@@ -1589,6 +1589,35 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 <script>initSmoothScroll();</script>
 <script>
 /* ============================================================
+   DELEGATED CLICK ACTIONS
+   Dynamic rows/cards carry data-action + data-* attributes instead of
+   inline onclick="fn('${value}')" strings, so participant names, record
+   ids etc. are never parsed as JavaScript. Values arrive via dataset
+   (already HTML-decoded), so nothing here needs manual unescaping.
+=============================================================*/
+const DELEGATED_ACTIONS = {
+  viewExpense:              d => viewExpense(d.id),
+  startEditExpense:         d => startEditExpense(d.id),
+  removeExpense:            d => removeExpense(d.id),
+  recordEqualSettlementAt:  d => recordEqualSettlementAt(Number(d.idx)),
+  quickRecordSettlement:    d => quickRecordSettlement(d.from, d.to, Number(d.amount)),
+  viewPerson:               d => viewPerson(d.person),
+  openParticipantEditModal: d => openParticipantEditModal(d.person),
+  viewPersonDeposits:       d => viewPersonDeposits(d.person),
+  editDeposit:              d => (d.person !== undefined ? editDeposit(d.id, d.person) : editDeposit(d.id)),
+  removeDeposit:            d => (d.person !== undefined ? removeDeposit(d.id, d.person) : removeDeposit(d.id)),
+  removeAdjustment:         d => removeAdjustment(d.id),
+  removeSettlement:         d => removeSettlement(d.id),
+  resubmitRecord:           d => resubmitRecord(d.recordType, d.id),
+};
+document.addEventListener('click', function(e){
+  const el = e.target.closest && e.target.closest('[data-action]');
+  if(!el) return;
+  const fn = Object.prototype.hasOwnProperty.call(DELEGATED_ACTIONS, el.dataset.action) ? DELEGATED_ACTIONS[el.dataset.action] : null;
+  if(fn) fn(el.dataset, el, e);
+});
+
+/* ============================================================
    SIDEBAR DECORATIVE PATTERN
    Fills #sbDecoField with a spread of faint animated icons running
    the full height of the sidebar. Bump SB_DECO_COUNT to add/remove
@@ -1733,7 +1762,7 @@ async function rebuildParticipantsFromRegistrations(){
     const registered = new Set(data.participants.map(n => String(n||'').trim().toLowerCase()));
     const wouldRemove = PARTICIPANTS.filter(p => !registered.has(p.toLowerCase()) && participantHasHistory(p));
     if(wouldRemove.length){
-      showBanner('err', `Can't rebuild \u2014 ${wouldRemove.join(', ')} ${wouldRemove.length===1?'has':'have'} recorded expenses/settlements/deposits but ${wouldRemove.length===1?'isn\u2019t':'aren\u2019t'} currently registered. Remove or reassign their history first.`);
+      showBanner('err', `Can't rebuild \u2014 ${escapeHtml(wouldRemove.join(', '))} ${wouldRemove.length===1?'has':'have'} recorded expenses/settlements/deposits but ${wouldRemove.length===1?'isn\u2019t':'aren\u2019t'} currently registered. Remove or reassign their history first.`);
       return;
     }
     PARTICIPANTS = data.participants.map(n => String(n).trim()).filter(Boolean);
@@ -1744,7 +1773,7 @@ async function rebuildParticipantsFromRegistrations(){
     renderAll();
     showBanner('ok', 'Participant list rebuilt from current registrations.');
   }catch(err){
-    showBanner('err', `Rebuild failed: ${err.message}`);
+    showBanner('err', `Rebuild failed: ${escapeHtml(err.message)}`);
   }
 }
 let CATEGORIES = ["Travel","Stay","Food","Activities","Shopping","Misc"];
@@ -1947,7 +1976,7 @@ async function pullFromSheet(manual){
     if(loadPendingOps().length) flushPendingOps();
   }catch(err){
     setSyncStatus('bad');
-    showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${err.message}`);
+    showBanner('err', `<b>Couldn't reach the backend.</b> Working from the last saved local copy. ${escapeHtml(err.message)}`);
     renderAll();
   }
   if(manual) syncParticipantsFromRegistrations();
@@ -2171,14 +2200,14 @@ async function pushToSheet(action, payload, actor, opts){
       // clear it so the next requestActor() call re-prompts for sign-in
       // rather than silently reusing a dead token.
       if(token) clearUserSession();
-      showBanner('err', `<b>${data.error || 'Please sign in to continue.'}</b> Your last change is saved locally and will sync once you\u2019re signed in.`);
+      showBanner('err', `<b>${escapeHtml(data.error || 'Please sign in to continue.')}</b> Your last change is saved locally and will sync once you\u2019re signed in.`);
     }
     return null;
   }
   if(res.status >= 500){
     // Server fault, not an answer about the data — keep it and retry.
     lastPushOutcome = 'network'; setSyncStatus('bad'); queueIt();
-    if(!opts.fromQueue) showBanner('err', `<b>Change saved locally — the server had a problem.</b> ${data && data.error ? data.error + ' ' : ''}It'll retry automatically.`);
+    if(!opts.fromQueue) showBanner('err', `<b>Change saved locally — the server had a problem.</b> ${data && data.error ? escapeHtml(data.error) + ' ' : ''}It'll retry automatically.`);
     return null;
   }
   if(data.error){
@@ -2188,9 +2217,9 @@ async function pushToSheet(action, payload, actor, opts){
     lastPushOutcome = 'rejected'; setSyncStatus('bad');
     if(opts.fromQueue){
       dequeuePendingOp(action, payload);
-      showBanner('err', `<b>A change made while offline was rejected:</b> ${data.error}`);
+      showBanner('err', `<b>A change made while offline was rejected:</b> ${escapeHtml(data.error)}`);
     }else{
-      showBanner('err', `<b>Backend rejected this change:</b> ${data.error} <i>Nothing was saved.</i>`);
+      showBanner('err', `<b>Backend rejected this change:</b> ${escapeHtml(data.error)} <i>Nothing was saved.</i>`);
     }
     pullFromSheet().catch(()=>{});
     return null;
@@ -2225,7 +2254,7 @@ function requestActor(title, subtitle){
     document.getElementById('verifySubtitle').textContent = subtitle || "Enter your name and the trip password — you'll only need to do this once per visit.";
     document.getElementById('verifyBanner').style.display = 'none';
     const sel = document.getElementById('verify-name');
-    sel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    sel.innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
     const last = localStorage.getItem('goaWalletLastActor');
     if(last && PARTICIPANTS.includes(last)) sel.value = last;
     document.getElementById('verify-password').value = '';
@@ -2292,17 +2321,17 @@ function confirmAction(title, body, onYes){
 function populateSelects(){
   const payerSel = document.getElementById('e-payer');
   const splitSel = document.getElementById('e-split');
-  payerSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
-  splitSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
-  document.getElementById('s-from').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
-  document.getElementById('s-to').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  payerSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  splitSel.innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  document.getElementById('s-from').innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  document.getElementById('s-to').innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
 
   const catFilter = document.getElementById('f-category');
-  catFilter.innerHTML = '<option value="">All</option>' + CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  catFilter.innerHTML = '<option value="">All</option>' + CATEGORIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   const payerFilter = document.getElementById('f-payer');
-  payerFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  payerFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   const involvesFilter = document.getElementById('f-involves');
-  involvesFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  involvesFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
 
   // 1:1 History pickers — preserve whatever's currently selected (if that
   // person is still a participant) instead of resetting to defaults every
@@ -2311,7 +2340,7 @@ function populateSelects(){
   const p2pB = document.getElementById('p2p-b');
   if(p2pA && p2pB){
     const prevA = p2pA.value, prevB = p2pB.value;
-    const p2pOpts = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+    const p2pOpts = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
     p2pA.innerHTML = p2pOpts;
     p2pB.innerHTML = p2pOpts;
     p2pA.value = PARTICIPANTS.includes(prevA) ? prevA : (PARTICIPANTS[0] || '');
@@ -2349,7 +2378,7 @@ function syncCategoryChips(){
 function renderPayerChips(){
   const box = document.getElementById('payerChips');
   const sel = document.getElementById('e-payer');
-  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${p}">${p}</div>`).join('');
+  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
   Array.from(box.children).forEach(chip=>{
     chip.addEventListener('click', ()=>{
       sel.value = chip.dataset.value;
@@ -2367,7 +2396,7 @@ function syncPayerChips(){
 function renderSplitChips(){
   const box = document.getElementById('splitChips');
   const sel = document.getElementById('e-split');
-  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${p}">${p}</div>`).join('');
+  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
   Array.from(box.children).forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const opt = Array.from(sel.options).find(o=>o.value===chip.dataset.value);
@@ -2485,7 +2514,7 @@ function exwizRenderReview(){
     ['Method', currentSplitMode()==='individual' ? 'Individual amounts' : 'Equal split'],
   ];
   document.getElementById('exwizReview').innerHTML = rows.map(([k,v])=>`
-    <div class="exwiz-review-row"><span class="k">${k}</span><span class="v">${v}</span></div>
+    <div class="exwiz-review-row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>
   `).join('');
 }
 document.getElementById('exwizNext').addEventListener('click', ()=>{
@@ -2529,7 +2558,7 @@ function populateDepositFromSelect(keepPerson){
     sel.disabled = true;
   }else{
     sel.disabled = false;
-    sel.innerHTML = '<option value="">Select person…</option>' + eligible.map(p=>`<option value="${p}" ${p===keepPerson?'selected':''}>${p}</option>`).join('');
+    sel.innerHTML = '<option value="">Select person…</option>' + eligible.map(p=>`<option value="${escapeHtml(p)}" ${p===keepPerson?'selected':''}>${escapeHtml(p)}</option>`).join('');
   }
 }
 
@@ -2549,8 +2578,8 @@ function refreshIndividualSplitInputs(prefill){
   box.innerHTML = split.map(p=>{
     const val = (prefill && prefill[p] !== undefined) ? prefill[p] : (even ? even.toFixed(2) : '');
     return `<div class="flex items-center justify-between gap-3 px-3 py-2">
-      <span class="text-sm">${p}</span>
-      <input type="number" step="0.01" class="individual-split-amt w-28 text-right" data-person="${p}" value="${val}" oninput="updateIndividualSplitTotal()"/>
+      <span class="text-sm">${escapeHtml(p)}</span>
+      <input type="number" step="0.01" class="individual-split-amt w-28 text-right" data-person="${escapeHtml(p)}" value="${val}" oninput="updateIndividualSplitTotal()"/>
     </div>`;
   }).join('');
   updateIndividualSplitTotal();
@@ -2661,11 +2690,11 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     const ownWithdrawal = editingId ? (wallet.deposits||[]).find(d=>d.linkedExpenseId===editingId) : null;
     const available = availableBalanceFor(depositUsedFrom, ownWithdrawal ? ownWithdrawal.id : null);
     if(available <= 0){
-      showBanner('warn', `⚠️ ${depositUsedFrom} doesn't have an approved deposit to pay this from.`);
+      showBanner('warn', `⚠️ ${escapeHtml(depositUsedFrom)} doesn't have an approved deposit to pay this from.`);
       return;
     }
     if(Number(amount) > available + 0.005){
-      showBanner('warn', `⚠️ ${depositUsedFrom}'s available deposit is ${fmtINR(available)} — not enough to pay ₹${Number(amount).toFixed(2)} from it.`);
+      showBanner('warn', `⚠️ ${escapeHtml(depositUsedFrom)}'s available deposit is ${fmtINR(available)} — not enough to pay ₹${Number(amount).toFixed(2)} from it.`);
       return;
     }
   }
@@ -2743,7 +2772,7 @@ document.getElementById('expenseForm').addEventListener('submit', async e=>{
     // it — so there is no separate addDeposit / submit call here any more.
     if(synced) await submitForApprovalAuto('expense', id, actor);
     renderAll();
-    reportWrite(synced, `✅ Expense "${title}" sent for admin review${paidFromDeposit ? ` (and paid from ${depositUsedFrom}'s deposit)` : isUnpaid ? ' (logged as pre-logged / unpaid)' : ''}. It'll appear for everyone once approved.`);
+    reportWrite(synced, `✅ Expense "${escapeHtml(title)}" sent for admin review${paidFromDeposit ? ` (and paid from ${escapeHtml(depositUsedFrom)}'s deposit)` : isUnpaid ? ' (logged as pre-logged / unpaid)' : ''}. It'll appear for everyone once approved.`);
   }
 });
 async function removeExpense(id){
@@ -2790,22 +2819,22 @@ function viewExpense(id){
     <div class="banner info mb-4">⏳ Pre-logged — split among the group below, but nobody has paid this yet. Edit this expense once someone pays to record who and settle it into the balances.</div>` : ''}
     <div class="grid grid-cols-2 gap-4 text-sm mb-4">
       <div><p class="mono text-[11px] opacity-50">PAID BY</p><p class="font-semibold">${ex.unpaid ? '⏳ Not yet paid' : escapeHtml(ex.payer)}</p></div>
-      <div><p class="mono text-[11px] opacity-50">DATE</p><p class="font-semibold">${ex.date||'—'}</p></div>
+      <div><p class="mono text-[11px] opacity-50">DATE</p><p class="font-semibold">${escapeHtml(ex.date||'—')}</p></div>
       <div><p class="mono text-[11px] opacity-50">SPLIT METHOD</p><p class="font-semibold">${isIndividual ? 'Individual amounts' : 'Equal'}</p></div>
       <div><p class="mono text-[11px] opacity-50">SPLIT COUNT</p><p class="font-semibold">${ex.split.length} people</p></div>
     </div>
     ${ex.paidFromDeposit && ex.depositUsedFrom ? `
     <div class="mb-4 p-3 rounded-lg" style="background:rgba(62,124,89,.08); border:1px solid rgba(62,124,89,.2)">
       <p class="mono text-[11px] opacity-70 mb-1">💰 PAID FROM DEPOSIT</p>
-      <p class="text-sm font-semibold">${ex.depositUsedFrom}'s deposited pool</p>
+      <p class="text-sm font-semibold">${escapeHtml(ex.depositUsedFrom)}'s deposited pool</p>
       <p class="text-xs opacity-50 mt-1">Automatic withdrawal created for ₹${Number(ex.amount).toFixed(0)}</p>
     </div>` : ''}
     <div class="mb-5">
       <p class="mono text-[11px] opacity-50 mb-1">SPLIT WITH</p>
       ${isIndividual
         ? `<div class="divide-y" style="border-color:var(--line)">${ex.split.map(s=>`
-            <div class="flex items-center justify-between py-1.5"><span class="text-sm">${s}</span><span class="mono text-sm">₹${expenseShare(ex,s).toFixed(0)}</span></div>`).join('')}</div>`
-        : `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${s} · ₹${per.toFixed(0)}</span>`).join('')}</div>`}
+            <div class="flex items-center justify-between py-1.5"><span class="text-sm">${escapeHtml(s)}</span><span class="mono text-sm">₹${expenseShare(ex,s).toFixed(0)}</span></div>`).join('')}</div>`
+        : `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${escapeHtml(s)} · ₹${per.toFixed(0)}</span>`).join('')}</div>`}
     </div>
     <div class="mb-5">
       <p class="mono text-[11px] opacity-50 mb-1">${ex.unpaid ? 'EACH PERSON\u2019S SHARE (once paid)' : 'WHO OWES WHOM — FOR THIS EXPENSE'}</p>
@@ -2819,10 +2848,10 @@ function viewExpense(id){
             </div>`).join('')}</div>`
         : `<p class="text-sm opacity-50">${escapeHtml(ex.payer)} paid only for themself here — nobody owes anything on this expense.</p>`}
     </div>
-    <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${ex.updatedBy}` : `Added by ${ex.createdBy||'—'}`}</p>
+    <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${escapeHtml(ex.updatedBy)}` : `Added by ${escapeHtml(ex.createdBy||'—')}`}</p>
     <div class="flex gap-3">
-      <button class="btn-primary flex-1" onclick="startEditExpense('${ex.id}')">Edit</button>
-      ${canDeleteExpense(ex) ? `<button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" onclick="removeExpense('${ex.id}')">Delete</button>` : ''}
+      <button class="btn-primary flex-1" data-action="startEditExpense" data-id="${escapeHtml(ex.id)}">Edit</button>
+      ${canDeleteExpense(ex) ? `<button class="btn-ghost" style="border-color:var(--mango-2); color:var(--mango-2)" data-action="removeExpense" data-id="${escapeHtml(ex.id)}">Delete</button>` : ''}
     </div>`;
   openModal('detailModal');
 }
@@ -2868,15 +2897,15 @@ function openSettlementModal(){
 function populateEqualSettlementLists(){
   document.getElementById('equalMemberList').innerHTML = PARTICIPANTS.map(p=>`
     <label class="settle-member-chip">
-      <input type="checkbox" class="equal-member-cb" value="${p}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/> ${p}
+      <input type="checkbox" class="equal-member-cb" value="${escapeHtml(p)}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/> ${escapeHtml(p)}
     </label>`).join('');
   const sorted = wallet.expenses.slice().sort((a,b)=> (b.date||b.createdAt||'').localeCompare(a.date||a.createdAt||''));
   document.getElementById('equalTxnList').innerHTML = sorted.map(ex=>`
     <label class="settle-txn-row">
-      <input type="checkbox" class="equal-txn-cb" value="${ex.id}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/>
+      <input type="checkbox" class="equal-txn-cb" value="${escapeHtml(ex.id)}" onchange="this.closest('label').classList.toggle('checked', this.checked)"/>
       <span class="flex-1">
-        <span class="text-sm font-medium block">${ex.title}</span>
-        <span class="text-xs opacity-50">${ex.payer} paid · ${ex.date||'—'} · split with ${ex.split.length===PARTICIPANTS.length?'everyone':ex.split.join(', ')}</span>
+        <span class="text-sm font-medium block">${escapeHtml(ex.title)}</span>
+        <span class="text-xs opacity-50">${escapeHtml(ex.payer)} paid · ${escapeHtml(ex.date||'—')} · split with ${ex.split.length===PARTICIPANTS.length?'everyone':escapeHtml(ex.split.join(', '))}</span>
       </span>
       <span class="mono text-sm">₹${Number(ex.amount).toFixed(0)}</span>
     </label>`).join('') || '<p class="text-sm opacity-50 p-4">No expenses logged yet.</p>';
@@ -2898,7 +2927,7 @@ function calculateEqualSettlement(){
   const outsidePayers = [...new Set(txns.filter(t=>!members.includes(t.payer)).map(t=>t.payer))];
   if(outsidePayers.length){
     warnBox.style.display='flex'; warnBox.className='banner warn mb-4';
-    warnBox.innerHTML = `⚠️ ${outsidePayers.join(', ')} paid for one of the selected transactions but isn't in the selected members list, so their payment can't be credited here. Add them to the member list or unselect that transaction.`;
+    warnBox.innerHTML = `⚠️ ${escapeHtml(outsidePayers.join(', '))} paid for one of the selected transactions but isn't in the selected members list, so their payment can't be credited here. Add them to the member list or unselect that transaction.`;
     return;
   }
   warnBox.style.display = 'none';
@@ -2937,9 +2966,9 @@ function calculateEqualSettlement(){
     </div>
     ${payments.length ? payments.map((p,idx)=>`
       <div class="owe-row mb-2" id="equalPaymentRow-${idx}">
-        <span class="font-medium text-sm">${p.from}</span><span class="opacity-50 text-sm">owes</span><span class="font-medium text-sm">${p.to}</span>
+        <span class="font-medium text-sm">${escapeHtml(p.from)}</span><span class="opacity-50 text-sm">owes</span><span class="font-medium text-sm">${escapeHtml(p.to)}</span>
         <span class="mono ml-auto text-sm">₹${p.amount.toFixed(0)}</span>
-        <button type="button" class="btn-ghost text-xs" style="padding:6px 10px" onclick="recordEqualSettlementAt(${idx})">Record</button>
+        <button type="button" class="btn-ghost text-xs" style="padding:6px 10px" data-action="recordEqualSettlementAt" data-idx="${idx}">Record</button>
       </div>`).join('') : '<p class="text-sm opacity-50">Selected members are already even on these transactions.</p>'}
     ${payments.length>1 ? `<button type="button" class="btn-primary w-full mt-2" id="recordAllEqualBtn" onclick="recordAllEqualSettlementsFromState()">Record all ${payments.length} payments</button>` : ''}
   `;
@@ -2957,8 +2986,8 @@ async function recordEqualSettlementAt(idx){
   const synced = await pushToSheet('addSettlement', {id, from:p.from, to:p.to, amount:p.amount, note:equalCalcState.note}, actor);
   if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
-  if(row) row.innerHTML = `<span class="text-sm">${synced ? '✅' : lastPushWasQueued() ? '⏳' : '⚠️'} ${p.from} → ${p.to} ${synced ? 'sent for review' : lastPushWasQueued() ? 'saved on this device — will sync automatically' : 'NOT saved (rejected)'} (₹${p.amount.toFixed(0)})</span>`;
-  reportWrite(synced, `✅ Settlement sent for admin review: <b>${p.from} → ${p.to}</b> · ₹${p.amount.toFixed(0)}`);
+  if(row) row.innerHTML = `<span class="text-sm">${synced ? '✅' : lastPushWasQueued() ? '⏳' : '⚠️'} ${escapeHtml(p.from)} → ${escapeHtml(p.to)} ${synced ? 'sent for review' : lastPushWasQueued() ? 'saved on this device — will sync automatically' : 'NOT saved (rejected)'} (₹${p.amount.toFixed(0)})</span>`;
+  reportWrite(synced, `✅ Settlement sent for admin review: <b>${escapeHtml(p.from)} → ${escapeHtml(p.to)}</b> · ₹${p.amount.toFixed(0)}`);
 }
 async function recordAllEqualSettlementsFromState(){
   const payments = equalCalcState.payments;
@@ -3076,7 +3105,7 @@ document.getElementById('settlementForm').addEventListener('submit', async e=>{
   if(synced) await submitForApprovalAuto('settlement', id, actor);
   renderAll();
   const method = useDeposit ? ` via ${from}'s deposit` : '';
-  reportWrite(synced, `✅ Settlement sent for admin review: <b>${from} → ${to}</b> · ₹${Number(amount).toFixed(0)}${method}`);
+  reportWrite(synced, `✅ Settlement sent for admin review: <b>${escapeHtml(from)} → ${escapeHtml(to)}</b> · ₹${Number(amount).toFixed(0)}${method}`);
 });
 async function removeSettlement(id){
   confirmAction('Delete this settlement record?', 'This will reopen the corresponding balance.', async ()=>{
@@ -3376,7 +3405,7 @@ function renderP2P(){
         ${settled
           ? `<p class="mono text-lg balance-pos">All settled up 🎉</p>`
           : `<p class="mono text-lg balance-neg">${escapeHtml(ower)} owes ${escapeHtml(owed)} · ₹${Math.abs(net).toFixed(0)}</p>`}
-        ${!settled ? `<button type="button" class="btn-ghost text-xs mt-2" style="padding:6px 12px" onclick="quickRecordSettlement('${ower.replace(/'/g,"\\'")}','${owed.replace(/'/g,"\\'")}',${Math.abs(net)})">Record settlement</button>` : ''}
+        ${!settled ? `<button type="button" class="btn-ghost text-xs mt-2" style="padding:6px 12px" data-action="quickRecordSettlement" data-from="${escapeHtml(ower)}" data-to="${escapeHtml(owed)}" data-amount="${Math.abs(net)}">Record settlement</button>` : ''}
       </div>
     </div>`;
 
@@ -3387,7 +3416,7 @@ function renderP2P(){
     return `<div class="py-3 flex items-center justify-between gap-3 flex-wrap">
       <div>
         <p class="text-sm">${escapeHtml(r.title||'—')} ${tag}</p>
-        <p class="text-xs opacity-50"><b>${escapeHtml(r.from)}</b> <span class="opacity-40">owes</span> <b>${escapeHtml(r.to)}</b> · ${r.date||'—'}</p>
+        <p class="text-xs opacity-50"><b>${escapeHtml(r.from)}</b> <span class="opacity-40">owes</span> <b>${escapeHtml(r.to)}</b> · ${escapeHtml(r.date||'—')}</p>
       </div>
       <span class="mono text-sm">₹${Number(r.amount).toFixed(0)}</span>
     </div>`;
@@ -3488,7 +3517,7 @@ function renderChartCategory(byCat){
   const labels = Object.keys(byCat), data = Object.values(byCat);
   chart.setOption({
     textStyle: baseTextStyle,
-    tooltip: { trigger:'item', formatter:p=>`${p.marker} ${p.name}<br/>₹${Number(p.value).toFixed(0)} · ${p.percent}%` },
+    tooltip: { trigger:'item', formatter:p=>`${p.marker} ${escapeHtml(p.name)}<br/>₹${Number(p.value).toFixed(0)} · ${p.percent}%` },
     legend: { bottom:0, textStyle:{...baseTextStyle, fontSize:11}, itemWidth:11, itemHeight:11 },
     color: palette,
     series: [{
@@ -3617,19 +3646,19 @@ function renderExpensesTable(){
   const body = document.getElementById('expenseTableBody');
   body.innerHTML = rows.map(ex=>`
     <tr>
-      <td class="font-semibold cursor-pointer" onclick="viewExpense('${ex.id}')">${escapeHtml(ex.title)}${ex.unpaid ? ' <span class="pill unpaid-pill">Pre-logged</span>' : ''}</td>
+      <td class="font-semibold cursor-pointer" data-action="viewExpense" data-id="${escapeHtml(ex.id)}">${escapeHtml(ex.title)}${ex.unpaid ? ' <span class="pill unpaid-pill">Pre-logged</span>' : ''}</td>
       <td><span class="pill">${escapeHtml(ex.category||'Misc')}</span></td>
       <td class="mono">₹${Number(ex.amount).toFixed(0)}</td>
       <td>${ex.unpaid ? '<span class="unpaid-text">⏳ Not yet paid</span>' : escapeHtml(ex.payer)}</td>
-      <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : ex.split.join(', ')}</td>
-      <td class="mono text-xs">${ex.date||'—'}</td>
-      <td class="text-xs opacity-60">${ex.updatedBy || ex.createdBy || '—'}</td>
+      <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : escapeHtml(ex.split.join(', '))}</td>
+      <td class="mono text-xs">${escapeHtml(ex.date||'—')}</td>
+      <td class="text-xs opacity-60">${escapeHtml(ex.updatedBy || ex.createdBy || '—')}</td>
       <td>${statusPillHtml(ex.status, ex.approvedBy, ex._unsynced)}</td>
       <td>
         <div class="flex gap-1.5 justify-end">
-          <span class="btn-icon" title="View" onclick="viewExpense('${ex.id}')">👁</span>
-          <span class="btn-icon" title="Edit" onclick="startEditExpense('${ex.id}')">✎</span>
-          ${canDeleteExpense(ex) ? `<span class="btn-icon" title="Delete" onclick="removeExpense('${ex.id}')">✕</span>` : ''}
+          <span class="btn-icon" title="View" data-action="viewExpense" data-id="${escapeHtml(ex.id)}">👁</span>
+          <span class="btn-icon" title="Edit" data-action="startEditExpense" data-id="${escapeHtml(ex.id)}">✎</span>
+          ${canDeleteExpense(ex) ? `<span class="btn-icon" title="Delete" data-action="removeExpense" data-id="${escapeHtml(ex.id)}">✕</span>` : ''}
         </div>
       </td>
     </tr>`).join('');
@@ -3639,7 +3668,8 @@ function renderExpensesTable(){
 /* ============================================================
    RENDER: PARTICIPANTS & BALANCES
 =============================================================*/
-function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+// Returns HTML-safe text: every caller interpolates it into an innerHTML template.
+function initials(name){ return escapeHtml(String(name||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase()); }
 function renderParticipants(){
   const net = computeNetBalances();
   // Surface any unpaid/pre-logged expenses right at the top of the
@@ -3672,22 +3702,22 @@ function renderParticipants(){
     if(whoLines.length === 1){
       const w = whoLines[0];
       whoHtml = `<p class="text-xs mt-2 ${w.dir==='pay'?'balance-neg':'balance-pos'}">
-        ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${w.person}</b> · ₹${w.amount.toFixed(0)}
+        ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${escapeHtml(w.person)}</b> · ₹${w.amount.toFixed(0)}
       </p>`;
     } else if(whoLines.length > 1){
       whoHtml = `<div class="mt-2 space-y-1">${whoLines.map(w=>`
         <p class="text-xs ${w.dir==='pay'?'balance-neg':'balance-pos'}">
-          ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${w.person}</b> · ₹${w.amount.toFixed(0)}
+          ${w.dir==='pay' ? '→ Pay' : '← Collect from'} <b>${escapeHtml(w.person)}</b> · ₹${w.amount.toFixed(0)}
         </p>`).join('')}</div>`;
     }
 
-    return `<div class="panel p-5 cursor-pointer" onclick="viewPerson('${p}')">
+    return `<div class="panel p-5 cursor-pointer" data-action="viewPerson" data-person="${escapeHtml(p)}">
       <div class="flex items-center justify-between gap-3 mb-3">
         <div class="flex items-center gap-3">
           <span class="avatar">${initials(p)}</span>
-          <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
+        <div><p class="font-semibold text-sm">${escapeHtml(p)}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
         </div>
-        <span class="btn-icon" title="Edit ${p}" onclick="event.stopPropagation(); openParticipantEditModal('${p}')">✎</span>
+        <span class="btn-icon" title="Edit ${escapeHtml(p)}" data-action="openParticipantEditModal" data-person="${escapeHtml(p)}">✎</span>
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
       <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
@@ -3740,10 +3770,10 @@ function renderWallet(){
     const net = depositedByPerson(p);
     const count = (wallet.deposits||[]).filter(d=>d.person===p).length;
     const isNegative = net < 0;
-    return `<div class="panel p-5 cursor-pointer" onclick="viewPersonDeposits('${p.replace(/'/g,"\\'")}')">
+    return `<div class="panel p-5 cursor-pointer" data-action="viewPersonDeposits" data-person="${escapeHtml(p)}">
       <div class="flex items-center gap-3 mb-3">
         <span class="avatar">${initials(p)}</span>
-        <div><p class="font-semibold text-sm">${p}</p><p class="text-xs opacity-50">${count} record${count===1?'':'s'} logged</p></div>
+        <div><p class="font-semibold text-sm">${escapeHtml(p)}</p><p class="text-xs opacity-50">${count} record${count===1?'':'s'} logged</p></div>
       </div>
       <p class="mono text-lg ${isNegative ? 'balance-neg' : 'balance-pos'}">${isNegative ? '−' : '+'}₹${Math.abs(net).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
       <p class="text-xs opacity-50">net balance · tap to view/edit</p>
@@ -3763,12 +3793,12 @@ function renderWallet(){
       <td><span class="pill">${typeLabel}</span></td>
       <td class="mono ${amountClass}">${sign}₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.note||'—')}</td>
-      <td class="text-sm">${d.date||'—'}</td>
+      <td class="text-sm">${escapeHtml(d.date||'—')}</td>
       <td class="text-sm opacity-70">${escapeHtml(d.loggedBy||'—')}</td>
       <td>${statusPillHtml(d.status, null, d._unsynced)}</td>
       <td class="text-right whitespace-nowrap">
-        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}')" style="display:inline-flex;">✎</span>
-        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}')" style="display:inline-flex;">✕</span>`}
+        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" data-action="editDeposit" data-id="${escapeHtml(d.id)}" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" data-action="removeDeposit" data-id="${escapeHtml(d.id)}" style="display:inline-flex;">✕</span>`}
       </td>
     </tr>`;
   }).join('');
@@ -3857,7 +3887,7 @@ function openDepositModal(forPerson){
   document.getElementById('depositModalTitle').textContent = 'Add deposit';
   document.getElementById('depositSubmitBtn').textContent = 'Add deposit';
   document.getElementById('depositForm').reset();
-  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   if(forPerson) document.getElementById('d-person').value = forPerson;
   document.getElementById('d-date').value = new Date().toISOString().slice(0,10);
   pdReturnPerson = forPerson || null;
@@ -3872,7 +3902,7 @@ function editDeposit(id, forPerson){
   depositMode = d.type || 'deposit';
   setDepositMode(depositMode);
   document.getElementById('depositModalTitle').textContent = 'Edit ' + (depositMode==='deposit' ? 'deposit' : 'withdrawal');
-  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${p}">${p}</option>`).join('');
+  document.getElementById('d-person').innerHTML = PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   document.getElementById('d-person').value = d.person;
   document.getElementById('d-amount').value = d.amount;
   document.getElementById('d-date').value = d.date || new Date().toISOString().slice(0,10);
@@ -3910,7 +3940,7 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     // the backend, so resubmit it for approval automatically.
     if(synced && !IS_WALLET_ADMIN) await submitForApprovalAuto('deposit', editing, actor);
     renderAll();
-    reportWrite(synced, `✅ ${typeLabel} updated for <b>${person}</b>.`);
+    reportWrite(synced, `✅ ${typeLabel} updated for <b>${escapeHtml(person)}</b>.`);
   } else {
     const id = 'dep'+Date.now();
     wallet.deposits = wallet.deposits || [];
@@ -3919,7 +3949,7 @@ document.getElementById('depositForm').addEventListener('submit', async e=>{
     const synced = await pushToSheet('addDeposit', {id, person, amount, date, note, type}, actor);
     if(synced) await submitForApprovalAuto('deposit', id, actor);
     renderAll();
-    reportWrite(synced, `✅ ${typeLabel} of ₹${amount.toFixed(2)} for <b>${person}</b> sent for admin review.`);
+    reportWrite(synced, `✅ ${typeLabel} of ₹${amount.toFixed(2)} for <b>${escapeHtml(person)}</b> sent for admin review.`);
   }
   if(pdReturnPerson){ const rp = pdReturnPerson; pdReturnPerson = null; viewPersonDeposits(rp); }
 });
@@ -3970,11 +4000,11 @@ function viewPersonDeposits(person){
           <span class="pill">${typeLabel}</span>
           <p class="mono font-semibold text-sm ${amountClass}">${sign}₹${Number(d.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
         </div>
-        <p class="text-xs opacity-50">${d.date||'—'}${d.note ? ' · '+escapeHtml(d.note) : ''} · logged by ${escapeHtml(d.loggedBy||'—')}</p>
+        <p class="text-xs opacity-50">${escapeHtml(d.date||'—')}${d.note ? ' · '+escapeHtml(d.note) : ''} · logged by ${escapeHtml(d.loggedBy||'—')}</p>
       </div>
       <div class="flex gap-1.5">
-        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" onclick="editDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✎</span>
-        <span class="btn-icon" title="Delete" onclick="removeDeposit('${d.id}', '${person.replace(/'/g,"\\'")}')" style="display:inline-flex;">✕</span>`}
+        ${d.linkedExpenseId ? `<span class="text-xs opacity-50" title="Edit or delete the expense to change this">via expense</span>` : `<span class="btn-icon" title="Edit" data-action="editDeposit" data-id="${escapeHtml(d.id)}" data-person="${escapeHtml(person)}" style="display:inline-flex;">✎</span>
+        <span class="btn-icon" title="Delete" data-action="removeDeposit" data-id="${escapeHtml(d.id)}" data-person="${escapeHtml(person)}" style="display:inline-flex;">✕</span>`}
       </div>
     </div>`;
   }).join('');
@@ -4000,12 +4030,12 @@ function renderPeAdjustmentList(person){
   document.getElementById('peAdjustmentList').innerHTML = mine.length ? mine.map(a=>`
     <div class="py-2.5 flex items-center justify-between gap-3">
       <div class="min-w-0">
-        <p class="text-sm font-medium truncate">${a.note}</p>
-        <p class="text-xs opacity-50">${a.actor} · ${(a.ts||'').slice(0,10)}</p>
+        <p class="text-sm font-medium truncate">${escapeHtml(a.note)}</p>
+        <p class="text-xs opacity-50">${escapeHtml(a.actor)} · ${escapeHtml((a.ts||'').slice(0,10))}</p>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <span class="mono text-sm ${a.amount>=0?'balance-pos':'balance-neg'}">${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}</span>
-        <span class="btn-icon" title="Remove" onclick="removeAdjustment('${a.id}')">✕</span>
+        <span class="btn-icon" title="Remove" data-action="removeAdjustment" data-id="${escapeHtml(a.id)}">✕</span>
       </div>
     </div>`).join('') : '<p class="text-sm opacity-50 py-3">No manual adjustments for this person yet.</p>';
 }
@@ -4034,7 +4064,7 @@ function openParticipantEditModal(person){
   document.getElementById('peMergeFromName').textContent = person;
   document.getElementById('peMergeFromName2').textContent = person;
   const mergeSel = document.getElementById('pe-merge-target');
-  mergeSel.innerHTML = PARTICIPANTS.filter(p => p !== person).map(p => `<option value="${p}">${p}</option>`).join('');
+  mergeSel.innerHTML = PARTICIPANTS.filter(p => p !== person).map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   document.getElementById('peMergeNote').textContent = PARTICIPANTS.length <= 1
     ? 'No other participants to merge into yet.'
     : '';
@@ -4085,14 +4115,14 @@ async function removeParticipantFlow(){
   const person = peCurrentPerson;
   if(!person) return;
   const reason = participantHasHistory(person);
-  if(reason){ showBanner('err', `Can't remove <b>${person}</b> — ${reason}`); return; }
+  if(reason){ showBanner('err', `Can't remove <b>${escapeHtml(person)}</b> — ${escapeHtml(reason)}`); return; }
 
   confirmAction('Remove this participant?', `"${person}" has no expenses, settlements, deposits or adjustments recorded, so this is safe — they'll disappear from every dropdown and the balances grid. This only affects this device; if they were auto-added from a registration, they'll come back if that registration row still exists in the sheet.`, async ()=>{
     // Re-check right before acting — state could have changed while
     // the confirm dialog was open (e.g. another tab/action ran).
     const stillClear = !participantHasHistory(person);
     if(!stillClear){
-      showBanner('err', `Can't remove <b>${person}</b> — new activity was recorded for them since this dialog opened.`);
+      showBanner('err', `Can't remove <b>${escapeHtml(person)}</b> — new activity was recorded for them since this dialog opened.`);
       return;
     }
     const actor = await checkWalletAdmin('remove participants');
@@ -4104,7 +4134,7 @@ async function removeParticipantFlow(){
 
     closeModal('participantEditModal');
     renderAll();
-    showBanner('ok', `Removed <b>${person}</b> from the participant list. This is saved on this device only.`);
+    showBanner('ok', `Removed <b>${escapeHtml(person)}</b> from the participant list. This is saved on this device only.`);
   });
 }
 
@@ -4132,7 +4162,7 @@ async function checkWalletAdmin(actionLabel){
     }
     return data.name;
   }catch(err){
-    showBanner('err', `Could not verify admin session: ${err.message}`);
+    showBanner('err', `Could not verify admin session: ${escapeHtml(err.message)}`);
     return null;
   }
 }
@@ -4143,7 +4173,7 @@ document.getElementById('renameForm').addEventListener('submit', async e=>{
   const trimmed = document.getElementById('pe-newname').value.trim();
   if(!oldName || !trimmed || trimmed === oldName) return;
   if(PARTICIPANTS.some(p => p.toLowerCase() === trimmed.toLowerCase())){
-    showBanner('err', `"${trimmed}" is already a participant name.`);
+    showBanner('err', `"${escapeHtml(trimmed)}" is already a participant name.`);
     return;
   }
   const actor = await checkWalletAdmin('rename participants');
@@ -4153,7 +4183,7 @@ document.getElementById('renameForm').addEventListener('submit', async e=>{
   if(!result) return;
   closeModal('participantEditModal');
   renderAll();
-  showBanner('ok', `Renamed <b>${oldName}</b> to <b>${trimmed}</b> for everyone.`);
+  showBanner('ok', `Renamed <b>${escapeHtml(oldName)}</b> to <b>${escapeHtml(trimmed)}</b> for everyone.`);
 });
 
 /* ---------------------------------------------------------------
@@ -4177,7 +4207,7 @@ document.getElementById('mergeForm').addEventListener('submit', async e=>{
   if(!result) return;
   closeModal('participantEditModal');
   renderAll();
-  showBanner('ok', `Merged <b>${source}</b> into <b>${target}</b> for everyone.`);
+  showBanner('ok', `Merged <b>${escapeHtml(source)}</b> into <b>${escapeHtml(target)}</b> for everyone.`);
 });
 
 document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
@@ -4198,7 +4228,7 @@ document.getElementById('adjustmentForm').addEventListener('submit', async e=>{
   if(!result) return;
   renderAll();
   openParticipantEditModal(person); // refresh the modal's own numbers in place
-  showBanner('ok', `Applied a ${signedAmount>=0?'+':'−'}₹${Math.abs(signedAmount).toFixed(0)} adjustment to <b>${person}</b> for everyone.`);
+  showBanner('ok', `Applied a ${signedAmount>=0?'+':'−'}₹${Math.abs(signedAmount).toFixed(0)} adjustment to <b>${escapeHtml(person)}</b> for everyone.`);
 });
 
 function removeAdjustment(id){
@@ -4239,11 +4269,11 @@ function viewPerson(person){
     <h4 class="font-semibold mb-2">Itemised breakdown</h4>
     <div class="divide-y" style="border-color:var(--line)">
       ${rows.reverse().map(r=>`<div class="py-3 flex items-center justify-between">
-        <div><p class="font-semibold text-sm">${r.title}</p><p class="text-xs opacity-50">${r.role} · ${r.date||'—'}</p></div>
+        <div><p class="font-semibold text-sm">${escapeHtml(r.title)}</p><p class="text-xs opacity-50">${escapeHtml(r.role)} · ${escapeHtml(r.date||'—')}</p></div>
         <p class="mono text-sm ${r.role==='Paid'?'balance-pos':'balance-neg'}">₹${r.amt.toFixed(0)}</p>
       </div>`).join('') || '<p class="text-sm opacity-50 py-4">No expenses involve this person yet.</p>'}
       ${personAdjustments.slice().reverse().map(a=>`<div class="py-3 flex items-center justify-between">
-        <div><p class="font-semibold text-sm">${a.note}</p><p class="text-xs opacity-50">Manual adjustment · ${(a.ts||'').slice(0,10)} · by ${a.actor}</p></div>
+        <div><p class="font-semibold text-sm">${escapeHtml(a.note)}</p><p class="text-xs opacity-50">Manual adjustment · ${escapeHtml((a.ts||'').slice(0,10))} · by ${escapeHtml(a.actor)}</p></div>
         <p class="mono text-sm ${a.amount>=0?'balance-pos':'balance-neg'}">${a.amount>=0?'+':'−'}₹${Math.abs(a.amount).toFixed(0)}</p>
       </div>`).join('')}
     </div>`;
@@ -4263,10 +4293,10 @@ function renderSettlements(){
   const owList = document.getElementById('whoOwesWhomList');
   owList.innerHTML = pairs.map(p=>`
     <div class="py-3 flex items-center justify-between gap-3 flex-wrap">
-      <span class="text-sm"><b>${p.from}</b> <span class="opacity-50">owes</span> <b>${p.to}</b></span>
+      <span class="text-sm"><b>${escapeHtml(p.from)}</b> <span class="opacity-50">owes</span> <b>${escapeHtml(p.to)}</b></span>
       <div class="flex items-center gap-3">
         <span class="mono text-sm balance-neg">₹${p.amount.toFixed(0)}</span>
-        <button type="button" class="btn-ghost text-xs" style="padding:6px 12px" onclick="quickRecordSettlement('${p.from.replace(/'/g,"\\'")}','${p.to.replace(/'/g,"\\'")}',${p.amount})">Record</button>
+        <button type="button" class="btn-ghost text-xs" style="padding:6px 12px" data-action="quickRecordSettlement" data-from="${escapeHtml(p.from)}" data-to="${escapeHtml(p.to)}" data-amount="${p.amount}">Record</button>
       </div>
     </div>`).join('');
   document.getElementById('whoOwesWhomEmpty').style.display = pairs.length ? 'none' : 'block';
@@ -4276,7 +4306,7 @@ function renderSettlements(){
   glance.innerHTML = nonZero.length ? nonZero.map(p=>{
     const v = net[p]||0;
     return `<div class="flex items-center justify-between border rounded-xl px-4 py-3" style="border-color:var(--line)">
-      <span class="text-sm font-medium">${p}</span>
+      <span class="text-sm font-medium">${escapeHtml(p)}</span>
       <span class="mono text-sm ${v>=0?'balance-pos':'balance-neg'}">${v>=0? 'gets back ₹'+v.toFixed(0) : 'owes ₹'+Math.abs(v).toFixed(0)}</span>
     </div>`;
   }).join('') : '<p class="text-sm opacity-50">Everyone is settled up 🎉</p>';
@@ -4285,11 +4315,11 @@ function renderSettlements(){
   body.innerHTML = wallet.settlements.slice().reverse().map(s=>{
     const method = s.usedDeposit ? '<span class="pill" style="background:rgba(62,124,89,.1); color:var(--palm); border:1px solid rgba(62,124,89,.2);">💰 via deposit</span>' : '';
     return `<tr>
-      <td>${s.from}</td><td>${s.to}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
-      <td class="text-xs opacity-60">${method} ${s.note||'—'}</td><td class="text-xs opacity-60">${s.actor}</td>
-      <td class="mono text-xs">${(s.ts||'').slice(0,10)}</td>
+      <td>${escapeHtml(s.from)}</td><td>${escapeHtml(s.to)}</td><td class="mono">₹${Number(s.amount).toFixed(0)}</td>
+      <td class="text-xs opacity-60">${method} ${escapeHtml(s.note||'—')}</td><td class="text-xs opacity-60">${escapeHtml(s.actor)}</td>
+      <td class="mono text-xs">${escapeHtml((s.ts||'').slice(0,10))}</td>
       <td>${statusPillHtml(s.status, null, s._unsynced)}</td>
-      <td>${IS_WALLET_ADMIN ? `<span class="btn-icon" onclick="removeSettlement('${s.id}')">✕</span>` : ''}</td>
+      <td>${IS_WALLET_ADMIN ? `<span class="btn-icon" data-action="removeSettlement" data-id="${escapeHtml(s.id)}">✕</span>` : ''}</td>
     </tr>`;
   }).join('');
   document.getElementById('settlementEmptyState').style.display = wallet.settlements.length ? 'none' : 'block';
@@ -4379,7 +4409,7 @@ function renderMySubmissions(){
       ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
       ${(r.status === 'draft' || r.status === 'rejected') ? `
         <div class="mt-3">
-          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" onclick="resubmitRecord('${r.recordType}','${r.id}')">
+          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-action="resubmitRecord" data-record-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">
             ${r.status === 'rejected' ? 'Resubmit for approval' : 'Submit for approval'}
           </button>
         </div>` : ''}
@@ -4390,8 +4420,8 @@ function renderActivity(){
   const list = document.getElementById('activityLogList');
   list.innerHTML = wallet.activity.slice().reverse().map(a=>`
     <div class="py-3 flex items-center justify-between gap-3">
-      <div><p class="text-sm font-medium">${a.detail||''}</p><p class="text-xs opacity-50">${(a.action||'').replace('_',' ')} · by ${a.actor}</p></div>
-      <p class="mono text-xs opacity-50">${(a.ts||'').replace('T',' ').slice(0,16)}</p>
+      <div><p class="text-sm font-medium">${escapeHtml(a.detail||'')}</p><p class="text-xs opacity-50">${escapeHtml((a.action||'').replace('_',' '))} · by ${escapeHtml(a.actor)}</p></div>
+      <p class="mono text-xs opacity-50">${escapeHtml((a.ts||'').replace('T',' ').slice(0,16))}</p>
     </div>`).join('') || '<p class="text-sm opacity-50 py-6">Nothing logged yet.</p>';
 }
 
@@ -4929,7 +4959,7 @@ async function populateGateParticipants(){
     });
     const data = await res.json();
     const names = Array.isArray(data.participants) ? data.participants : [];
-    sel.innerHTML = names.map(p=>`<option value="${p}">${p}</option>`).join('');
+    sel.innerHTML = names.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
     const last = localStorage.getItem('goaWalletLastActor');
     if(last && names.includes(last)) sel.value = last;
   }catch(e){ /* gate stays usable — server still validates the typed name on submit */ }

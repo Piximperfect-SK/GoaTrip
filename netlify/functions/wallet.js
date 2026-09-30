@@ -112,6 +112,30 @@ const SCHEMAS = {
   },
 };
 
+const SAFE_RECORD_ID = /^[A-Za-z0-9_-]{1,60}$/;
+const SAFE_DATE = /^[0-9A-Za-z:.+\/ -]{1,20}$/;
+const SAFE_PARTICIPANT_NAME = /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .-]*$/;
+
+function hasMarkup(value) { return typeof value === 'string' && /[<>]/.test(value); }
+function safeParticipantName(value) {
+  const name = sanitizeText(value, 80);
+  return SAFE_PARTICIPANT_NAME.test(name) ? name : 'Unknown participant';
+}
+function safeRecordId(value) { return SAFE_RECORD_ID.test(String(value || '')) ? String(value) : ''; }
+function validateSafeWalletInput(action, payload) {
+  if (payload.id && !SAFE_RECORD_ID.test(payload.id)) return 'Invalid record id.';
+  const fields = ['title', 'category', 'payer', 'depositUsedFrom', 'person', 'from', 'to', 'note', 'oldName', 'newName', 'source', 'target', 'reason', 'splitType', 'type', 'recordType', 'date'];
+  for (const field of fields) if (hasMarkup(payload[field])) return `${field} cannot contain < or >.`;
+  // Dates are rendered on the page too — only plain date/time characters allowed.
+  if (payload.date && !SAFE_DATE.test(String(payload.date))) return 'Invalid date.';
+  if (Array.isArray(payload.split) && payload.split.some((name) => hasMarkup(name))) return 'Participant names cannot contain < or >.';
+  if (payload.splitAmounts && Object.keys(payload.splitAmounts).some((name) => hasMarkup(name))) return 'Participant names cannot contain < or >.';
+  for (const field of ['payer', 'depositUsedFrom', 'person', 'from', 'to', 'oldName', 'newName', 'source', 'target']) {
+    if (payload[field] && !SAFE_PARTICIPANT_NAME.test(sanitizeText(payload[field], 80))) return `${field} contains invalid participant-name characters.`;
+  }
+  return null;
+}
+
 function validateSplitAmounts(action, payload) {
   if ((action === 'addExpense' || action === 'editExpense') && payload.splitAmounts) {
     if (typeof payload.splitAmounts !== 'object' || Array.isArray(payload.splitAmounts)) {
@@ -203,7 +227,7 @@ function remapExpensePeople(expense, person) {
       splitAmounts[mapped] = (Number(splitAmounts[mapped]) || 0) + (Number(amount) || 0);
     });
   }
-  return { ...expense, payer: person(expense.payer), depositUsedFrom: person(expense.depositUsedFrom), split, splitAmounts };
+  return { ...expense, payer: safeParticipantName(person(expense.payer)), depositUsedFrom: safeParticipantName(person(expense.depositUsedFrom)), split: split.map(safeParticipantName), splitAmounts };
 }
 
 // Phase 2 schema, added here (not just once at boot) for the same
@@ -358,7 +382,7 @@ async function readState(tripId, viewer) {
   const aliasMap = Object.fromEntries(aliases.rows.map((r) => [r.source_name, r.target_name]));
   const person = (name) => resolveAlias(name, aliasMap);
   const mappedExpenses = expenses.rows.map((r) => ({
-    id: r.id, title: r.title, category: r.category, amount: Number(r.amount), payer: r.payer,
+    id: safeRecordId(r.id), title: r.title, category: r.category, amount: Number(r.amount), payer: r.payer,
     split: r.split || [], date: r.date, createdBy: r.created_by, createdAt: r.created_at,
     updatedBy: r.updated_by, updatedAt: r.updated_at, splitType: r.split_type,
     splitAmounts: r.split_amounts, paidFromDeposit: r.paid_from_deposit, depositUsedFrom: r.deposit_used_from,
@@ -366,12 +390,12 @@ async function readState(tripId, viewer) {
     ...approvalFields(r),
   })).map((r) => remapExpensePeople(r, person));
   const mappedSettlements = settlements.rows.map((r) => ({
-    id: r.id, from: person(r.from_person), to: person(r.to_person), amount: Number(r.amount), note: r.note,
+    id: safeRecordId(r.id), from: safeParticipantName(person(r.from_person)), to: safeParticipantName(person(r.to_person)), amount: Number(r.amount), note: r.note,
     actor: r.actor, ts: r.ts, usedDeposit: r.used_deposit,
     ...approvalFields(r),
   }));
   const mappedDeposits = deposits.rows.map((r) => ({
-    id: r.id, person: person(r.person), amount: Number(r.amount), date: r.date, note: r.note,
+    id: safeRecordId(r.id), person: safeParticipantName(person(r.person)), amount: Number(r.amount), date: r.date, note: r.note,
     loggedBy: r.logged_by, ts: r.ts, type: normalizeDepositType(r.type), linkedExpenseId: r.linked_expense_id || null,
     ...approvalFields(r),
   }));
@@ -379,10 +403,10 @@ async function readState(tripId, viewer) {
     expenses: filterVisible(mappedExpenses, 'createdBy', viewer),
     settlements: filterVisible(mappedSettlements, 'actor', viewer),
     deposits: filterVisible(mappedDeposits, 'loggedBy', viewer),
-    activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: person(r.actor), action: r.action, detail: r.detail })),
-    adjustments: adjustments.rows.map((r) => ({ id: r.id, person: person(r.person), amount: Number(r.amount), note: r.note, actor: r.actor, ts: r.ts })),
+    activity: activity.rows.map((r) => ({ id: r.id, ts: r.ts, actor: safeParticipantName(person(r.actor)), action: r.action, detail: r.detail })),
+    adjustments: adjustments.rows.map((r) => ({ id: safeRecordId(r.id), person: safeParticipantName(person(r.person)), amount: Number(r.amount), note: r.note, actor: safeParticipantName(r.actor), ts: r.ts })),
     participantAliases: aliasMap,
-    participants: ((trip.rows[0] && trip.rows[0].wallet_participants) || []).map(person),
+    participants: ((trip.rows[0] && trip.rows[0].wallet_participants) || []).map(person).map(safeParticipantName).filter((name) => name !== 'Unknown participant'),
     // Signed-in users (admin or participant) get this back so
     // goa-wallet.html can switch itself into read-only mode client-side,
     // on top of the real enforcement below on POST.
@@ -477,7 +501,7 @@ exports.handler = async (event) => {
       );
     }
 
-    const validationError = validatePayload(SCHEMAS[action], payload) || validateSplitAmounts(action, payload);
+    const validationError = validatePayload(SCHEMAS[action], payload) || validateSplitAmounts(action, payload) || validateSafeWalletInput(action, payload);
     if (validationError) return badRequest(validationError);
     if (action === 'resetWallet' && payload.confirm !== RESET_CONFIRM_PHRASE) {
       return badRequest('Reset not confirmed — missing or incorrect confirmation phrase.');
