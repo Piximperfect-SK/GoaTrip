@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/css/shared.css">
 <style>
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html, html[data-theme]{ color-scheme:dark; --ink:#E2E8F0; --paper:#020617; --line:rgba(255,255,255,.09); --surface:#0F172A; --text-2:#94A3B8; }
+  html, html[data-theme="dark"]{ color-scheme:dark; --ink:#E2E8F0; --paper:#020617; --line:rgba(255,255,255,.09); --surface:#0F172A; --text-2:#94A3B8; }
   body{ background:#020617 !important; color:#E2E8F0; font-family:'Space Grotesk',system-ui,sans-serif; min-height:100vh; }
   body::before{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; background:radial-gradient(600px 300px at 12% -5%, rgba(6,182,212,.14), transparent 70%), radial-gradient(520px 280px at 95% 0%, rgba(37,99,235,.12), transparent 70%); }
   ::-webkit-scrollbar{ width:6px; height:6px; } ::-webkit-scrollbar-track{ background:#0f172a; } ::-webkit-scrollbar-thumb{ background:#334155; border-radius:4px; }
@@ -86,6 +86,84 @@
   .toast.success{ background:rgba(2,44,34,.92); border-color:rgba(16,185,129,.5); color:#A7F3D0; } .toast.success .i{ color:#34d399; } .toast.rose{ background:rgba(76,5,25,.92); border-color:rgba(244,63,94,.5); color:#FECDD3; } .toast.rose .i{ color:#fb7185; } .toast.info{ background:rgba(15,23,42,.95); border-color:#334155; } .toast.info .i{ color:#22d3ee; }
   .hidden{ display:none !important; }
   @media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+  /* ---- light theme (default); dark rules above apply when html[data-theme=dark] is unset-overridden ---- */
+  html[data-theme="light"]{ color-scheme:light; --ink:#0F172A; --paper:#F1F5F9; --line:#E2E8F0; --surface:#fff; }
+  html[data-theme="light"] body{ background:#F1F5F9 !important; color:#0F172A; }
+  html[data-theme="light"] body::before{ background:radial-gradient(600px 300px at 12% -5%, rgba(6,182,212,.12), transparent 70%), radial-gradient(520px 280px at 95% 0%, rgba(37,99,235,.08), transparent 70%); }
+  html[data-theme="light"] ::-webkit-scrollbar-track{ background:#F1F5F9; }
+  html[data-theme="light"] ::-webkit-scrollbar-thumb{ background:#CBD5E1; }
+  html[data-theme="light"] .glass{ background:rgba(255,255,255,.9); border-color:#E2E8F0; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  html[data-theme="light"] body .card{ background:#fff; border-color:#E2E8F0; color:#0F172A; }
+  html[data-theme="light"] #topbar{ background:rgba(255,255,255,.9); border-bottom-color:#E2E8F0; }
+  html[data-theme="light"] .brand h1{ color:#0F172A; }
+  html[data-theme="light"] .brand p{ color:#64748B; }
+  html[data-theme="light"] .syncpill{ background:#fff; border-color:#E2E8F0; color:#64748B; }
+  html[data-theme="light"] .syncpill b{ color:#059669; }
+  html[data-theme="light"] .backlink{ color:#334155; border-color:#CBD5E1; background:#fff; }
+  html[data-theme="light"] .backlink:hover{ color:#0891b2; border-color:#06b6d4; }
+  html[data-theme="light"] .tabline{ background:#fff; border-bottom-color:#E2E8F0; }
+  html[data-theme="light"] .tabline div{ color:#0891b2; }
+  html[data-theme="light"] .tabline .cnt{ background:#ECFEFF; color:#0e7490; border-color:#A5F3FC; }
+  html[data-theme="light"] .stat b{ color:#0F172A; }
+  html[data-theme="light"] .stat span{ color:#64748B; }
+  html[data-theme="light"] .c-cyan{ background:rgba(6,182,212,.1); color:#0891b2; border-color:rgba(6,182,212,.35); }
+  html[data-theme="light"] .c-amber{ background:rgba(245,158,11,.1); color:#b45309; border-color:rgba(245,158,11,.4); }
+  html[data-theme="light"] .c-emerald{ background:rgba(16,185,129,.1); color:#047857; border-color:rgba(16,185,129,.4); }
+  html[data-theme="light"] .c-rose{ background:rgba(244,63,94,.08); color:#e11d48; border-color:rgba(244,63,94,.35); }
+  html[data-theme="light"] .resolve .top{ color:#64748B; }
+  html[data-theme="light"] .resolve .top b{ color:#059669; }
+  html[data-theme="light"] .track{ background:#E2E8F0; }
+  html[data-theme="light"] body input, html[data-theme="light"] body input[type], html[data-theme="light"] body select, html[data-theme="light"] body textarea{ background:#fff; border-color:#CBD5E1; color:#0F172A; }
+  html[data-theme="light"] body input::placeholder, html[data-theme="light"] body textarea::placeholder{ color:#94A3B8; }
+  html[data-theme="light"] .bar .sw .i{ color:#64748B; }
+  html[data-theme="light"] body .btn-ghost{ border-color:#CBD5E1; color:#334155; }
+  html[data-theme="light"] body .btn-ghost:hover{ background:#F1F5F9; color:#0F172A; }
+  html[data-theme="light"] label{ color:#475569 !important; }
+  html[data-theme="light"] .task:hover{ border-color:#94A3B8; }
+  html[data-theme="light"] .task::before{ background:#CBD5E1; }
+  html[data-theme="light"] .task h3{ color:#0F172A; }
+  html[data-theme="light"] .task.s-done h3{ color:#94A3B8; }
+  html[data-theme="light"] .task p{ color:#64748B; }
+  html[data-theme="light"] .chip.High{ background:rgba(244,63,94,.08); color:#e11d48; border-color:rgba(244,63,94,.3); }
+  html[data-theme="light"] .chip.Medium{ background:rgba(245,158,11,.1); color:#b45309; border-color:rgba(245,158,11,.35); }
+  html[data-theme="light"] .chip.Low{ background:#F1F5F9; color:#64748B; border-color:#CBD5E1; }
+  html[data-theme="light"] .chip.t-New{ background:rgba(6,182,212,.08); color:#0e7490; border-color:rgba(6,182,212,.35); }
+  html[data-theme="light"] .chip.t-Corrected{ background:rgba(245,158,11,.1); color:#b45309; border-color:rgba(245,158,11,.4); }
+  html[data-theme="light"] .chip.t-Verified, html[data-theme="light"] .chip.t-Verifiedfixed{ background:rgba(16,185,129,.08); color:#047857; border-color:rgba(16,185,129,.35); }
+  html[data-theme="light"] .chip.t-Rootcause{ background:rgba(139,92,246,.08); color:#6d28d9; border-color:rgba(139,92,246,.35); }
+  html[data-theme="light"] .chip.t-Reopened{ background:rgba(244,63,94,.08); color:#be123c; border-color:rgba(244,63,94,.35); }
+  html[data-theme="light"] .chip.t-other{ background:#F1F5F9; color:#475569; border-color:#CBD5E1; }
+  html[data-theme="light"] .chip.user{ background:rgba(14,165,233,.08); color:#0369a1; border-color:rgba(14,165,233,.4); }
+  html[data-theme="light"] .chip.pub{ background:rgba(16,185,129,.08); color:#047857; border-color:rgba(16,185,129,.35); }
+  html[data-theme="light"] .due{ color:#64748B; }
+  html[data-theme="light"] .due.late{ color:#e11d48; }
+  html[data-theme="light"] .foot{ border-top-color:#E2E8F0; }
+  html[data-theme="light"] .cat{ color:#64748B; }
+  html[data-theme="light"] .cat.bug .i{ color:#e11d48; }
+  html[data-theme="light"] .cat.sync .i{ color:#0891b2; }
+  html[data-theme="light"] .cat.star .i{ color:#d97706; }
+  html[data-theme="light"] .cat.list .i{ color:#9333ea; }
+  html[data-theme="light"] .sbtn{ background:#F1F5F9; border-color:#CBD5E1; color:#334155; }
+  html[data-theme="light"] .sbtn:hover{ background:#E2E8F0; }
+  html[data-theme="light"] .dot{ background:#94A3B8; }
+  html[data-theme="light"] .dot.prog{ background:#f59e0b; }
+  html[data-theme="light"] .dot.done{ background:#10b981; }
+  html[data-theme="light"] .ibtn{ color:#64748B; }
+  html[data-theme="light"] .ibtn.e:hover{ color:#0891b2; background:#F1F5F9; }
+  html[data-theme="light"] .ibtn.d:hover{ color:#e11d48; background:#F1F5F9; }
+  html[data-theme="light"] .by{ color:#94A3B8; }
+  html[data-theme="light"] .modal{ background:rgba(15,23,42,.45); }
+  html[data-theme="light"] .modal h2{ color:#0F172A; }
+  html[data-theme="light"] .modal h2 .i{ color:#0891b2; }
+  html[data-theme="light"] .note.info{ background:rgba(6,182,212,.08); color:#0e7490; }
+  html[data-theme="light"] .note.bad{ background:rgba(244,63,94,.07); color:#be123c; }
+  html[data-theme="light"] .toast.success{ background:#ECFDF5; border-color:#6EE7B7; color:#065F46; }
+  html[data-theme="light"] .toast.success .i{ color:#059669; }
+  html[data-theme="light"] .toast.rose{ background:#FFF1F2; border-color:#FDA4AF; color:#9F1239; }
+  html[data-theme="light"] .toast.rose .i{ color:#e11d48; }
+  html[data-theme="light"] .toast.info{ background:#fff; border-color:#CBD5E1; color:#334155; }
+  html[data-theme="light"] .toast.info .i{ color:#0891b2; }
+  #toasts{ bottom:74px; } @media(min-width:901px){ #toasts{ bottom:74px; } }
 </style>
 </head>
 <body>
