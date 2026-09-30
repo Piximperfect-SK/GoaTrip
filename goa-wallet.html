@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>/* theme bootstrap: set before first paint to avoid a flash. THEME_DEFAULT = 'light' (use matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light' to follow the OS instead) */(function(){var t='light';try{t=localStorage.getItem('goaTheme')||'light';}catch(e){}document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');})();</script>
 <meta charset="UTF-8" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com https://api.qrserver.com; media-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -595,6 +596,68 @@
     input[type="text"], input[type="number"], input[type="date"], input[type="search"], input:not([type]),
     select, textarea{ font-size:16px; } /* prevents iOS Safari auto-zoom on focus */
   }
+</style>
+<style id="dark-theme">
+/* Dark theme — generated from this page's CSS + shared.css by gen-dark.js; every rule is scoped to html[data-theme="dark"], so light mode is untouched. */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#F2F2F4; --paper:#0F0F12; --sand-2:#1C1C21; --line:#2F2F36;
+  --azulejo:#5B8DFF; --azulejo-2:#7CA3FF; --surface:#17171B; --surface-2:#1F1F25; --text-2:#C6C6CD;
+}
+html[data-theme="light"]{ color-scheme:light; }
+html[data-theme="dark"] ::selection{ background:var(--mango); color:#fff; }
+
+:root:where([data-theme="dark"]){--ink:rgb(240,240,241);--bp-ink:rgb(80,145,225);--bp-cardbg:rgb(23,23,27)}
+html:where([data-theme="dark"]) .btn-danger{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .panel{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) label,html:where([data-theme="dark"]) .field-label{color:var(--text-2)}
+html:where([data-theme="dark"]) .field-row input,html:where([data-theme="dark"]) .field-row select,html:where([data-theme="dark"]) .field-row textarea,html:where([data-theme="dark"]) input[type="text"],html:where([data-theme="dark"]) input[type="date"],html:where([data-theme="dark"]) input[type="number"],html:where([data-theme="dark"]) input[type="time"],html:where([data-theme="dark"]) textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .theme-toggle{background:var(--surface, rgb(23,23,27))}
+html:where([data-theme="dark"]) #pageVideoScrim{background:linear-gradient(180deg, rgba(29,29,34,0.72) 0%, rgba(29,29,34,0.86) 45%, rgba(29,29,34,0.94) 100%)}
+html:where([data-theme="dark"]) .deco-shell{color:var(--text-2)}
+html:where([data-theme="dark"]) #topbar{background:rgba(29,29,34,0.92)}
+html:where([data-theme="dark"]) #statusRow{background:linear-gradient(90deg, rgba(255,107,74,.10), rgba(29,29,34,0.96) 35%, rgba(46,111,242,.08));color:var(--text-2)}
+html:where([data-theme="dark"]) .role-badge.user{background:var(--sand-2, rgb(29,29,34));color:var(--text-2)}
+html:where([data-theme="dark"]) .kpi{background:rgba(23,23,27,0.9);border:1px solid rgba(48,48,56,0.55)}
+html:where([data-theme="dark"]) .kpi .lbl{color:var(--text-2)}
+html:where([data-theme="dark"]) .panel{background:rgba(23,23,27,0.9);border:1px solid rgba(48,48,56,0.55)}
+html:where([data-theme="dark"]) .btn-ghost{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .btn-icon{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .btn-icon:hover{background:var(--surface)}
+html:where([data-theme="dark"]) label{color:var(--text-2)}
+html:where([data-theme="dark"]) input[type="text"],html:where([data-theme="dark"]) input[type="number"],html:where([data-theme="dark"]) input[type="date"],html:where([data-theme="dark"]) input[type="search"],html:where([data-theme="dark"]) input:not([type]),html:where([data-theme="dark"]) select,html:where([data-theme="dark"]) textarea{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) input:hover:not(:focus):not(:disabled),html:where([data-theme="dark"]) select:hover:not(:focus):not(:disabled){border-color:rgba(255,255,255,0.2)}
+html:where([data-theme="dark"]) input:focus,html:where([data-theme="dark"]) select:focus,html:where([data-theme="dark"]) textarea:focus{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) th{color:var(--text-2)}
+html:where([data-theme="dark"]) .pill{background:var(--surface)}
+html:where([data-theme="dark"]) .status-pill.draft{color:var(--text-2)}
+html:where([data-theme="dark"]) .sub-step .dot{color:var(--text-2)}
+html:where([data-theme="dark"]) .submission-card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .banner.err{background:rgb(62,37,28);color:rgb(230,114,79)}
+html:where([data-theme="dark"]) .banner.warn{background:rgb(65,56,29);color:rgb(178,136,25)}
+html:where([data-theme="dark"]) .banner.ok{background:rgb(29,29,34);color:rgb(65,170,113)}
+html:where([data-theme="dark"]) .modal-close{background:var(--surface)}
+html:where([data-theme="dark"]) .wtab-chip{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .opt-chip{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .cat-card{background:rgb(23,23,27)}
+html:where([data-theme="dark"]) .settle-member-chip:hover{border-color:rgba(255,255,255,0.2)}
+html:where([data-theme="dark"]) .item-card.ic-teal{--ic-accent:var(--ink)}
+html:where([data-theme="dark"]) .item-card.ic-rose{--ic-accent:rgb(215,124,103)}
+
+/* ---- inline style="" fallbacks: inline styles beat normal rules, so these need !important ---- */
+html[data-theme="dark"] [style*="background:white"], html[data-theme="dark"] [style*="background: white"],
+html[data-theme="dark"] [style*="background:#fff"], html[data-theme="dark"] [style*="background: #fff"],
+html[data-theme="dark"] [style*="background:var(--sand)"], html[data-theme="dark"] [style*="background: var(--sand)"]{ background:var(--surface) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-700)"], html[data-theme="dark"] [style*="color: var(--teal-700)"]{ color:var(--text-2) !important; }
+html[data-theme="dark"] [style*="color:var(--teal-800)"], html[data-theme="dark"] [style*="color: var(--teal-800)"],
+html[data-theme="dark"] [style*="color:var(--teal-900)"], html[data-theme="dark"] [style*="color: var(--teal-900)"]{ color:var(--ink) !important; }
+html[data-theme="dark"] [style*="background:rgba(29,29,31"], html[data-theme="dark"] [style*="background: rgba(29,29,31"]{ background:rgba(255,255,255,.08) !important; }
+/* info tooltip keeps a saturated blue with white text in dark mode */
+html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
+/* sign-in screen: keep the coral/blue/black sweep but at night-time brightness */
+html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1D 0%, #1B3577 55%, #0F0F12 100%); }
+
 </style>
 </head>
 <body>
@@ -3249,7 +3312,10 @@ function getOrInitChart(key, domId){
   if(!charts[key]) charts[key] = echarts.init(dom);
   return charts[key];
 }
-const baseTextStyle = { fontFamily:"'Space Grotesk', sans-serif", color:'#0F2622' };
+function chartInk(){ return (getComputedStyle(document.documentElement).getPropertyValue('--ink') || '#0F2622').trim(); }
+function chartPaper(){ return (getComputedStyle(document.documentElement).getPropertyValue('--paper') || '#FBF6EC').trim(); }
+const baseTextStyle = { fontFamily:"'Space Grotesk', sans-serif", get color(){ return chartInk(); } };
+window.addEventListener('goa-theme', function(){ try{ renderAll(); }catch(e){ console.warn('theme re-render failed', e); } });
 
 function renderChartCategory(byCat){
   if(!chartsAvailable()) return;
@@ -3263,7 +3329,7 @@ function renderChartCategory(byCat){
     series: [{
       type:'pie', radius:['42%','72%'], center:['50%','44%'],
       avoidLabelOverlap:true,
-      itemStyle:{ borderColor:'#FBF6EC', borderWidth:2 },
+      itemStyle:{ borderColor:chartPaper(), borderWidth:2 },
       label:{ show:false },
       emphasis:{ label:{ show:true, fontWeight:600, formatter:p=>`₹${Number(p.value).toFixed(0)}` }, scaleSize:6 },
       data: labels.map((l,i)=>({ name:l, value:data[i] }))
@@ -3281,8 +3347,8 @@ function renderChartTime(){
     textStyle: baseTextStyle,
     tooltip: { trigger:'axis', valueFormatter:v=>`₹${Number(v).toFixed(0)}` },
     grid: { left:8, right:16, top:20, bottom:28, containLabel:true },
-    xAxis: { type:'category', data:labels, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}}, axisLabel:{color:'#0F2622', fontSize:10} },
-    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    xAxis: { type:'category', data:labels, axisLine:{lineStyle:{color:chartInk(), opacity:.2}}, axisLabel:{color:chartInk(), fontSize:10} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:chartInk(), opacity:.08}}, axisLabel:{color:chartInk(), fontSize:10, formatter:'₹{value}'} },
     series: [{
       type:'line', data, smooth:.3, symbolSize:7,
       lineStyle:{ color:'#FF7A45', width:2.5 },
@@ -3306,8 +3372,8 @@ function renderChartPerson(){
     tooltip: { trigger:'axis', axisPointer:{type:'shadow'}, valueFormatter:v=>`₹${Number(v).toFixed(0)}` },
     legend: { bottom:0, textStyle:{...baseTextStyle, fontSize:11}, itemWidth:11, itemHeight:11 },
     grid: { left:8, right:16, top:16, bottom:52, containLabel:true },
-    xAxis: { type:'category', data:labels, axisLabel:{color:'#0F2622', fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}} },
-    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    xAxis: { type:'category', data:labels, axisLabel:{color:chartInk(), fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:chartInk(), opacity:.2}} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:chartInk(), opacity:.08}}, axisLabel:{color:chartInk(), fontSize:10, formatter:'₹{value}'} },
     series: [
       { name:'Paid', type:'bar', data:PARTICIPANTS.map(p=>paid[p]), itemStyle:{color:'#1E6091', borderRadius:[4,4,0,0]}, barMaxWidth:18 },
       { name:'Share owed', type:'bar', data:PARTICIPANTS.map(p=>owed[p]), itemStyle:{color:'#D8CBAE', borderRadius:[4,4,0,0]}, barMaxWidth:18 }
@@ -3323,8 +3389,8 @@ function renderChartBalance(net){
     textStyle: baseTextStyle,
     tooltip: { trigger:'axis', axisPointer:{type:'shadow'}, valueFormatter:v=> (v>=0?'+₹':'−₹') + Math.abs(Number(v)).toFixed(0) },
     grid: { left:8, right:16, top:16, bottom:52, containLabel:true },
-    xAxis: { type:'category', data:labels, axisLabel:{color:'#0F2622', fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:'#0F2622', opacity:.2}} },
-    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:'#0F2622', opacity:.08}}, axisLabel:{color:'#0F2622', fontSize:10, formatter:'₹{value}'} },
+    xAxis: { type:'category', data:labels, axisLabel:{color:chartInk(), fontSize:10, interval:0, rotate:30}, axisLine:{lineStyle:{color:chartInk(), opacity:.2}} },
+    yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:chartInk(), opacity:.08}}, axisLabel:{color:chartInk(), fontSize:10, formatter:'₹{value}'} },
     series: [{
       type:'bar', data, barMaxWidth:26, itemStyle:{ borderRadius:[4,4,4,4], color:p=> p.value>=0 ? '#3E7C59' : '#E85D2A' }
     }]
