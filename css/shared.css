@@ -365,3 +365,34 @@ input:focus, textarea:focus, select:focus{
 @media (prefers-reduced-motion:reduce){
   body::before, body::after{ animation:none !important; }
 }
+
+
+
+
+
+/* ============================================================
+   THEME TOGGLE BUTTON (added by shared.js) — works in both themes
+   Desktop: bottom-right. Phones/tablets: bottom-left, lifted clear of
+   the bottom tab bars (index / wallet / moments) and the wallet FAB.
+   ============================================================ */
+.theme-toggle{
+  position:fixed; z-index:95; right:calc(18px + var(--sar, 0px)); bottom:calc(18px + var(--sab, 0px));
+  width:44px; height:44px; padding:0; border-radius:50%; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--surface, #fff); color:var(--ink); border:1px solid var(--line);
+  box-shadow:0 8px 22px -8px rgba(0,0,0,.35); touch-action:manipulation;
+  transition:transform .15s ease, background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+.theme-toggle:hover{ transform:translateY(-1px); }
+.theme-toggle:active{ transform:scale(.94); }
+.theme-toggle:focus-visible{ outline:2px solid var(--mango); outline-offset:3px; }
+.theme-toggle svg{ display:block; pointer-events:none; }
+.theme-toggle .tt-moon{ display:block; }
+.theme-toggle .tt-sun{ display:none; }
+html[data-theme="dark"] .theme-toggle .tt-moon{ display:none; }
+html[data-theme="dark"] .theme-toggle .tt-sun{ display:block; color:var(--yellow); }
+@media (max-width:900px){
+  .theme-toggle{ right:auto; left:calc(14px + var(--sal, 0px)); bottom:calc(76px + var(--sab, 0px)); width:40px; height:40px; }
+}
+@media print{ .theme-toggle{ display:none !important; } }
+@media (prefers-reduced-motion:reduce){ .theme-toggle{ transition:none; } }
