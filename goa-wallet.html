@@ -1137,6 +1137,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
       <div class="panel p-6">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
           <h3 class="font-semibold">Payment approvals</h3>
+          <button type="button" id="enablePushBtn" class="btn-ghost" style="display:none;" onclick="togglePush()">🔔 Enable alerts on this device</button>
           <select id="approvalsFilter" onchange="renderApprovals()" style="width:auto; min-width:180px;">
             <option value="pending_approval">Pending approval</option>
             <option value="">All statuses</option>
@@ -4754,6 +4755,58 @@ function closeWalletGate(){
   document.getElementById('walletGate').style.display = 'none';
   document.body.style.overflow = '';
 }
+/* ---------- Admin phone/desktop alerts (Web Push) ---------- */
+const PUSH_OK = ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+function b64ToUint8(b){
+  const s = (b + '='.repeat((4 - b.length % 4) % 4)).replace(/-/g,'+').replace(/_/g,'/');
+  const r = atob(s); const out = new Uint8Array(r.length);
+  for(let i=0;i<r.length;i++) out[i] = r.charCodeAt(i);
+  return out;
+}
+async function updatePushBtn(){
+  const btn = document.getElementById('enablePushBtn'); if(!btn) return;
+  if(!IS_WALLET_ADMIN){ btn.style.display = 'none'; return; }
+  btn.style.display = 'inline-flex';
+  if(!PUSH_OK){ btn.disabled = true; btn.textContent = '🔔 Alerts not supported in this browser'; return; }
+  if(Notification.permission === 'denied'){ btn.textContent = '🔔 Blocked — allow notifications in site settings'; return; }
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    btn.dataset.on = sub ? '1' : '';
+    btn.textContent = sub ? '🔔 Alerts on — tap to turn off' : '🔔 Enable alerts on this device';
+  }catch(e){}
+}
+async function togglePush(){
+  const btn = document.getElementById('enablePushBtn');
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    const tokenArg = getWalletToken();
+    if(existing){
+      await fetch(FUNCTIONS_BASE + '/push?tripId=' + encodeURIComponent(TRIP.id), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'unsubscribe', token: tokenArg, endpoint: existing.endpoint})
+      });
+      await existing.unsubscribe();
+      showBanner('ok', 'Alerts turned off on this device.');
+    } else {
+      const perm = await Notification.requestPermission();
+      if(perm !== 'granted'){ showBanner('err', 'Notifications were not allowed, so alerts stay off.'); return updatePushBtn(); }
+      const k = await (await fetch(FUNCTIONS_BASE + '/push?action=key')).json();
+      if(!k.publicKey){ showBanner('err', 'Alerts are not configured on the server yet.'); return; }
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey: b64ToUint8(k.publicKey) });
+      const res = await fetch(FUNCTIONS_BASE + '/push?tripId=' + encodeURIComponent(TRIP.id), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'subscribe', token: tokenArg, subscription: sub.toJSON()})
+      });
+      if(!res.ok){ await sub.unsubscribe(); showBanner('err', 'Could not save this device for alerts — sign in as admin and try again.'); return; }
+      showBanner('ok', 'Alerts on — this device will get a notification when an approval is submitted.');
+    }
+  }catch(e){
+    showBanner('err', 'Could not change alert settings: ' + escapeHtml(e && e.message || 'unknown error'));
+  }
+  updatePushBtn();
+}
 function setWalletAdminUI(name){
   IS_WALLET_ADMIN = !!name;
   refreshWalletIdentityUI();
@@ -4781,6 +4834,7 @@ function refreshWalletIdentityUI(){
   const itemsAppr = document.getElementById('itemsCardApprovals');
   if(navAppr) navAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
   if(itemsAppr) itemsAppr.style.display = IS_WALLET_ADMIN ? 'flex' : 'none';
+  if(typeof updatePushBtn === 'function') updatePushBtn();
   if(!IS_WALLET_ADMIN && document.getElementById('page-approvals')?.classList.contains('active')){
     goToPage('items');
   }
