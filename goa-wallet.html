@@ -385,6 +385,14 @@
   .submission-card + .submission-card{ margin-top:10px; }
   .balance-pos{ color:var(--palm); font-weight:600; }
   .balance-neg{ color:var(--mango-2); font-weight:600; }
+  /* Sign colours must win over the decorative per-card accent
+     (.kpi:nth-child(7n+1) .val is specificity 0,3,0 and was painting
+     the positive pool total coral). Extra :nth-child(n) lifts this to 0,4,0. */
+  .kpi:nth-child(n) .val.balance-pos{ color:var(--palm); }
+  .kpi:nth-child(n) .val.balance-neg{ color:var(--mango-2); }
+  /* Keep the top stripe in step with the number's sign. */
+  .kpi:has(> .val.balance-pos)::before{ background:linear-gradient(90deg, var(--palm), #1f6b41); }
+  .kpi:has(> .val.balance-neg)::before{ background:linear-gradient(90deg, var(--mango), var(--mango-2)); }
   .avatar{ width:32px; height:32px; border-radius:9999px; background:linear-gradient(135deg, var(--teal-700), var(--teal-900)); color:var(--sand); display:inline-flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:700; font-family:'Space Mono',monospace; flex-shrink:0; }
 
   #participantGrid > *{ animation:kpiIn .4s ease backwards; }
@@ -3758,8 +3766,10 @@ function renderWallet(){
 
   const depositedClass = deposited >= 0 ? 'balance-pos' : 'balance-neg';
   const sign = deposited >= 0 ? '+' : '−';
-  document.getElementById('wkpi-deposited').classList.add(depositedClass);
-  document.getElementById('wkpi-deposited').textContent = sign + '₹' + Math.abs(deposited).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const poolEl = document.getElementById('wkpi-deposited');
+  poolEl.classList.remove('balance-pos','balance-neg');
+  poolEl.classList.add(depositedClass);
+  poolEl.textContent = sign + '₹' + Math.abs(deposited).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
   document.getElementById('wkpi-count').textContent = allWithRecords.length;
   document.getElementById('wkpi-count-sub').textContent = `of ${PARTICIPANTS.length} participants`;
   document.getElementById('wkpi-entries').textContent = (wallet.deposits||[]).length;

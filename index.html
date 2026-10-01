@@ -304,17 +304,26 @@ html.logo-intro-lock, html.logo-intro-lock body{ overflow:hidden; height:100%; }
 
 
 .navlink{color:#DCE9E4; opacity:.75; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer; padding:6px 2px; border-bottom:2px solid transparent; transition:.2s; white-space:nowrap;}
-@media (min-width:1024px) and (max-width:1279px){
-  .navlink{ font-size:11px; letter-spacing:.03em; }
-}
+
 
 /* ---------- Nav rail: a small railway motif under the desktop links.
    A sleeper-tick track runs the width of the group; a glowing signal
    glides to whichever "station" (link) is hovered or active, echoing
    the site's own journey/boarding-pass language. ---------- */
-.navlinks-rail{ position:relative; padding-bottom:12px; }
-@media (min-width:1024px){
-  .navlinks-rail{ position:absolute; left:50%; top:50%; transform:translate(-50%,-44%); }
+/* 13 links need ~950px (compact) to ~1130px (roomy). Old rule centred them
+   absolutely from 1024px up, so on laptops they ran underneath the logo.
+   Now: <1280px = Menu button; 1280-1599px = compact in-flow rail pushed right
+   (can never overlap the logo); >=1600px = roomy, truly centred rail. */
+.navlinks-rail{ position:relative; padding-bottom:12px; display:none; align-items:center; gap:12px; }
+@media (min-width:1280px){
+  .navlinks-rail{ display:flex; margin-left:auto; }
+  .navlinks-rail .navlink{ font-size:11px; letter-spacing:.03em; }
+  #topnavMenuTrigger{ display:none !important; }
+  #mobilemenu, #menuBackdrop{ display:none !important; }
+}
+@media (min-width:1600px){
+  .navlinks-rail{ position:absolute; left:50%; top:50%; transform:translate(-50%,-44%); margin-left:0; gap:20px; }
+  .navlinks-rail .navlink{ font-size:12.5px; letter-spacing:.06em; }
 }
 .navlinks-rail .navlink{ border-bottom:none; } /* the rail itself carries the indicator now */
 .rail-divider{
@@ -1555,7 +1564,7 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
     </span>
   </a>
 
-  <div class="navlinks-rail hidden lg:flex items-center gap-4 xl:gap-5" id="navRail">
+  <div class="navlinks-rail" id="navRail">
     <span class="navlink" data-target="#gallery">Gallery</span>
     <span class="navlink" data-target="#places">Places</span>
     <span class="navlink" data-target="#journey">Journey</span>
@@ -1573,10 +1582,10 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
     <div class="rail-track" aria-hidden="true"></div>
     <div class="rail-signal" id="railSignal" aria-hidden="true"></div>
   </div>
-  <span class="navlink lg:hidden" id="topnavMenuTrigger" onclick="toggleMobileMenu()">Menu</span>
+  <span class="navlink" id="topnavMenuTrigger" onclick="toggleMobileMenu()">Menu</span>
 </nav>
 <div id="menuBackdrop" onclick="closeMobileMenu()"></div>
-<div id="mobilemenu" class="md:hidden">
+<div id="mobilemenu">
   <div id="mobilemenu-handle" onclick="closeMobileMenu()"><span class="bar" aria-hidden="true"></span>Close</div>
   <span class="navlink" data-target="#gallery">Gallery</span>
   <span class="navlink" data-target="#places">Places</span>
