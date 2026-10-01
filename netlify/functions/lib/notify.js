@@ -35,12 +35,16 @@ function describe(recordType, r) {
 async function notifyAdminsPendingApproval({ tripId, recordType, record, submittedBy }) {
   try {
     const pub = process.env.VAPID_PUBLIC_KEY, priv = process.env.VAPID_PRIVATE_KEY;
-    if (!pub || !priv || !tripId) return; // not configured yet
+    if (!pub || !priv || !tripId) {
+      console.warn('push: skipped — missing', !pub ? 'VAPID_PUBLIC_KEY' : '', !priv ? 'VAPID_PRIVATE_KEY' : '', !tripId ? 'tripId' : '');
+      return; // not configured yet
+    }
     const webpush = require('web-push');
     webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@example.com', pub, priv);
 
     await ensurePushSchema();
     const { rows } = await query('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE trip_id=$1', [tripId]);
+    console.log('push: approval for trip', tripId, '- subscriptions found:', rows.length);
     if (!rows.length) return;
 
     const payload = JSON.stringify({
@@ -52,17 +56,18 @@ async function notifyAdminsPendingApproval({ tripId, recordType, record, submitt
 
     await Promise.all(rows.map(async (row) => {
       try {
-        await webpush.sendNotification(
+        const r = await webpush.sendNotification(
           { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
           payload,
           { TTL: 3600, urgency: 'high', timeout: 4000 }
         );
+        console.log('push: sent, status', r && r.statusCode, new URL(row.endpoint).host);
       } catch (e) {
         // 404/410 = the browser unsubscribed or the permission was revoked: drop the dead row.
         if (e && (e.statusCode === 404 || e.statusCode === 410)) {
           try { await query('DELETE FROM push_subscriptions WHERE endpoint=$1', [row.endpoint]); } catch (_) {}
         } else {
-          console.warn('push: send failed', e && e.statusCode);
+          console.warn('push: send failed', e && e.statusCode, e && e.body, new URL(row.endpoint).host);
         }
       }
     }));

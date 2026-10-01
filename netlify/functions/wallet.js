@@ -6,6 +6,7 @@ const { query } = require('./lib/db');
 const { ok, badRequest, unauthorized, serverError, parseBody } = require('./lib/http');
 const { sanitizeText, sanitizeNumber, normalizeDepositType, validatePayload } = require('./lib/validate');
 const { verifySessionTokenFull } = require('./lib/auth');
+const { notifyAdminsPendingApproval } = require('./lib/notify');
 
 // Not a secret (visible in this repo/front-end) — a "type this exact phrase"
 // guard against one stray/automated POST wiping a trip's wallet, same as
@@ -751,6 +752,10 @@ exports.handler = async (event) => {
         await query(`UPDATE ${record._table} SET ${submitSet} WHERE trip_id=$1 AND id=$2`, [tripId, payload.id, actor]);
       }
       await logActivity(tripId, payload.id, actor, 'submit_for_approval', `${payload.recordType} ${payload.id}`);
+      // Must be awaited: Netlify freezes the function the moment the response is
+      // returned, so a fire-and-forget push would never actually be sent.
+      // notify.js never throws and is time-boxed, so it can't break the submit.
+      await notifyAdminsPendingApproval({ tripId, recordType: payload.recordType, record, submittedBy: actor });
     } else if (action === 'approveRecord') {
       const record = await getRecordForApproval(tripId, payload.recordType, payload.id);
       if (!record) return badRequest('Record not found.');
