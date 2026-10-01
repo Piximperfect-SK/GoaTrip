@@ -49,3 +49,32 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// ---------- Web Push: admin approval alerts ----------
+// Payload is sent by netlify/functions/lib/notify.js:
+//   { title, body, tag, url }
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (_) {}
+  event.waitUntil(
+    self.registration.showNotification(d.title || 'GoaTrip', {
+      body: d.body || '',
+      tag: d.tag || 'goatrip',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: d.url || '/goa-wallet.html' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/goa-wallet.html';
+  event.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) {
+      if (c.url.includes('goa-wallet') && 'focus' in c) return c.focus();
+    }
+    return self.clients.openWindow(url);
+  })());
+});
