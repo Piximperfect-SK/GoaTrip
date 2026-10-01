@@ -278,6 +278,8 @@
   .btn-ghost:active{ transform:scale(.97); }
   .btn-icon{ width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s; border:1px solid var(--line); background:white; color:var(--ink); }
   .btn-icon:hover{ background:var(--sand); }
+  /* shared.css has `#topbar a{ color:var(--sand); opacity:.8 }` for its dark topbar; as an ID selector it beats .btn-icon and turned the ⌂ link near-white on this light topbar. */
+  #topbar a.btn-icon{ color:var(--ink); opacity:1; }
 
   /* ---------- Admin login gate ---------- */
   .wallet-gate{
@@ -824,7 +826,8 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
           <h2 class="display text-xl font-semibold" id="pageTitle">Overview</h2>
         </div>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3" id="topbarActions">
+        <span id="themeToggleSlot" style="display:inline-flex;"></span>
         <button class="btn-ghost" data-feature="wallet.refresh" onclick="pullFromSheet(true)">Refresh</button>
         <button class="btn-primary" data-feature="wallet.addExpense" onclick="openExpenseModal()">+ Add expense</button>
       </div>

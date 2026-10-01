@@ -394,5 +394,12 @@ html[data-theme="dark"] .theme-toggle .tt-sun{ display:block; color:var(--yellow
 @media (max-width:900px){
   .theme-toggle{ right:auto; left:calc(14px + var(--sal, 0px)); bottom:calc(76px + var(--sab, 0px)); width:40px; height:40px; }
 }
+/* Inline variant: lives inside a page header's button group instead of floating */
+.theme-toggle.in-bar, .theme-toggle.in-bar:hover{
+  position:static; right:auto; left:auto; bottom:auto; width:40px; height:40px; box-shadow:none; transform:none;
+}
+@media (max-width:900px){
+  .theme-toggle.in-bar{ position:static; left:auto; bottom:auto; width:36px; height:36px; }
+}
 @media print{ .theme-toggle{ display:none !important; } }
 @media (prefers-reduced-motion:reduce){ .theme-toggle{ transition:none; } }
