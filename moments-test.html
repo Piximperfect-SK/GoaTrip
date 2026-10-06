@@ -33,7 +33,7 @@
 
   <div class="box" id="appBox" style="display:none">
     <div id="usage" style="font-size:13px;opacity:.7;margin-bottom:10px"></div>
-    <input type="file" id="file" multiple accept="image/*,video/*" />
+    <input type="file" id="file" multiple accept="image/*,video/*,.heic,.heif,.png,.jpg,.jpeg,.webp,.avif,.mp4,.mov,.webm" />
     <progress id="prog" value="0" max="100" style="display:none;margin-top:10px"></progress>
     <div id="items"></div>
     <button class="btn-ghost" id="moreBtn" type="button" style="display:none;margin-top:12px">Load more</button>
@@ -61,12 +61,22 @@ function fmtBytes(n){ return n > 1e9 ? (n/1e9).toFixed(2)+' GB' : n > 1e6 ? (n/1
 
 async function makeImageThumb(file){
   try{
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 600 / Math.max(bmp.width, bmp.height));
+    let bmp;
+    try {
+      bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch(e) {
+      bmp = await createImageBitmap(file);
+    }
+    const scale = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
     const c = document.createElement('canvas');
     c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
-    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-    const blob = await new Promise(r => c.toBlob(r, 'image/webp', 0.8));
+    const ctx = c.getContext('2d');
+    if (ctx.imageSmoothingEnabled !== undefined) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/webp', 0.92));
     return { blob, width: bmp.width, height: bmp.height };
   }catch(e){ return null; } // e.g. HEIC in Chrome — upload without a preview
 }
@@ -106,7 +116,16 @@ function renderItem(it){
   row.append(img, meta);
   const mk = (label, fn) => { const b = document.createElement('button'); b.className = 'btn-ghost'; b.textContent = label; b.onclick = fn; return b; };
   row.append(mk('Open', async () => { window.open((await api('getUrl', { id: it.id })).url, '_blank'); }));
-  row.append(mk('Download', async () => { location.href = (await api('download', { id: it.id })).url; }));
+  row.append(mk('Download', async () => {
+    const res = await api('download', { id: it.id });
+    const a = document.createElement('a');
+    a.href = res.url;
+    a.download = it.filename || 'download';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 2000);
+  }));
   if(it.canDelete) row.append(mk('Delete', async () => {
     if(!confirm('Delete ' + it.filename + '?')) return;
     const r = await api('delete', { id: it.id }); log('Deleted: ' + JSON.stringify(r)); refresh();

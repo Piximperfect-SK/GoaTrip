@@ -88,6 +88,11 @@ h1,h2,h3,.display{font-family:'Fraunces', serif; letter-spacing:-0.01em;}
 .mm-tile:hover .mm-meta{opacity:1;transform:none;}
 .mm-badge{position:absolute;right:10px;top:10px;z-index:2;display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:9999px;background:rgba(4,14,17,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font:600 11px 'Space Mono',monospace;color:#fff;}
 .mm-badge svg{width:10px;height:10px;fill:currentColor;}
+.mm-tile-dl{position:absolute;left:10px;top:10px;z-index:4;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(18,18,20,.68);color:#fff;cursor:pointer;opacity:0;transform:scale(.85);transition:opacity .2s,transform .2s,background .2s;padding:0;}
+.mm-tile-dl svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.mm-tile:hover .mm-tile-dl{opacity:1;transform:scale(1);}
+.mm-tile-dl:hover{background:#FFA83E;border-color:transparent;color:#fff;transform:scale(1.1);}
+@media(hover:none){.mm-tile-dl{opacity:.88;transform:scale(1);}}
 .mm-empty{text-align:center;opacity:.6;padding:60px 0;font-size:14px;}
 .mm-note{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:10000;padding:10px 16px;border-radius:12px;background:#1D1D1F;border:1px solid rgba(255,255,255,.2);font-size:13px;color:#fff;max-width:90vw;}
 .mm-lb{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
@@ -421,7 +426,7 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
           <div class="mm-pop" id="mmPop" role="menu" hidden></div>
         </div>
         <button class="mm-btn pri" id="mmAdd" type="button">+ Add<span class="mm-hide-sm"> moments</span></button>
-        <input type="file" id="mmFile" multiple accept="image/*,video/*" hidden>
+        <input type="file" id="mmFile" multiple accept="image/*,video/*,.heic,.heif,.png,.jpg,.jpeg,.webp,.avif,.mp4,.mov,.webm" hidden>
       </div>
       <div class="mm-active" id="mmActive" hidden><span>Uploaded by <b id="mmActiveName"></b></span><button id="mmClear" type="button" aria-label="Clear filter">\u2715</button></div>
       <div class="mm-reel" id="mmReel" hidden><div class="mm-reel-row" id="mmR1"></div><div class="mm-reel-row rev" id="mmR2"></div></div>
@@ -446,7 +451,7 @@ var TOUCH=window.matchMedia('(hover: none)').matches;
 var KEY='goatrip:memberToken', GB=1073741824;
 var st={items:[],kind:null,mine:false,before:null,more:false,busy:false,used:0,quota:0};
 var urlCache={}, active=[], cur=null, grid=$('mmGrid');
-var EXT={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',avif:'image/avif',heic:'image/heic',heif:'image/heif',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm'};
+var EXT={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',avif:'image/avif',heic:'image/heic',heif:'image/heif',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',m4v:'video/mp4'};
 
 function div(c){var d=document.createElement('div');d.className=c;return d;}
 function fb(n){return n>=GB?(n/GB).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';}
@@ -553,6 +558,11 @@ function addTile(it,prepend,i){
   if(it.thumbUrl){var im=new Image();im.alt='';im.decoding='async';im.onload=function(){im.classList.add('in');};im.src=it.thumbUrl;t.appendChild(im);}
   else t.appendChild(div('mm-ph'));
   if(it.kind==='video'){var bd=div('mm-badge');bd.innerHTML='<svg viewBox="0 0 10 10"><path d="M1 0l9 5-9 5z"/></svg>';var s=document.createElement('span');s.textContent=it.durationS?fd(it.durationS):'Video';bd.appendChild(s);t.appendChild(bd);}
+  var dlIcon=document.createElement('span'); dlIcon.className='mm-tile-dl'; dlIcon.title='Download original ('+fb(it.sizeBytes)+')';
+  dlIcon.setAttribute('role','button'); dlIcon.setAttribute('aria-label','Download original file');
+  dlIcon.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 3v13m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
+  dlIcon.onclick=function(e){e.stopPropagation();downloadItem(it);};
+  t.appendChild(dlIcon);
   t.appendChild(metaEl(it.uploadedBy));
   t.onclick=function(){openLB(it,t);};
   if(!TOUCH){t.onmouseenter=function(){preview(t,true);};t.onmouseleave=function(){preview(t,false);};}
@@ -584,13 +594,14 @@ function stop(t){
 
 /* ---------- lightbox ---------- */
 var lb=document.createElement('div'); lb.className='mm-lb'; lb.hidden=true;
-lb.innerHTML='<div class="mm-lb-bg" data-a="x"></div><button class="mm-lb-x" data-a="x" aria-label="Close" type="button">\u00d7</button><button class="mm-lb-nav prev" data-a="p" aria-label="Previous" type="button">\u2039</button><button class="mm-lb-nav next" data-a="n" aria-label="Next" type="button">\u203a</button><div class="mm-lb-stage" data-a="x"></div><div class="mm-lb-bar"><div class="mm-lb-info"></div><div class="mm-lb-acts"><button class="mm-btn" data-a="dl" type="button">Download</button><button class="mm-btn danger" data-a="del" type="button">Delete</button></div></div>';
+lb.innerHTML='<div class="mm-lb-bg" data-a="x"></div><button class="mm-lb-x" data-a="x" aria-label="Close" type="button">\u00d7</button><button class="mm-lb-nav prev" data-a="p" aria-label="Previous" type="button">\u2039</button><button class="mm-lb-nav next" data-a="n" aria-label="Next" type="button">\u203a</button><div class="mm-lb-stage" data-a="x"></div><div class="mm-lb-bar"><div class="mm-lb-info"></div><div class="mm-lb-acts"><button class="mm-btn pri" data-a="dl" type="button">Download Original</button><button class="mm-btn danger" data-a="del" type="button">Delete</button></div></div>';
 document.body.appendChild(lb);
 var amb=div('mm-lb-amb'); lb.insertBefore(amb,lb.firstChild);
 var stage=lb.querySelector('.mm-lb-stage'), info=lb.querySelector('.mm-lb-info'), delBtn=lb.querySelector('[data-a="del"]');
 async function show(it,from,dir){
   cur=it; stage.textContent='';
-  info.textContent=(st.items.indexOf(it)+1)+' / '+st.items.length+'  \u00b7  '+(it.filename||'Untitled')+' \u00b7 by '+it.uploadedBy+' \u00b7 '+new Date(it.createdAt).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+' \u00b7 '+fb(it.sizeBytes);
+  var dim = (it.width && it.height) ? (it.width + ' \u00d7 ' + it.height + ' \u00b7 ') : '';
+  info.textContent=(st.items.indexOf(it)+1)+' / '+st.items.length+'  \u00b7  '+(it.filename||'Untitled')+' \u00b7 by '+it.uploadedBy+' \u00b7 '+new Date(it.createdAt).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+' \u00b7 '+dim+fb(it.sizeBytes);
   delBtn.hidden=!it.canDelete;
   if(it.thumbUrl) amb.style.backgroundImage='url("'+it.thumbUrl+'")';
   stage.classList.remove('sl'); void stage.offsetWidth;
@@ -601,14 +612,43 @@ async function show(it,from,dir){
   el.className='mm-lb-media mm-lb-in'; stage.appendChild(el);
   try{
     var url=await getUrl(it.id); if(cur!==it) return;
-    if(it.kind==='video') el.src=url;
+    if(it.kind==='video'){
+      el.onerror=function(){
+        if(cur===it) info.textContent+=' \u00b7 Format/codec not playable in this browser \u2014 click Download Original to watch';
+      };
+      el.src=url;
+    }
     else{
       var big=new Image(); big.alt=it.filename||'';
       big.onload=function(){ if(cur!==it||el.parentNode!==stage) return; big.className='mm-lb-media'; stage.replaceChild(big,el); };
-      big.onerror=function(){if(cur===it)info.textContent+=' \u00b7 no preview for this format \u2014 use Download';};
+      big.onerror=function(){
+        if(cur===it){
+          if(/\.(heic|heif)$/i.test(it.filename||'')){
+            info.textContent+=' \u00b7 High-res preview shown (Original HEIC preserved \u2014 click Download Original)';
+          }else{
+            info.textContent+=' \u00b7 High-res preview shown (click Download Original for full file)';
+          }
+        }
+      };
       big.src=url;
     }
   }catch(e){note(e.message);}
+}
+async function downloadItem(it){
+  if(!it) return;
+  note('Preparing download\u2026');
+  try{
+    var r=await api('download',{id:it.id});
+    var a=document.createElement('a');
+    a.href=r.url;
+    a.download=it.filename||(it.kind==='video'?'video.mp4':'photo.jpg');
+    a.rel='noopener';
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){a.remove();},2000);
+    note('Download started');
+  }catch(x){note(x.message||'Download failed');}
 }
 function openLB(it,from){
   if(lb.hidden&&!lbPushed){ try{history.pushState({mm:'lb'},'');lbPushed=true;}catch(e){} }
@@ -644,7 +684,7 @@ lb.addEventListener('click',function(e){
   if(k==='x'){ if(e.target===a) closeLB(); }
   else if(k==='p') step(-1); else if(k==='n') step(1);
   else if(k==='del') del();
-  else if(k==='dl'&&cur) api('download',{id:cur.id}).then(function(r){location.href=r.url;}).catch(function(x){note(x.message);});
+  else if(k==='dl'&&cur) downloadItem(cur);
 });
 document.addEventListener('keydown',function(e){
   if(lb.hidden) return;
@@ -658,11 +698,29 @@ lb.addEventListener('touchend',function(e){if(sx===null)return;var dx=e.changedT
 function mimeOf(f){var t=(f.type||'').toLowerCase();return t||EXT[(f.name.split('.').pop()||'').toLowerCase()]||'';}
 async function imgThumb(f){
   try{
-    var b=await createImageBitmap(f), s=Math.min(1,600/Math.max(b.width,b.height)), c=document.createElement('canvas');
-    c.width=Math.round(b.width*s); c.height=Math.round(b.height*s); c.getContext('2d').drawImage(b,0,0,c.width,c.height);
-    var bl=await new Promise(function(r){c.toBlob(r,'image/webp',.8);});
-    return bl?{blob:bl,width:b.width,height:b.height}:null;
-  }catch(e){return null;}
+    var b;
+    try{
+      b = await createImageBitmap(f, { imageOrientation: 'from-image' });
+    }catch(e){
+      b = await createImageBitmap(f);
+    }
+    // High-resolution preview: up to 1800px on the longest edge, preserving clarity on Retina displays
+    var maxDim = Math.max(b.width, b.height);
+    var s = Math.min(1, 1800 / maxDim);
+    var c = document.createElement('canvas');
+    c.width = Math.round(b.width * s);
+    c.height = Math.round(b.height * s);
+    var ctx = c.getContext('2d');
+    if(ctx.imageSmoothingEnabled !== undefined){
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+    }
+    ctx.drawImage(b, 0, 0, c.width, c.height);
+    var bl = await new Promise(function(r){ c.toBlob(r, 'image/webp', 0.92); });
+    return bl ? { blob: bl, width: b.width, height: b.height } : null;
+  }catch(e){
+    return null;
+  }
 }
 function videoThumb(f){
   return new Promise(function(res){
@@ -672,9 +730,12 @@ function videoThumb(f){
     v.onloadedmetadata=function(){v.currentTime=Math.min(1,(v.duration||1)*.1);};
     v.onseeked=function(){
       try{
-        var s=Math.min(1,600/Math.max(v.videoWidth,v.videoHeight)), c=document.createElement('canvas');
-        c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s); c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-        c.toBlob(function(b){fin(b?{blob:b,width:v.videoWidth,height:v.videoHeight,duration:v.duration}:null);},'image/webp',.8);
+        var s=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight)), c=document.createElement('canvas');
+        c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s);
+        var ctx=c.getContext('2d');
+        if(ctx.imageSmoothingEnabled!==undefined){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
+        ctx.drawImage(v,0,0,c.width,c.height);
+        c.toBlob(function(b){fin(b?{blob:b,width:v.videoWidth,height:v.videoHeight,duration:v.duration}:null);},'image/webp',.88);
       }catch(e){fin(null);}
     };
     v.onerror=function(){fin(null);}; setTimeout(function(){fin(null);},10000); v.src=u;

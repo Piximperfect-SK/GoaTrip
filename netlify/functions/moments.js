@@ -28,13 +28,16 @@ const { verifySessionTokenFull } = require('./lib/auth');
 const QUOTA_BYTES = Math.round(Number(process.env.MOMENTS_QUOTA_GB || 30) * 1024 * 1024 * 1024);
 const MAX_IMAGE_BYTES = 50 * 1024 * 1024;   // 50 MB
 const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB (R2 allows up to 5 GB per single PUT)
-const MAX_THUMB_BYTES = 1 * 1024 * 1024;    // 1 MB
+const MAX_THUMB_BYTES = 3 * 1024 * 1024;    // 3 MB (allows high-res sharp preview thumbnails)
 const PAGE_SIZE = 40;
 const MAX_BULK_DELETE = 50;
 
 const ALLOWED_TYPES = {
   'image/jpeg': { ext: 'jpg', kind: 'image' },
+  'image/pjpeg': { ext: 'jpg', kind: 'image' },
+  'image/jpg': { ext: 'jpg', kind: 'image' },
   'image/png': { ext: 'png', kind: 'image' },
+  'image/x-png': { ext: 'png', kind: 'image' },
   'image/webp': { ext: 'webp', kind: 'image' },
   'image/gif': { ext: 'gif', kind: 'image' },
   'image/avif': { ext: 'avif', kind: 'image' },
@@ -43,6 +46,8 @@ const ALLOWED_TYPES = {
   'video/mp4': { ext: 'mp4', kind: 'video' },
   'video/quicktime': { ext: 'mov', kind: 'video' },
   'video/webm': { ext: 'webm', kind: 'video' },
+  'video/x-m4v': { ext: 'm4v', kind: 'video' },
+  'video/m4v': { ext: 'm4v', kind: 'video' },
 };
 
 // ---------- R2 client ----------
@@ -341,7 +346,10 @@ async function actionSignedGet(tripId, body, asDownload) {
   const cmd = new GetObjectCommand({
     Bucket: bucket(),
     Key: row.object_key,
-    ...(asDownload ? { ResponseContentDisposition: contentDisposition(row.filename || 'moment') } : {}),
+    ...(asDownload ? {
+      ResponseContentDisposition: contentDisposition(row.filename || 'moment'),
+      ResponseContentType: 'application/octet-stream',
+    } : {}),
   });
   const url = await getSignedUrl(getS3(), cmd, { expiresIn: 900 });
   return ok({ url });
