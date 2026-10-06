@@ -455,6 +455,7 @@ var st={items:[],kind:null,mine:false,before:null,more:false,busy:false,used:0,q
 var urlCache={}, active=[], cur=null, grid=$('mmGrid');
 var EXT={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',avif:'image/avif',heic:'image/heic',heif:'image/heif',mp4:'video/mp4',mov:'video/quicktime',webm:'video/webm',m4v:'video/mp4'};
 
+function div(c){var d=document.createElement('div');d.className=c;return d;}
 function fb(n){
   n=Number(n)||0;
   if(n>=1e9) return (n/1e9).toFixed(1)+' GB';
