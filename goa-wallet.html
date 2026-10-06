@@ -1236,7 +1236,12 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
               <button type="button" class="btn-ghost text-xs ml-1" style="padding:4px 8px" onclick="clearAllSplit()">Reset</button>
             </div>
           </div>
-          <div class="chip-grid mb-5" id="splitChips"></div>
+          <div class="chip-grid mb-3" id="splitChips"></div>
+
+          <div class="flex items-center gap-2 mb-4">
+            <input id="manualSplitName" type="text" placeholder="Add a friend not on the trip" class="flex-1" maxlength="40" onkeydown="if(event.key==='Enter'){event.preventDefault(); addManualSplitMember();}">
+            <button type="button" class="btn-ghost text-xs" style="padding:6px 10px" onclick="addManualSplitMember()">Add member</button>
+          </div>
 
           <label class="mb-2 block">Split method</label>
           <div class="flex gap-2 p-1 rounded-full w-fit mb-3" style="background:var(--sand)">
@@ -2405,10 +2410,59 @@ function syncPayerChips(){
   Array.from(box.children).forEach(c=>c.classList.toggle('selected', c.dataset.value===val));
 }
 
+let manualSplitMembers = [];
+
+function uniqueNames(names){
+  const seen = new Set();
+  return names.filter(name => {
+    const clean = String(name || '').trim();
+    if(!clean) return false;
+    const key = clean.toLowerCase();
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function rebuildSplitSelectOptions(extraNames = []){
+  const sel = document.getElementById('e-split');
+  if(!sel) return;
+  const names = uniqueNames([...PARTICIPANTS, ...manualSplitMembers, ...extraNames]);
+  manualSplitMembers = names.filter(name => !PARTICIPANTS.some(p => p.toLowerCase() === name.toLowerCase()));
+  sel.innerHTML = names.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+}
+function addManualSplitMember(){
+  const input = document.getElementById('manualSplitName');
+  const name = String(input ? input.value : '').trim();
+  if(!name) return;
+  const normalized = name.replace(/\s+/g, ' ');
+  const exists = [...document.getElementById('e-split').options].some(o => o.value.toLowerCase() === normalized.toLowerCase());
+  if(exists){
+    const opt = Array.from(document.getElementById('e-split').options).find(o => o.value.toLowerCase() === normalized.toLowerCase());
+    if(opt) opt.selected = true;
+    syncSplitChips();
+    if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
+    if(input) input.value = '';
+    return;
+  }
+  manualSplitMembers = uniqueNames([...manualSplitMembers, normalized]);
+  rebuildSplitSelectOptions();
+  const opt = Array.from(document.getElementById('e-split').options).find(o => o.value.toLowerCase() === normalized.toLowerCase());
+  if(opt) opt.selected = true;
+  renderSplitChips();
+  syncSplitChips();
+  if(input) input.value = '';
+  if(currentSplitMode()==='individual') refreshIndividualSplitInputs();
+}
+function resetManualSplitDraft(){
+  manualSplitMembers = [];
+  rebuildSplitSelectOptions();
+}
 function renderSplitChips(){
   const box = document.getElementById('splitChips');
   const sel = document.getElementById('e-split');
-  box.innerHTML = PARTICIPANTS.map(p=>`<div class="opt-chip" data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
+  if(!box || !sel) return;
+  const names = Array.from(sel.options).map(o=>o.value);
+  box.innerHTML = names.map(p=>`<div class="opt-chip" data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('');
   Array.from(box.children).forEach(chip=>{
     chip.addEventListener('click', ()=>{
       const opt = Array.from(sel.options).find(o=>o.value===chip.dataset.value);
@@ -2437,6 +2491,7 @@ function clearAllSplit(){
 }
 renderCategoryChips();
 renderPayerChips();
+rebuildSplitSelectOptions();
 renderSplitChips();
 
 /* ---- step navigation ---- */
@@ -2613,6 +2668,7 @@ function updateIndividualSplitTotal(){
 function openExpenseModal(){
   document.getElementById('expenseForm').reset();
   document.getElementById('e-editing-id').value = '';
+  document.getElementById('manualSplitName').value = '';
   document.getElementById('e-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('expenseModalTitle').textContent = 'Add expense';
   document.getElementById('expenseFormSubmit').textContent = 'Add expense';
@@ -2621,6 +2677,9 @@ function openExpenseModal(){
   document.getElementById('e-paid-from-deposit').checked = false;
   document.getElementById('depositPaymentBox').style.display = 'none';
   document.getElementById('e-unpaid').checked = false;
+  resetManualSplitDraft();
+  rebuildSplitSelectOptions();
+  Array.from(document.getElementById('e-split').options).forEach(o=>o.selected = true);
   toggleUnpaidExpense();
   // Defensive: always rebuild the payer/split chips from the current
   // PARTICIPANTS right before showing the modal, in case they were never
@@ -2657,9 +2716,11 @@ function startEditExpense(id){
   }
   document.getElementById('expenseModalTitle').textContent = 'Edit expense';
   document.getElementById('expenseFormSubmit').textContent = 'Save changes';
+  manualSplitMembers = uniqueNames((ex.split || []).filter(name => !PARTICIPANTS.some(p => p.toLowerCase() === String(name).trim().toLowerCase())));
+  rebuildSplitSelectOptions();
+  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   renderPayerChips();
   renderSplitChips();
-  Array.from(document.getElementById('e-split').options).forEach(o=> o.selected = ex.split.includes(o.value));
   syncCategoryChips();
   syncPayerChips();
   syncSplitChips();
