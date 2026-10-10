@@ -166,7 +166,9 @@ GoaTrip/
 
 ## 🚀 Adding a new trip
 
-There's no self-serve "create trip" UI yet. For now, insert a new row into the `trips` table with the same shape as the existing one (name, dates, origin/destination/waypoint, `default_itinerary`, `gallery_places`, `route_legs`, `categories`, participant count) and share links with `?trip=<new-id>` — or mark it `is_active` to make it the site's default.
+Sign in to `admin.html`, choose **Create a trip** under **Managing trip**, and enter a trip name and ID. The ID is lowercase letters, numbers, and hyphens (for example, `goa-2027`); the form can generate one from the trip name. Dates, origin, destination, and expected participant count are optional. Creating a trip selects it in the admin console without changing or overwriting existing trips.
+
+Use the **Managing trip** selector to switch the admin console between any existing trips. **Open selected trip** opens the public site for that trip. To share it directly, add `?trip=<trip-id>` to a page URL, for example `goa-wallet.html?trip=goa-2027`.
 
 ---
 

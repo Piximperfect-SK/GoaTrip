@@ -700,6 +700,8 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
     <div class="sb-trip">
       <label>Managing trip</label>
       <select id="tripPicker"></select>
+      <button type="button" class="btn-ghost" id="createTripBtn" style="width:100%; margin-top:8px; text-align:left;">＋ Create a trip</button>
+      <a id="openSelectedTrip" class="sb-link" href="index.html" style="display:block; margin-top:6px; padding:8px 10px; color:rgba(239,230,214,.72); font-size:12px;">Open selected trip ↗</a>
     </div>
 
     <nav class="sb-nav" id="dashTabs">
@@ -1118,6 +1120,40 @@ html[data-theme="dark"] .field-tooltip.info{ background:#2E6FF2; }
   </div>
 </div>
 
+<!-- ============ CREATE TRIP MODAL ============ -->
+<div class="modal-overlay hidden" id="createTripModalOverlay" role="dialog" aria-modal="true" aria-labelledby="createTripTitle">
+  <form class="modal-card" id="createTripForm" style="max-width:520px; text-align:left;">
+    <h3 id="createTripTitle">Create a trip</h3>
+    <p class="modal-sub">Create a separate trip space. Existing trips and their data stay unchanged.</p>
+    <div class="gate-banner" id="createTripBanner" role="alert"></div>
+    <div class="gate-field">
+      <label for="newTripName">Trip name</label>
+      <input id="newTripName" maxlength="120" placeholder="e.g. Goa Trip 2027" required/>
+    </div>
+    <div class="gate-field">
+      <label for="newTripId">Trip ID</label>
+      <input id="newTripId" maxlength="60" pattern="[a-z0-9-]+" placeholder="e.g. goa-2027" required/>
+      <p class="cardsub">Lowercase letters, numbers, and hyphens only. This ID appears in trip links.</p>
+    </div>
+    <div class="row">
+      <div class="gate-field"><label for="newTripShortDates">Dates label</label><input id="newTripShortDates" maxlength="60" placeholder="e.g. 2–5 October"/></div>
+      <div class="gate-field"><label for="newTripParticipants">Expected participants</label><input id="newTripParticipants" type="number" min="0" max="1000" step="1" value="0"/></div>
+    </div>
+    <div class="row">
+      <div class="gate-field"><label for="newTripStart">Start date</label><input id="newTripStart" type="date"/></div>
+      <div class="gate-field"><label for="newTripEnd">End date</label><input id="newTripEnd" type="date"/></div>
+    </div>
+    <div class="row">
+      <div class="gate-field"><label for="newTripOrigin">Origin</label><input id="newTripOrigin" maxlength="80" placeholder="e.g. Pune"/></div>
+      <div class="gate-field"><label for="newTripDestination">Destination</label><input id="newTripDestination" maxlength="80" placeholder="e.g. Goa"/></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button type="button" class="btn-ghost" id="cancelCreateTripBtn" style="flex:1;">Cancel</button>
+      <button type="submit" class="btn-primary" id="saveCreateTripBtn" style="flex:1;">Create trip</button>
+    </div>
+  </form>
+</div>
+
 <!-- ============ PIN CHANGE MODAL (forced on first login after approval, or
      opened voluntarily any time via the "Change PIN" button) ============ -->
 <div class="modal-overlay hidden" id="pinModalOverlay">
@@ -1313,9 +1349,9 @@ function updateOverviewStats(){
   }
 }
 
-/* ---------- trip picker (admin manages flags per trip) ---------- */
+/* ---------- trip picker and trip creation ---------- */
 let currentTripId = null;
-async function populateTripPicker(){
+async function populateTripPicker(preferredTripId){
   const sel = el('tripPicker');
   if(!sel) return;
   // Wrapped defensively: this is awaited directly inside the boot() IIFE
@@ -1327,15 +1363,131 @@ async function populateTripPicker(){
   // a half-initialized page with no error shown.
   try{
     const res = await fetch(FUNCTIONS_BASE + '/trips').then(r=>r.json());
+    if(!res.trips) throw new Error(res.error || 'Could not load trips.');
     const trips = res.trips || [];
     sel.innerHTML = trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
-    currentTripId = (window.TRIP && window.TRIP.id) || (trips[0] && trips[0].id) || null;
+    currentTripId = preferredTripId && trips.some(t=>t.id === preferredTripId)
+      ? preferredTripId
+      : (window.TRIP && trips.some(t=>t.id === window.TRIP.id) ? window.TRIP.id : (trips[0] && trips[0].id) || null);
     if(currentTripId) sel.value = currentTripId;
   }catch(err){
     console.warn('populateTripPicker failed — trip list unavailable, continuing boot anyway.', err);
+    if(el('dashBanner')) showDashBanner('bad', err.message || 'Could not load trips.');
   }
-  sel.addEventListener('change', ()=>{ currentTripId = sel.value; loadFlags(); loadRegistrations(); loadCancellations(); loadBoardMembers(); loadCrew(); loadContent(); });
+  sel.onchange = ()=> switchManagedTrip(sel.value);
+  updateOpenSelectedTripLink();
 }
+function updateOpenSelectedTripLink(){
+  const link = el('openSelectedTrip');
+  if(link && currentTripId) link.href = `index.html?trip=${encodeURIComponent(currentTripId)}`;
+}
+function refreshManagedTripData(){
+  loadFlags();
+  loadRegistrations();
+  loadCancellations();
+  loadBoardMembers();
+  loadCrew();
+  loadContent();
+}
+function switchManagedTrip(tripId, trip){
+  currentTripId = tripId;
+  if(!currentTripId) return;
+  if(trip){
+    window.TRIP = trip;
+    document.title = `Admin — ${trip.name}`;
+  }
+  sessionStorage.setItem('goatrip:lastTrip', currentTripId);
+  const url = new URL(location.href);
+  url.searchParams.set('trip', currentTripId);
+  history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  updateOpenSelectedTripLink();
+  refreshManagedTripData();
+}
+function openCreateTripModal(){
+  el('createTripForm').reset();
+  newTripIdManuallyEdited = false;
+  el('newTripParticipants').value = '0';
+  el('createTripBanner').className = 'gate-banner';
+  el('createTripModalOverlay').classList.remove('hidden');
+  el('newTripName').focus();
+}
+function closeCreateTripModal(){
+  el('createTripModalOverlay').classList.add('hidden');
+}
+let newTripIdManuallyEdited = false;
+el('newTripId').addEventListener('input', ()=>{ newTripIdManuallyEdited = true; });
+el('newTripName').addEventListener('input', ()=>{
+  if(newTripIdManuallyEdited) return;
+  el('newTripId').value = el('newTripName').value.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0,60);
+});
+el('createTripBtn').addEventListener('click', openCreateTripModal);
+el('cancelCreateTripBtn').addEventListener('click', closeCreateTripModal);
+el('createTripModalOverlay').addEventListener('click', e=>{
+  if(e.target === el('createTripModalOverlay')) closeCreateTripModal();
+});
+el('createTripForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const id = el('newTripId').value.trim();
+  const name = el('newTripName').value.trim();
+  const startDate = el('newTripStart').value || null;
+  const endDate = el('newTripEnd').value || null;
+  const banner = el('createTripBanner');
+  const btn = el('saveCreateTripBtn');
+  if(!/^[a-z0-9-]{1,60}$/.test(id)){
+    banner.className = 'gate-banner show bad';
+    banner.textContent = 'Trip ID must contain lowercase letters, numbers, and hyphens only.';
+    return;
+  }
+  if(startDate && endDate && endDate < startDate){
+    banner.className = 'gate-banner show bad';
+    banner.textContent = 'End date must be on or after the start date.';
+    return;
+  }
+  btn.disabled = true;
+  try{
+    const res = await fetch(FUNCTIONS_BASE + '/trips', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:'createTrip',
+        token:getToken(),
+        payload:{
+          id, name,
+          shortDates:el('newTripShortDates').value.trim(),
+          participantCount:Number(el('newTripParticipants').value || 0),
+          startDate, endDate,
+          origin:el('newTripOrigin').value.trim(),
+          destination:el('newTripDestination').value.trim(),
+        },
+      }),
+    });
+    const data = await res.json();
+    if(res.status === 401){
+      clearSession();
+      showLoggedOut();
+      setMode('login');
+      throw new Error(data.error || 'Your admin session expired. Please log in again.');
+    }
+    if(!res.ok || !data.ok || !data.trip) throw new Error(data.error || 'Could not create trip.');
+    await populateTripPicker(data.trip.id);
+    const tripPicker = el('tripPicker');
+    if(!Array.from(tripPicker.options).some(option=>option.value === data.trip.id)){
+      const option = document.createElement('option');
+      option.value = data.trip.id;
+      option.textContent = data.trip.name;
+      tripPicker.append(option);
+    }
+    switchManagedTrip(data.trip.id, data.trip);
+    closeCreateTripModal();
+    showDashBanner('ok', `Created and switched to ${data.trip.name} (${data.trip.id}).`);
+  }catch(err){
+    banner.className = 'gate-banner show bad';
+    banner.textContent = err.message || 'Could not create trip.';
+  }finally{
+    btn.disabled = false;
+  }
+});
 
 /* ---------- gate mode switch ---------- */
 function togglePinVisibility(){
