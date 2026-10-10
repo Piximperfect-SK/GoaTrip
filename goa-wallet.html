@@ -1656,6 +1656,7 @@ const DELEGATED_ACTIONS = {
   resubmitRecord:           d => resubmitRecord(d.recordType, d.id),
   toggleApprovalDetails:    (d, el) => {
     const card = el.closest('[data-approval-card]');
+    if(!card) return;
     const expanded = card.classList.toggle('is-expanded');
     el.setAttribute('aria-expanded', String(expanded));
     el.setAttribute('aria-label', expanded ? 'Collapse approval details' : 'Expand approval details');
@@ -4535,7 +4536,7 @@ function renderMySubmissions(){
   if(emptyEl) emptyEl.style.display = 'none';
 
   listEl.innerHTML = records.map(r => `
-    <div class="submission-card approval-card" data-approval-card>
+    <div class="submission-card">
       <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
         <div class="flex items-center gap-2 min-w-0">
           <span class="pill">${escapeHtml(r.recordType)}</span>
@@ -4709,7 +4710,7 @@ function renderApprovals(){
       : r.submittedBy ? `Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}`
       : '';
     return `
-    <div class="submission-card">
+    <div class="submission-card approval-card" data-approval-card>
       <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
         <div class="flex items-center gap-2 min-w-0">
           <span class="pill">${escapeHtml(r.recordType)}</span>
