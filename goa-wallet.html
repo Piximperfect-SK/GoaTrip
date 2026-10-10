@@ -412,7 +412,10 @@
   #participantGrid > *:nth-child(11){ animation-delay:.32s; }
   #participantGrid .panel{ transition:transform .18s ease, box-shadow .18s ease; }
   #participantGrid .panel:hover{ transform:translateY(-3px); box-shadow:0 16px 30px -18px rgba(15,38,34,.35); }
-  #participantGrid.participant-grid-collapsed .participant-card-details{ display:none; }
+  #participantGrid .participant-card-details{ display:none; }
+  #participantGrid .participant-card.is-expanded .participant-card-details{ display:block; }
+  .participant-card-toggle{ width:28px; height:28px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer; line-height:1; }
+  .participant-card-toggle:hover{ background:var(--sand); }
 
   .sync-dot{ width:8px; height:8px; border-radius:9999px; display:inline-block; transition:box-shadow .3s ease; }
   .sync-dot.ok{ background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18); }
@@ -1037,8 +1040,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 
     <!-- ============ PARTICIPANTS & BALANCES ============ -->
     <div class="page" id="page-participants">
-      <div class="flex flex-wrap justify-end gap-2 mb-4">
-        <button type="button" class="btn-ghost" id="participantDetailsToggle" aria-expanded="false" aria-controls="participantGrid" onclick="toggleParticipantDetails()">Expand details</button>
+      <div class="flex justify-end mb-4">
         <button type="button" class="btn-ghost" onclick="rebuildParticipantsFromRegistrations()">Rebuild from registrations</button>
       </div>
       <div id="unpaidPendingBanner" class="banner info mb-4" style="display:none;"></div>
@@ -1634,6 +1636,15 @@ const DELEGATED_ACTIONS = {
   removeAdjustment:         d => removeAdjustment(d.id),
   removeSettlement:         d => removeSettlement(d.id),
   resubmitRecord:           d => resubmitRecord(d.recordType, d.id),
+  toggleBalanceCard:        (d, el, e) => {
+    e.stopPropagation();
+    const card = el.closest('[data-balance-card]');
+    const expanded = card.classList.toggle('is-expanded');
+    el.setAttribute('aria-expanded', String(expanded));
+    el.setAttribute('aria-label', expanded ? 'Collapse balance details' : 'Expand balance details');
+    el.title = expanded ? 'Collapse details' : 'Expand details';
+    el.textContent = expanded ? '⌃' : '⌄';
+  },
   toggleRejectionReason:    (d, el) => {
     const wrapper = el.closest('.expense-rejection');
     const open = wrapper.classList.toggle('is-open');
@@ -1879,7 +1890,6 @@ function persistLocal(){ localStorage.setItem('goaWalletV2', JSON.stringify(wall
 let wallet = loadLocal();
 if(!Array.isArray(wallet.deposits)) wallet.deposits = []; // upgrade older cached state
 let charts = {};
-let participantDetailsExpanded = false;
 
 /* ============================================================
    SIDEBAR NAV
@@ -3763,15 +3773,6 @@ function renderExpensesTable(){
 =============================================================*/
 // Returns HTML-safe text: every caller interpolates it into an innerHTML template.
 function initials(name){ return escapeHtml(String(name||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase()); }
-function toggleParticipantDetails(force){
-  participantDetailsExpanded = typeof force === 'boolean' ? force : !participantDetailsExpanded;
-  const grid = document.getElementById('participantGrid');
-  const button = document.getElementById('participantDetailsToggle');
-  if(!grid || !button) return;
-  grid.classList.toggle('participant-grid-collapsed', !participantDetailsExpanded);
-  button.setAttribute('aria-expanded', String(participantDetailsExpanded));
-  button.textContent = participantDetailsExpanded ? 'Collapse details' : 'Expand details';
-}
 function renderParticipants(){
   const net = computeNetBalances();
   // Surface any unpaid/pre-logged expenses right at the top of the
@@ -3793,7 +3794,7 @@ function renderParticipants(){
   // whom" list — reused here so each card can say exactly WHO to pay
   // (or collect from), not just the person's overall net number.
   const pairs = pairwiseSettlements();
-  document.getElementById('participantGrid').innerHTML = PARTICIPANTS.map(p=>{
+  document.getElementById('participantGrid').innerHTML = PARTICIPANTS.map((p, index)=>{
     const v = net[p]||0;
     const owesTo = pairs.filter(x=>x.from===p);   // this person needs to pay these people
     const owedBy = pairs.filter(x=>x.to===p);      // these people need to pay this person
@@ -3813,23 +3814,25 @@ function renderParticipants(){
         </p>`).join('')}</div>`;
     }
 
-    return `<div class="panel p-5 cursor-pointer" data-action="viewPerson" data-person="${escapeHtml(p)}">
+    return `<div class="panel p-5 cursor-pointer participant-card" data-balance-card data-action="viewPerson" data-person="${escapeHtml(p)}">
       <div class="flex items-center justify-between gap-3 mb-3">
         <div class="flex items-center gap-3">
           <span class="avatar">${initials(p)}</span>
         <div><p class="font-semibold text-sm">${escapeHtml(p)}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
         </div>
-        <span class="btn-icon" title="Edit ${escapeHtml(p)}" data-action="openParticipantEditModal" data-person="${escapeHtml(p)}">✎</span>
+        <div class="flex items-center gap-2">
+          <button type="button" class="participant-card-toggle" data-action="toggleBalanceCard" aria-label="Expand balance details" aria-expanded="false" aria-controls="balanceDetails-${index}" title="Expand details">⌄</button>
+          <span class="btn-icon" title="Edit ${escapeHtml(p)}" data-action="openParticipantEditModal" data-person="${escapeHtml(p)}">✎</span>
+        </div>
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
       <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
-      <div class="participant-card-details">
+      <div class="participant-card-details" id="balanceDetails-${index}">
       ${whoHtml}
       ${whoLines.length ? `<button type="button" class="btn-ghost text-xs mt-3" style="padding:6px 12px" onclick="event.stopPropagation(); goToPage('settlements')">Settle up →</button>` : ''}
       </div>
     </div>`;
   }).join('');
-  toggleParticipantDetails(participantDetailsExpanded);
 }
 
 /* ============================================================
