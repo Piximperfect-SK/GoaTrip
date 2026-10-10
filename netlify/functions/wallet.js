@@ -12,6 +12,7 @@ const { notifyAdminsPendingApproval } = require('./lib/notify');
 // guard against one stray/automated POST wiping a trip's wallet, same as
 // the original Apps Script design.
 const RESET_CONFIRM_PHRASE = process.env.WALLET_RESET_CONFIRM_PHRASE || 'RESET-GOATRIP-WALLET';
+const MASTER_ADMIN_NAME = 'Shubham Kumar';
 
 // Phase 4: DRAFT -> PENDING_APPROVAL -> APPROVED/REJECTED state machine.
 // One small map instead of three near-identical branches, since
@@ -88,6 +89,10 @@ const SCHEMAS = {
     id: { type: 'string', maxLen: 60, required: true },
   },
   approveRecord: {
+    recordType: { type: 'string', maxLen: 20, required: true },
+    id: { type: 'string', maxLen: 60, required: true },
+  },
+  revertApproval: {
     recordType: { type: 'string', maxLen: 20, required: true },
     id: { type: 'string', maxLen: 60, required: true },
   },
@@ -478,7 +483,7 @@ exports.handler = async (event) => {
     // records (and those still go through the approval queue), but
     // deleting a record removes it outright with no review step, so that
     // stays admin-only the same way resetWallet/approveRecord do.
-    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'removeExpense', 'removeSettlement', 'deleteDeposit', 'addAdjustment', 'deleteAdjustment', 'renameParticipant', 'mergeParticipant'];
+    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'revertApproval', 'removeExpense', 'removeSettlement', 'deleteDeposit', 'addAdjustment', 'deleteAdjustment', 'renameParticipant', 'mergeParticipant'];
     const locked = await getWalletLockState(tripId);
     // Exception: a user may delete their OWN self-only expense (private,
     // never reviewed by anyone) — unless the wallet is locked.
@@ -494,6 +499,8 @@ exports.handler = async (event) => {
       return unauthorized(
         action === 'resetWallet'
           ? 'Resetting the wallet requires an admin session — please log in as admin.'
+          : action === 'revertApproval'
+          ? 'Returning approved records to review requires an admin session — please log in as admin.'
           : action === 'approveRecord' || action === 'rejectRecord'
           ? 'Approving or rejecting records requires an admin session — please log in as admin.'
           : action === 'removeExpense' || action === 'removeSettlement' || action === 'deleteDeposit'
@@ -506,6 +513,9 @@ exports.handler = async (event) => {
     if (validationError) return badRequest(validationError);
     if (action === 'resetWallet' && payload.confirm !== RESET_CONFIRM_PHRASE) {
       return badRequest('Reset not confirmed — missing or incorrect confirmation phrase.');
+    }
+    if (action === 'revertApproval' && actor.trim().toLowerCase() !== MASTER_ADMIN_NAME.toLowerCase()) {
+      return unauthorized('Only the super admin can return an approved record to pending review.');
     }
 
     // Needed before any of the branches below touch status/submitted_by/
@@ -811,6 +821,58 @@ exports.handler = async (event) => {
         await query(`UPDATE ${record._table} SET ${rejectSet} WHERE trip_id=$1 AND id=$2`, [tripId, payload.id, actor, reason]);
       }
       await logActivity(tripId, payload.id, actor, 'reject_record', `${payload.recordType} ${payload.id}${reason ? `: ${reason}` : ''}`);
+    } else if (action === 'revertApproval') {
+      const record = await getRecordForApproval(tripId, payload.recordType, payload.id);
+      if (!record) return badRequest('Record not found.');
+      if (!['approved', 'published'].includes(record.status || 'approved')) {
+        return badRequest('Only approved records can be returned to pending review.');
+      }
+      if (payload.recordType === 'expense' && record.approved_by === AUTO_APPROVED_BY) {
+        return badRequest('Self-only expenses do not use the approval queue.');
+      }
+      const pair = await getLinkedPair(tripId, payload.recordType, record);
+      if (pair && !['approved', 'published'].includes(pair.status)) {
+        return badRequest('The linked expense/withdrawal pair is out of sync — check the linked record before changing its approval.');
+      }
+      const pendingSet = `status='pending_approval', submitted_at=now(),
+           approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
+      if (pair) {
+        const { rows } = await query(
+          `WITH pair_lock AS MATERIALIZED (
+             SELECT id FROM ${pair.table}
+              WHERE trip_id=$1 AND id=$3 AND COALESCE(status,'approved') IN ('approved','published')
+              FOR UPDATE
+           ), updated_record AS (
+             UPDATE ${record._table} SET ${pendingSet}
+              WHERE trip_id=$1 AND id=$2 AND COALESCE(status,'approved') IN ('approved','published')
+                AND EXISTS (SELECT 1 FROM pair_lock)
+              RETURNING id
+           ), updated_pair AS (
+             UPDATE ${pair.table} SET ${pendingSet}
+              WHERE trip_id=$1 AND id=$3 AND COALESCE(status,'approved') IN ('approved','published')
+                AND EXISTS (SELECT 1 FROM updated_record)
+              RETURNING id
+           )
+           SELECT (SELECT count(*)::int FROM updated_record) AS record_count,
+                  (SELECT count(*)::int FROM updated_pair) AS pair_count`,
+          [tripId, payload.id, pair.id]
+        );
+        if (rows[0]?.record_count !== 1 || rows[0]?.pair_count !== 1) {
+          return badRequest('The record or its linked transaction changed before it could be returned to review. Refresh and try again.');
+        }
+      } else {
+        const result = await query(
+          `UPDATE ${record._table} SET ${pendingSet}
+            WHERE trip_id=$1 AND id=$2 AND COALESCE(status,'approved') IN ('approved','published')
+            RETURNING id`,
+          [tripId, payload.id]
+        );
+        if (result.rowCount !== 1) {
+          return badRequest('The record changed before it could be returned to review. Refresh and try again.');
+        }
+      }
+      await logActivity(tripId, payload.id, actor, 'revert_approval', `${payload.recordType} ${payload.id} returned to pending review`);
+      await notifyAdminsPendingApproval({ tripId, recordType: payload.recordType, record, submittedBy: actor });
     } else if (action === 'addAdjustment') {
       if (!payload.amount) return badRequest('Adjustment amount cannot be zero.');
       await query(

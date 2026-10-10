@@ -4612,6 +4612,9 @@ function allWalletApprovalRecords(){
 // The master admin is exempt: they may approve their own records. Same name
 // admin.js / admin.html already hardcode as MASTER_ADMIN_NAME — keep in sync.
 const WALLET_MASTER_ADMIN_NAME = 'Shubham Kumar';
+function isWalletMasterAdmin(){
+  return String(getSessionName() || '').trim().toLowerCase() === WALLET_MASTER_ADMIN_NAME.toLowerCase();
+}
 function isOwnApprovalRecord(r){
   const me = String(getSessionName() || '').trim().toLowerCase();
   if(!me) return false;
@@ -4736,6 +4739,10 @@ function renderApprovals(){
             : `<button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-approve data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Approve</button>`}
           <button type="button" class="btn-danger" style="padding:6px 14px; font-size:12px;" data-reject data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Reject</button>
         </div>` : ''}
+      ${isWalletMasterAdmin() && ['approved', 'published'].includes(r.status) && !isSelfOnlyRecord(r.status, r.approvedBy) ? `
+        <div class="mt-3">
+          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-revert-approval data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Send back to review</button>
+        </div>` : ''}
     </div>`;
   }).join('');
 
@@ -4758,6 +4765,26 @@ function renderApprovals(){
   });
   listEl.querySelectorAll('button[data-reject]').forEach(btn=>{
     btn.addEventListener('click', ()=> openApprovalRejectModal(btn.dataset.type, btn.dataset.id));
+  });
+  listEl.querySelectorAll('button[data-revert-approval]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const type = btn.dataset.type;
+      const id = btn.dataset.id;
+      confirmAction(
+        'Send back to review?',
+        `This will return ${type} ${id} to the pending approval queue. Any linked expense or withdrawal will be returned with it.`,
+        async ()=>{
+          btn.disabled = true;
+          const res = await pushToSheet('revertApproval', { recordType:type, id }, getSessionName());
+          if(res){
+            showBanner('ok', 'Record sent back to the approval queue.');
+            renderAll();
+          } else {
+            btn.disabled = false;
+          }
+        }
+      );
+    });
   });
 }
 let approvalRejectTarget = null;
