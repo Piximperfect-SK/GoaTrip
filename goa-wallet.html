@@ -1038,7 +1038,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
     <!-- ============ PARTICIPANTS & BALANCES ============ -->
     <div class="page" id="page-participants">
       <div class="flex flex-wrap justify-end gap-2 mb-4">
-        <button type="button" class="btn-ghost" id="participantDetailsToggle" aria-expanded="true" aria-controls="participantGrid" onclick="toggleParticipantDetails()">Collapse details</button>
+        <button type="button" class="btn-ghost" id="participantDetailsToggle" aria-expanded="false" aria-controls="participantGrid" onclick="toggleParticipantDetails()">Expand details</button>
         <button type="button" class="btn-ghost" onclick="rebuildParticipantsFromRegistrations()">Rebuild from registrations</button>
       </div>
       <div id="unpaidPendingBanner" class="banner info mb-4" style="display:none;"></div>
@@ -1879,7 +1879,7 @@ function persistLocal(){ localStorage.setItem('goaWalletV2', JSON.stringify(wall
 let wallet = loadLocal();
 if(!Array.isArray(wallet.deposits)) wallet.deposits = []; // upgrade older cached state
 let charts = {};
-let participantDetailsExpanded = true;
+let participantDetailsExpanded = false;
 
 /* ============================================================
    SIDEBAR NAV
