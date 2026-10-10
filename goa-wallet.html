@@ -359,6 +359,12 @@
   .status-pill.approved{ background:rgba(62,124,89,.12); color:var(--palm); }
   .status-pill.rejected{ background:rgba(232,93,42,.12); color:var(--mango-2); }
   .status-pill.selfonly{ background:rgba(46,139,87,.12); color:var(--palm); }
+  .expense-rejection{ position:relative; display:inline-block; margin-top:5px; }
+  .expense-rejection-toggle{ border:0; padding:0; background:none; color:var(--mango-2); font-size:11px; font-weight:600; text-decoration:underline; cursor:pointer; }
+  .expense-rejection-tooltip{ position:absolute; z-index:20; top:calc(100% + 5px); left:0; width:min(280px, 75vw); padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--paper); color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.16); font-size:12px; line-height:1.45; white-space:normal; visibility:hidden; opacity:0; transition:opacity .15s ease; }
+  .expense-rejection:hover .expense-rejection-tooltip,
+  .expense-rejection:focus-within .expense-rejection-tooltip,
+  .expense-rejection.is-open .expense-rejection-tooltip{ visibility:visible; opacity:1; }
   .status-pill.published{ background:rgba(46,111,242,.12); color:var(--azulejo); }
   /* Pre-logged / unpaid expense — same visual language as status-pill
      (small uppercase pill) but its own colour so it never reads as an
@@ -406,6 +412,7 @@
   #participantGrid > *:nth-child(11){ animation-delay:.32s; }
   #participantGrid .panel{ transition:transform .18s ease, box-shadow .18s ease; }
   #participantGrid .panel:hover{ transform:translateY(-3px); box-shadow:0 16px 30px -18px rgba(15,38,34,.35); }
+  #participantGrid.participant-grid-collapsed .participant-card-details{ display:none; }
 
   .sync-dot{ width:8px; height:8px; border-radius:9999px; display:inline-block; transition:box-shadow .3s ease; }
   .sync-dot.ok{ background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18); }
@@ -1030,7 +1037,8 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 
     <!-- ============ PARTICIPANTS & BALANCES ============ -->
     <div class="page" id="page-participants">
-      <div class="flex justify-end mb-4">
+      <div class="flex flex-wrap justify-end gap-2 mb-4">
+        <button type="button" class="btn-ghost" id="participantDetailsToggle" aria-expanded="true" aria-controls="participantGrid" onclick="toggleParticipantDetails()">Collapse details</button>
         <button type="button" class="btn-ghost" onclick="rebuildParticipantsFromRegistrations()">Rebuild from registrations</button>
       </div>
       <div id="unpaidPendingBanner" class="banner info mb-4" style="display:none;"></div>
@@ -1626,6 +1634,11 @@ const DELEGATED_ACTIONS = {
   removeAdjustment:         d => removeAdjustment(d.id),
   removeSettlement:         d => removeSettlement(d.id),
   resubmitRecord:           d => resubmitRecord(d.recordType, d.id),
+  toggleRejectionReason:    (d, el) => {
+    const wrapper = el.closest('.expense-rejection');
+    const open = wrapper.classList.toggle('is-open');
+    el.setAttribute('aria-expanded', String(open));
+  },
 };
 document.addEventListener('click', function(e){
   const el = e.target.closest && e.target.closest('[data-action]');
@@ -1866,6 +1879,7 @@ function persistLocal(){ localStorage.setItem('goaWalletV2', JSON.stringify(wall
 let wallet = loadLocal();
 if(!Array.isArray(wallet.deposits)) wallet.deposits = []; // upgrade older cached state
 let charts = {};
+let participantDetailsExpanded = true;
 
 /* ============================================================
    SIDEBAR NAV
@@ -3726,7 +3740,13 @@ function renderExpensesTable(){
       <td class="text-xs opacity-70">${ex.split.length===PARTICIPANTS.length ? 'Everyone' : escapeHtml(ex.split.join(', '))}</td>
       <td class="mono text-xs">${escapeHtml(ex.date||'—')}</td>
       <td class="text-xs opacity-60">${escapeHtml(ex.updatedBy || ex.createdBy || '—')}</td>
-      <td>${statusPillHtml(ex.status, ex.approvedBy, ex._unsynced)}</td>
+      <td>
+        ${statusPillHtml(ex.status, ex.approvedBy, ex._unsynced)}
+        ${ex.status === 'rejected' ? `<span class="expense-rejection">
+          <button type="button" class="expense-rejection-toggle" data-action="toggleRejectionReason" aria-expanded="false">Rejection note</button>
+          <span class="expense-rejection-tooltip" role="tooltip">${escapeHtml(ex.rejectionReason || 'No rejection reason was provided.')}</span>
+        </span>` : ''}
+      </td>
       <td>
         <div class="flex gap-1.5 justify-end">
           <span class="btn-icon" title="View" data-action="viewExpense" data-id="${escapeHtml(ex.id)}">👁</span>
@@ -3743,6 +3763,15 @@ function renderExpensesTable(){
 =============================================================*/
 // Returns HTML-safe text: every caller interpolates it into an innerHTML template.
 function initials(name){ return escapeHtml(String(name||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase()); }
+function toggleParticipantDetails(force){
+  participantDetailsExpanded = typeof force === 'boolean' ? force : !participantDetailsExpanded;
+  const grid = document.getElementById('participantGrid');
+  const button = document.getElementById('participantDetailsToggle');
+  if(!grid || !button) return;
+  grid.classList.toggle('participant-grid-collapsed', !participantDetailsExpanded);
+  button.setAttribute('aria-expanded', String(participantDetailsExpanded));
+  button.textContent = participantDetailsExpanded ? 'Collapse details' : 'Expand details';
+}
 function renderParticipants(){
   const net = computeNetBalances();
   // Surface any unpaid/pre-logged expenses right at the top of the
@@ -3794,10 +3823,13 @@ function renderParticipants(){
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
       <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
+      <div class="participant-card-details">
       ${whoHtml}
       ${whoLines.length ? `<button type="button" class="btn-ghost text-xs mt-3" style="padding:6px 12px" onclick="event.stopPropagation(); goToPage('settlements')">Settle up →</button>` : ''}
+      </div>
     </div>`;
   }).join('');
+  toggleParticipantDetails(participantDetailsExpanded);
 }
 
 /* ============================================================
@@ -4512,21 +4544,26 @@ function renderActivity(){
 function allWalletApprovalRecords(){
   const exp = wallet.expenses.map(ex => ({
     recordType:'expense', id:ex.id, label:ex.title, amount:Number(ex.amount), who: ex.createdBy,
-    status: ex.status, submittedBy: ex.submittedBy, submittedAt: ex.submittedAt,
-    approvedBy: ex.approvedBy, approvedAt: ex.approvedAt,
-    rejectedBy: ex.rejectedBy, rejectedAt: ex.rejectedAt, rejectionReason: ex.rejectionReason,
+    category:ex.category, payer:ex.payer, split:ex.split, splitType:ex.splitType,
+    splitAmounts:ex.splitAmounts, date:ex.date, unpaid:ex.unpaid,
+    paidFromDeposit:ex.paidFromDeposit, depositUsedFrom:ex.depositUsedFrom,
+    status: ex.status, submittedBy:ex.submittedBy, submittedAt:ex.submittedAt,
+    approvedBy:ex.approvedBy, approvedAt:ex.approvedAt,
+    rejectedBy:ex.rejectedBy, rejectedAt:ex.rejectedAt, rejectionReason:ex.rejectionReason,
   }));
   const settle = wallet.settlements.map(s => ({
     recordType:'settlement', id:s.id, label:`${s.from} → ${s.to}`, amount:Number(s.amount), who: s.actor,
-    status: s.status, submittedBy: s.submittedBy, submittedAt: s.submittedAt,
-    approvedBy: s.approvedBy, approvedAt: s.approvedAt,
-    rejectedBy: s.rejectedBy, rejectedAt: s.rejectedAt, rejectionReason: s.rejectionReason,
+    from:s.from, to:s.to, note:s.note, usedDeposit:s.usedDeposit, date:s.ts,
+    status: s.status, submittedBy:s.submittedBy, submittedAt:s.submittedAt,
+    approvedBy:s.approvedBy, approvedAt:s.approvedAt,
+    rejectedBy:s.rejectedBy, rejectedAt:s.rejectedAt, rejectionReason:s.rejectionReason,
   }));
   const dep = (wallet.deposits||[]).map(d => ({
     recordType:'deposit', id:d.id, label:`${d.person} (${d.type})`, amount:Number(d.amount), who: d.loggedBy,
-    status: d.status, submittedBy: d.submittedBy, submittedAt: d.submittedAt,
-    approvedBy: d.approvedBy, approvedAt: d.approvedAt,
-    rejectedBy: d.rejectedBy, rejectedAt: d.rejectedAt, rejectionReason: d.rejectionReason,
+    person:d.person, type:d.type, note:d.note, date:d.date, linkedExpenseId:d.linkedExpenseId,
+    status: d.status, submittedBy:d.submittedBy, submittedAt:d.submittedAt,
+    approvedBy:d.approvedBy, approvedAt:d.approvedAt,
+    rejectedBy:d.rejectedBy, rejectedAt:d.rejectedAt, rejectionReason:d.rejectionReason,
   }));
   // Newest-decided-or-submitted first, same ordering admin.html used.
   return [...exp, ...settle, ...dep].sort((a,b) =>
@@ -4548,6 +4585,55 @@ function isOwnApprovalRecord(r){
 }
 function findApprovalRecord(recordType, id){
   return allWalletApprovalRecords().find(r => r.recordType === recordType && String(r.id) === String(id)) || null;
+}
+function approvalDetailsHtml(r){
+  const field = (label, value) => `<div><p class="mono text-[10px] opacity-50">${label}</p><p class="text-sm font-medium">${value}</p></div>`;
+  if(r.recordType === 'expense'){
+    const split = Array.isArray(r.split) ? r.split : [];
+    const splitHtml = split.length ? split.map(person => {
+      const share = r.splitType === 'individual' && r.splitAmounts && r.splitAmounts[person] !== undefined
+        ? Number(r.splitAmounts[person]) || 0
+        : split.length ? Number(r.amount) / split.length : 0;
+      return `<div class="flex justify-between gap-4 py-1.5"><span>${escapeHtml(person)}</span><span class="mono">₹${share.toFixed(2)}</span></div>`;
+    }).join('') : '<p class="text-xs opacity-60">No split participants listed.</p>';
+    return `<div class="mt-3 rounded-xl p-4" style="background:var(--sand);">
+      <p class="mono text-[10px] tracking-wider opacity-60 mb-3">EXPENSE DETAILS</p>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('CATEGORY', escapeHtml(r.category || 'Misc'))}
+        ${field('DATE', escapeHtml(r.date || '—'))}
+        ${field('PAID BY', r.unpaid ? 'Not yet paid' : escapeHtml(r.payer || '—'))}
+        ${field('SPLIT METHOD', r.splitType === 'individual' ? 'Individual amounts' : 'Equal split')}
+        ${field('PEOPLE IN SPLIT', String(split.length))}
+        ${r.paidFromDeposit && r.depositUsedFrom ? field('POOL PAYMENT', `${escapeHtml(r.depositUsedFrom)}’s deposit`) : ''}
+      </div>
+      ${r.unpaid ? '<p class="text-xs mt-3" style="color:#9C7A15">Pre-logged expense; no payment has been recorded yet.</p>' : ''}
+      <div class="mt-3 pt-2 border-t" style="border-color:var(--line)">
+        <p class="mono text-[10px] opacity-50 mb-1">SPLIT BREAKDOWN</p>${splitHtml}
+      </div>
+    </div>`;
+  }
+  if(r.recordType === 'settlement'){
+    return `<div class="mt-3 rounded-xl p-4" style="background:var(--sand);">
+      <p class="mono text-[10px] tracking-wider opacity-60 mb-3">SETTLEMENT DETAILS</p>
+      <div class="grid grid-cols-2 gap-3">
+        ${field('FROM', escapeHtml(r.from || '—'))}
+        ${field('TO', escapeHtml(r.to || '—'))}
+        ${field('DATE', escapeHtml((r.date || '').slice(0,10) || '—'))}
+        ${field('SOURCE', r.usedDeposit ? 'Paid from deposit pool' : 'Direct settlement')}
+      </div>
+      <p class="text-xs mt-3"><span class="opacity-50">NOTE</span><br>${escapeHtml(r.note || 'No note provided.')}</p>
+    </div>`;
+  }
+  return `<div class="mt-3 rounded-xl p-4" style="background:var(--sand);">
+    <p class="mono text-[10px] tracking-wider opacity-60 mb-3">DEPOSIT DETAILS</p>
+    <div class="grid grid-cols-2 gap-3">
+      ${field('PERSON', escapeHtml(r.person || '—'))}
+      ${field('TYPE', escapeHtml(r.type || 'Deposit'))}
+      ${field('DATE', escapeHtml(r.date || '—'))}
+      ${r.linkedExpenseId ? field('LINKED EXPENSE', escapeHtml(r.linkedExpenseId)) : ''}
+    </div>
+    <p class="text-xs mt-3"><span class="opacity-50">NOTE</span><br>${escapeHtml(r.note || 'No note provided.')}</p>
+  </div>`;
 }
 function renderApprovals(){
   const listEl = document.getElementById('approvalsList');
@@ -4601,6 +4687,8 @@ function renderApprovals(){
         </div>
       </div>
       <p class="text-xs opacity-50">by ${escapeHtml(r.who || '—')}</p>
+      ${r.submittedBy && r.submittedBy !== r.who ? `<p class="text-xs opacity-50 mt-0.5">Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}</p>` : ''}
+      ${approvalDetailsHtml(r)}
       ${historyLine ? `<p class="text-xs opacity-50 mt-0.5">${historyLine}</p>` : ''}
       ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
       ${r.status === 'pending_approval' ? `
