@@ -365,6 +365,26 @@
   .expense-rejection:hover .expense-rejection-tooltip,
   .expense-rejection:focus-within .expense-rejection-tooltip,
   .expense-rejection.is-open .expense-rejection-tooltip{ visibility:visible; opacity:1; }
+  .approval-card-toggle,.participant-card-toggle{ width:28px; height:28px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer; }
+  .approval-card-toggle:hover,.participant-card-toggle:hover{ background:var(--sand); }
+  .list-collapse-icon{ display:block; overflow:visible; }
+  .list-collapse-icon .collapse-icon-middle{ transform-box:view-box; transform-origin:10px 12px; }
+  .list-collapse-icon .collapse-icon-chevron-top{ transform-box:view-box; transform-origin:4.5px 7px; }
+  .list-collapse-icon .collapse-icon-chevron-bottom{ transform-box:view-box; transform-origin:4.5px 17px; }
+  .approval-card-toggle:hover .collapse-icon-middle,.approval-card-toggle:focus-visible .collapse-icon-middle,
+  .participant-card-toggle:hover .collapse-icon-middle,.participant-card-toggle:focus-visible .collapse-icon-middle{ animation:listCollapseLine .8s ease-in-out; }
+  .approval-card-toggle:hover .collapse-icon-chevron,.approval-card-toggle:focus-visible .collapse-icon-chevron,
+  .participant-card-toggle:hover .collapse-icon-chevron,.participant-card-toggle:focus-visible .collapse-icon-chevron{ animation:listCollapseChevron .8s ease-in-out; }
+  @keyframes listCollapseLine{ 0%,100%{transform:scaleX(1);opacity:1;} 30%,60%{transform:scaleX(.2);opacity:.3;} }
+  @keyframes listCollapseChevron{ 0%,100%{transform:rotate(0deg);} 30%,60%{transform:rotate(90deg);} }
+  @media (prefers-reduced-motion:reduce){
+    .approval-card-toggle:hover .collapse-icon-middle,.approval-card-toggle:focus-visible .collapse-icon-middle,
+    .participant-card-toggle:hover .collapse-icon-middle,.participant-card-toggle:focus-visible .collapse-icon-middle,
+    .approval-card-toggle:hover .collapse-icon-chevron,.approval-card-toggle:focus-visible .collapse-icon-chevron,
+    .participant-card-toggle:hover .collapse-icon-chevron,.participant-card-toggle:focus-visible .collapse-icon-chevron{ animation:none; }
+  }
+  .approval-card-details{ display:none; }
+  .approval-card.is-expanded .approval-card-details{ display:block; }
   .status-pill.published{ background:rgba(46,111,242,.12); color:var(--azulejo); }
   /* Pre-logged / unpaid expense — same visual language as status-pill
      (small uppercase pill) but its own colour so it never reads as an
@@ -414,8 +434,6 @@
   #participantGrid .panel:hover{ transform:translateY(-3px); box-shadow:0 16px 30px -18px rgba(15,38,34,.35); }
   #participantGrid .participant-card-details{ display:none; }
   #participantGrid .participant-card.is-expanded .participant-card-details{ display:block; }
-  .participant-card-toggle{ width:28px; height:28px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); cursor:pointer; line-height:1; }
-  .participant-card-toggle:hover{ background:var(--sand); }
 
   .sync-dot{ width:8px; height:8px; border-radius:9999px; display:inline-block; transition:box-shadow .3s ease; }
   .sync-dot.ok{ background:var(--palm); box-shadow:0 0 0 3px rgba(62,124,89,.18); }
@@ -1636,6 +1654,13 @@ const DELEGATED_ACTIONS = {
   removeAdjustment:         d => removeAdjustment(d.id),
   removeSettlement:         d => removeSettlement(d.id),
   resubmitRecord:           d => resubmitRecord(d.recordType, d.id),
+  toggleApprovalDetails:    (d, el) => {
+    const card = el.closest('[data-approval-card]');
+    const expanded = card.classList.toggle('is-expanded');
+    el.setAttribute('aria-expanded', String(expanded));
+    el.setAttribute('aria-label', expanded ? 'Collapse approval details' : 'Expand approval details');
+    el.title = expanded ? 'Collapse details' : 'Expand details';
+  },
   toggleBalanceCard:        (d, el, e) => {
     e.stopPropagation();
     const card = el.closest('[data-balance-card]');
@@ -1643,7 +1668,6 @@ const DELEGATED_ACTIONS = {
     el.setAttribute('aria-expanded', String(expanded));
     el.setAttribute('aria-label', expanded ? 'Collapse balance details' : 'Expand balance details');
     el.title = expanded ? 'Collapse details' : 'Expand details';
-    el.textContent = expanded ? '⌃' : '⌄';
   },
   toggleRejectionReason:    (d, el) => {
     const wrapper = el.closest('.expense-rejection');
@@ -3303,6 +3327,13 @@ function statusPillHtml(status, approvedBy, unsynced){
   return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
 }
 
+function listCollapseIconHtml(){
+  return `<svg class="list-collapse-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M10 5h11"/><path class="collapse-icon-middle" d="M10 12h11"/><path d="M10 19h11"/>
+    <path class="collapse-icon-chevron collapse-icon-chevron-top" d="m3 10 3-3-3-3"/><path class="collapse-icon-chevron collapse-icon-chevron-bottom" d="m3 20 3-3-3-3"/>
+  </svg>`;
+}
+
 // Full 5-node progress tracker for My Submissions: Draft → Submitted →
 // Pending Review → Approved/Rejected. Submission in this
 // app is a single atomic action (submitForApprovalAuto fires the moment
@@ -3821,7 +3852,7 @@ function renderParticipants(){
         <div><p class="font-semibold text-sm">${escapeHtml(p)}</p><p class="text-xs opacity-50">Tap for full breakdown</p></div>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" class="participant-card-toggle" data-action="toggleBalanceCard" aria-label="Expand balance details" aria-expanded="false" aria-controls="balanceDetails-${index}" title="Expand details">⌄</button>
+          <button type="button" class="participant-card-toggle" data-action="toggleBalanceCard" aria-label="Expand balance details" aria-expanded="false" aria-controls="balanceDetails-${index}" title="Expand details">${listCollapseIconHtml()}</button>
           <span class="btn-icon" title="Edit ${escapeHtml(p)}" data-action="openParticipantEditModal" data-person="${escapeHtml(p)}">✎</span>
         </div>
       </div>
@@ -4504,7 +4535,7 @@ function renderMySubmissions(){
   if(emptyEl) emptyEl.style.display = 'none';
 
   listEl.innerHTML = records.map(r => `
-    <div class="submission-card">
+    <div class="submission-card approval-card" data-approval-card>
       <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
         <div class="flex items-center gap-2 min-w-0">
           <span class="pill">${escapeHtml(r.recordType)}</span>
@@ -4687,13 +4718,16 @@ function renderApprovals(){
         <div class="flex items-center gap-2">
           <span class="mono text-sm">₹${r.amount.toFixed(0)}</span>
           ${statusPillHtml(r.status, r.approvedBy, r._unsynced)}
+          <button type="button" class="approval-card-toggle" data-action="toggleApprovalDetails" aria-label="Expand approval details" aria-expanded="false" title="Expand details">${listCollapseIconHtml()}</button>
         </div>
       </div>
       <p class="text-xs opacity-50">by ${escapeHtml(r.who || '—')}</p>
       ${r.submittedBy && r.submittedBy !== r.who ? `<p class="text-xs opacity-50 mt-0.5">Submitted by ${escapeHtml(r.submittedBy)}${r.submittedAt ? ' · ' + new Date(r.submittedAt).toLocaleString() : ''}</p>` : ''}
-      ${approvalDetailsHtml(r)}
-      ${historyLine ? `<p class="text-xs opacity-50 mt-0.5">${historyLine}</p>` : ''}
-      ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
+      <div class="approval-card-details">
+        ${approvalDetailsHtml(r)}
+        ${historyLine ? `<p class="text-xs opacity-50 mt-2">${historyLine}</p>` : ''}
+        ${r.status === 'rejected' && r.rejectionReason ? `<p class="text-xs mt-2" style="color:var(--mango-2)">Reason: ${escapeHtml(r.rejectionReason)}</p>` : ''}
+      </div>
       ${r.status === 'pending_approval' ? `
         <div class="mt-3 flex gap-2 flex-wrap items-center">
           ${isOwnApprovalRecord(r)
