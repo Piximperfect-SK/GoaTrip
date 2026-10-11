@@ -4602,12 +4602,20 @@ function renderMySubmissions(){
     </div>`).join('');
 }
 
+function formatActivityTimestamp(timestamp){
+  const date = new Date(timestamp);
+  if(Number.isNaN(date.getTime())) return timestamp || '';
+  return new Intl.DateTimeFormat(undefined, {
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hourCycle:'h23'
+  }).format(date);
+}
 function renderActivity(){
   const list = document.getElementById('activityLogList');
   list.innerHTML = wallet.activity.slice().reverse().map(a=>`
     <div class="py-3 flex items-center justify-between gap-3">
       <div><p class="text-sm font-medium">${escapeHtml(a.detail||'')}</p><p class="text-xs opacity-50">${escapeHtml((a.action||'').replace('_',' '))} · by ${escapeHtml(a.actor)}</p></div>
-      <p class="mono text-xs opacity-50">${escapeHtml((a.ts||'').replace('T',' ').slice(0,16))}</p>
+      <p class="mono text-xs opacity-50">${escapeHtml(formatActivityTimestamp(a.ts))}</p>
     </div>`).join('') || '<p class="text-sm opacity-50 py-6">Nothing logged yet.</p>';
 }
 
