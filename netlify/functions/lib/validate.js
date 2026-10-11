@@ -46,6 +46,9 @@ function validatePayload(schema, payload) {
       const n = sanitizeNumber(val, rule.min, rule.max);
       if (n === null) return `Field ${field} must be a number between ${rule.min} and ${rule.max}.`;
     }
+    if (rule.type === 'boolean' && typeof val !== 'boolean') {
+      return `Field ${field} must be true or false.`;
+    }
     if (rule.type === 'array') {
       if (!Array.isArray(val)) return `Field ${field} must be a list.`;
       if (rule.maxLen && val.length > rule.maxLen) return `Field ${field} has too many items.`;

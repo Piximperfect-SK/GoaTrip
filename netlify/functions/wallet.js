@@ -57,6 +57,10 @@ const SCHEMAS = {
     split: { type: 'array', maxLen: 50 },
     depositUsedFrom: { type: 'string', maxLen: 80 },
   },
+  setExpenseExcluded: {
+    id: { type: 'string', maxLen: 60, required: true },
+    excluded: { type: 'boolean', required: true },
+  },
   removeExpense: { id: { type: 'string', maxLen: 60, required: true } },
   addSettlement: {
     id: { type: 'string', maxLen: 60, required: true },
@@ -64,6 +68,7 @@ const SCHEMAS = {
     to: { type: 'string', maxLen: 80, required: true },
     amount: { type: 'number', min: 0, max: 10000000, required: true },
     note: { type: 'string', maxLen: 200 },
+    usedDeposit: { type: 'boolean' },
   },
   removeSettlement: { id: { type: 'string', maxLen: 60, required: true } },
   addDeposit: {
@@ -258,10 +263,54 @@ async function ensureApprovalSchema() {
     await query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ`);
     await query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS rejection_reason TEXT`);
   }
+  await query('ALTER TABLE expenses ADD COLUMN IF NOT EXISTS excluded_from_balances BOOLEAN DEFAULT false');
   // A "paid from deposit" expense owns exactly one withdrawal row; this
   // column points that row back at its expense so the two can be
   // created, submitted, approved, rejected and deleted as one unit.
   await query('ALTER TABLE deposits ADD COLUMN IF NOT EXISTS linked_expense_id TEXT');
+  // Deposit-funded settlements use the same paired approval lifecycle.
+  await query('ALTER TABLE deposits ADD COLUMN IF NOT EXISTS linked_settlement_id TEXT');
+  // Link legacy client-created withdrawals only when the generated note,
+  // person, amount, actor, and one-to-one match are all exact. Older clients
+  // submitted the settlement and withdrawal separately; if the settlement
+  // was already approved but its matching withdrawal is still pending, carry
+  // that approval across so the already-approved payment is reflected.
+  await query(
+    `WITH matches AS (
+       SELECT d.trip_id, d.id AS deposit_id, s.id AS settlement_id,
+              COALESCE(s.status,'approved') AS settlement_status,
+              COALESCE(d.status,'approved') AS deposit_status,
+              s.approved_by AS settlement_approved_by, s.approved_at AS settlement_approved_at,
+              COUNT(*) OVER (PARTITION BY s.trip_id,s.id) AS settlement_matches,
+              COUNT(*) OVER (PARTITION BY d.trip_id,d.id) AS deposit_matches
+         FROM settlements s
+         JOIN deposits d
+           ON d.trip_id=s.trip_id AND d.person=s.from_person AND d.amount=s.amount
+          AND d.logged_by=s.actor AND COALESCE(d.type,'deposit')='withdrawal'
+          AND d.note=LEFT('Settlement to ' || s.to_person || ': ' || COALESCE(NULLIF(s.note,''),'payment'),200)
+        WHERE s.used_deposit IS TRUE
+          AND d.linked_expense_id IS NULL AND d.linked_settlement_id IS NULL
+          AND (
+            COALESCE(s.status,'approved')=COALESCE(d.status,'approved')
+            OR (COALESCE(s.status,'approved') IN ('approved','published')
+                AND COALESCE(d.status,'approved')='pending_approval')
+          )
+     )
+     UPDATE deposits d
+        SET linked_settlement_id=m.settlement_id,
+            status=CASE WHEN m.deposit_status='pending_approval'
+                              AND m.settlement_status IN ('approved','published')
+                        THEN m.settlement_status ELSE d.status END,
+            approved_by=CASE WHEN m.deposit_status='pending_approval'
+                                   AND m.settlement_status IN ('approved','published')
+                             THEN m.settlement_approved_by ELSE d.approved_by END,
+            approved_at=CASE WHEN m.deposit_status='pending_approval'
+                                   AND m.settlement_status IN ('approved','published')
+                             THEN m.settlement_approved_at ELSE d.approved_at END
+       FROM matches m
+      WHERE d.trip_id=m.trip_id AND d.id=m.deposit_id
+        AND m.settlement_matches=1 AND m.deposit_matches=1`
+  );
   approvalSchemaEnsured = true;
 }
 
@@ -278,6 +327,7 @@ async function getRecordForApproval(tripId, recordType, id) {
 // Deterministic id for the withdrawal that belongs to an expense, so the
 // client can predict it and retries can't create a second one.
 function withdrawalIdFor(expenseId) { return ('wd-' + expenseId).slice(0, 60); }
+function settlementWithdrawalIdFor(settlementId) { return ('ws-' + settlementId).slice(0, 60); }
 
 // A person's spendable deposit balance = APPROVED deposits minus APPROVED
 // withdrawals (same rule the frontend uses via isCountable). excludeId
@@ -297,7 +347,7 @@ function insufficientBalanceMsg(person, bal, amount) {
   return `${person}'s approved deposit balance is Rs.${Math.max(bal, 0).toFixed(2)} — not enough for Rs.${Number(amount).toFixed(2)}.`;
 }
 
-// Expense <-> auto-withdrawal pairing. Returns the OTHER half of the pair
+// Expense/settlement <-> auto-withdrawal pairing. Returns the OTHER half of the pair
 // (plus the withdrawal's own details, needed for the balance check), or
 // null when the record isn't part of a pair.
 async function getLinkedPair(tripId, recordType, record) {
@@ -308,10 +358,20 @@ async function getLinkedPair(tripId, recordType, record) {
     return { table: 'deposits', id: rows[0].id, status: rows[0].status || 'approved',
       withdrawal: { id: rows[0].id, person: rows[0].person, amount: Number(rows[0].amount) } };
   }
-  if (recordType === 'deposit' && record.linked_expense_id) {
-    const { rows } = await query('SELECT id, status FROM expenses WHERE trip_id=$1 AND id=$2', [tripId, record.linked_expense_id]);
+  if (recordType === 'settlement' && record.used_deposit) {
+    const { rows } = await query(
+      'SELECT id, status, person, amount FROM deposits WHERE trip_id=$1 AND linked_settlement_id=$2 LIMIT 1', [tripId, record.id]);
     if (!rows.length) return null;
-    return { table: 'expenses', id: rows[0].id, status: rows[0].status || 'approved',
+    return { table: 'deposits', id: rows[0].id, status: rows[0].status || 'approved',
+      withdrawal: { id: rows[0].id, person: rows[0].person, amount: Number(rows[0].amount) } };
+  }
+  if (recordType === 'deposit' && (record.linked_expense_id || record.linked_settlement_id)) {
+    const isSettlement = !!record.linked_settlement_id;
+    const table = isSettlement ? 'settlements' : 'expenses';
+    const linkedId = isSettlement ? record.linked_settlement_id : record.linked_expense_id;
+    const { rows } = await query(`SELECT id, status FROM ${table} WHERE trip_id=$1 AND id=$2`, [tripId, linkedId]);
+    if (!rows.length) return null;
+    return { table, id: rows[0].id, status: rows[0].status || 'approved',
       withdrawal: { id: record.id, person: record.person, amount: Number(record.amount) } };
   }
   return null;
@@ -393,6 +453,7 @@ async function readState(tripId, viewer) {
     updatedBy: r.updated_by, updatedAt: r.updated_at, splitType: r.split_type,
     splitAmounts: r.split_amounts, paidFromDeposit: r.paid_from_deposit, depositUsedFrom: r.deposit_used_from,
     unpaid: !!r.unpaid,
+    excludedFromBalances: !!r.excluded_from_balances,
     ...approvalFields(r),
   })).map((r) => remapExpensePeople(r, person));
   const mappedSettlements = settlements.rows.map((r) => ({
@@ -403,6 +464,7 @@ async function readState(tripId, viewer) {
   const mappedDeposits = deposits.rows.map((r) => ({
     id: safeRecordId(r.id), person: safeParticipantName(person(r.person)), amount: Number(r.amount), date: r.date, note: r.note,
     loggedBy: r.logged_by, ts: r.ts, type: normalizeDepositType(r.type), linkedExpenseId: r.linked_expense_id || null,
+    linkedSettlementId: r.linked_settlement_id || null,
     ...approvalFields(r),
   }));
   return {
@@ -483,7 +545,7 @@ exports.handler = async (event) => {
     // records (and those still go through the approval queue), but
     // deleting a record removes it outright with no review step, so that
     // stays admin-only the same way resetWallet/approveRecord do.
-    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'revertApproval', 'removeExpense', 'removeSettlement', 'deleteDeposit', 'addAdjustment', 'deleteAdjustment', 'renameParticipant', 'mergeParticipant'];
+    const ALWAYS_ADMIN_ACTIONS = ['resetWallet', 'approveRecord', 'rejectRecord', 'revertApproval', 'removeExpense', 'removeSettlement', 'deleteDeposit', 'setExpenseExcluded', 'addAdjustment', 'deleteAdjustment', 'renameParticipant', 'mergeParticipant'];
     const locked = await getWalletLockState(tripId);
     // Exception: a user may delete their OWN self-only expense (private,
     // never reviewed by anyone) — unless the wallet is locked.
@@ -505,6 +567,8 @@ exports.handler = async (event) => {
           ? 'Approving or rejecting records requires an admin session — please log in as admin.'
           : action === 'removeExpense' || action === 'removeSettlement' || action === 'deleteDeposit'
           ? 'Deleting records requires an admin session — please log in as admin.'
+          : action === 'setExpenseExcluded'
+          ? 'Changing whether an expense is included in trip balances requires an admin session — please log in as admin.'
           : 'The wallet is locked for final submission — only admins can make changes now. Please log in as admin.'
       );
     }
@@ -673,6 +737,18 @@ exports.handler = async (event) => {
           ? `${sanitizeText(payload.title, 120)} (Rs.${amount}) — pre-logged, not yet paid`
           : `${sanitizeText(payload.title, 120)} (Rs.${amount})`
       );
+    } else if (action === 'setExpenseExcluded') {
+      const { rows } = await query(
+        `UPDATE expenses SET excluded_from_balances=$3
+          WHERE trip_id=$1 AND id=$2
+          RETURNING id`,
+        [tripId, payload.id, payload.excluded]
+      );
+      if (!rows.length) return badRequest('Expense not found.');
+      await logActivity(
+        tripId, payload.id, actor, 'set_expense_inclusion',
+        `${payload.id} ${payload.excluded ? 'excluded from' : 'included in'} trip balances`
+      );
     } else if (action === 'removeExpense') {
       await query(
         `WITH wd AS (DELETE FROM deposits WHERE trip_id=$1 AND linked_expense_id=$2)
@@ -683,15 +759,41 @@ exports.handler = async (event) => {
       if (!ownSelfOnlyDelete) await logActivity(tripId, payload.id, actor, 'remove_expense', payload.id);
     } else if (action === 'addSettlement') {
       const amount = sanitizeNumber(payload.amount, 0, 10000000) || 0;
-      await query(
-        `INSERT INTO settlements (id, trip_id, from_person, to_person, amount, note, actor, used_deposit, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'draft')`,
-        [sanitizeText(payload.id, 60), tripId, sanitizeText(payload.from, 80), sanitizeText(payload.to, 80), amount,
-          sanitizeText(payload.note || '', 200), actor, !!payload.usedDeposit]
-      );
+      const settlementId = sanitizeText(payload.id, 60);
+      const from = sanitizeText(payload.from, 80);
+      const to = sanitizeText(payload.to, 80);
+      const note = sanitizeText(payload.note || '', 200);
+      const usedDeposit = payload.usedDeposit === true;
+      if (usedDeposit) {
+        if (!(amount > 0)) return badRequest('Amount must be greater than 0 to pay from a deposit.');
+        const bal = await approvedDepositBalance(tripId, from, null);
+        if (amount > bal + 0.005) return badRequest(insufficientBalanceMsg(from, bal, amount));
+        await query(
+          `WITH wd AS (
+             INSERT INTO deposits (id, trip_id, person, amount, date, note, logged_by, type, status, linked_settlement_id)
+             VALUES ($8,$2,$3,$5,$9,$10,$7,'withdrawal','draft',$1)
+             RETURNING id
+           )
+           INSERT INTO settlements (id, trip_id, from_person, to_person, amount, note, actor, used_deposit, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,true,'draft')`,
+          [settlementId, tripId, from, to, amount, note, actor,
+            settlementWithdrawalIdFor(settlementId), new Date().toISOString().slice(0, 10),
+            sanitizeText(`Settlement to ${to}: ${note || 'payment'}`, 200)]
+        );
+      } else {
+        await query(
+          `INSERT INTO settlements (id, trip_id, from_person, to_person, amount, note, actor, used_deposit, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,false,'draft')`,
+          [settlementId, tripId, from, to, amount, note, actor]
+        );
+      }
       await logActivity(tripId, payload.id, actor, 'add_settlement', `${sanitizeText(payload.from, 80)} to ${sanitizeText(payload.to, 80)} (Rs.${amount})`);
     } else if (action === 'removeSettlement') {
-      await query('DELETE FROM settlements WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      await query(
+        `WITH wd AS (DELETE FROM deposits WHERE trip_id=$1 AND linked_settlement_id=$2)
+         DELETE FROM settlements WHERE trip_id=$1 AND id=$2`,
+        [tripId, payload.id]
+      );
       await logActivity(tripId, payload.id, actor, 'remove_settlement', payload.id);
     } else if (action === 'addDeposit') {
       const amount = sanitizeNumber(payload.amount, 0.01, 10000000) || 0;
@@ -711,9 +813,12 @@ exports.handler = async (event) => {
     } else if (action === 'editDeposit') {
       const amount = sanitizeNumber(payload.amount, 0.01, 10000000) || 0;
       const type = normalizeDepositType(payload.type);
-      const { rows: depRows } = await query('SELECT linked_expense_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      const { rows: depRows } = await query('SELECT linked_expense_id, linked_settlement_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
       if (depRows[0] && depRows[0].linked_expense_id) {
         return badRequest('This withdrawal belongs to an expense — edit the expense instead.');
+      }
+      if (depRows[0] && depRows[0].linked_settlement_id) {
+        return badRequest('This withdrawal belongs to a settlement — delete the settlement instead.');
       }
       if (type === 'withdrawal') {
         const bal = await approvedDepositBalance(tripId, sanitizeText(payload.person, 80), sanitizeText(payload.id, 60));
@@ -730,9 +835,12 @@ exports.handler = async (event) => {
       await logActivity(tripId, payload.id, actor, type === 'withdrawal' ? 'edit_withdrawal' : 'edit_deposit',
         `${sanitizeText(payload.person, 80)} updated to Rs.${amount}`);
     } else if (action === 'deleteDeposit') {
-      const { rows: delRows } = await query('SELECT linked_expense_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
+      const { rows: delRows } = await query('SELECT linked_expense_id, linked_settlement_id FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
       if (delRows[0] && delRows[0].linked_expense_id) {
         return badRequest('This withdrawal belongs to an expense — delete or edit the expense instead.');
+      }
+      if (delRows[0] && delRows[0].linked_settlement_id) {
+        return badRequest('This withdrawal belongs to a settlement — delete the settlement instead.');
       }
       await query('DELETE FROM deposits WHERE trip_id=$1 AND id=$2', [tripId, payload.id]);
       await logActivity(tripId, payload.id, actor, 'delete_deposit', payload.id);
@@ -752,7 +860,7 @@ exports.handler = async (event) => {
       const submitSet = `status='pending_approval', submitted_by=$3, submitted_at=now(),
            approved_by=NULL, approved_at=NULL, rejected_by=NULL, rejected_at=NULL, rejection_reason=NULL`;
       if (pair) {
-        // One statement: the expense and its withdrawal enter the queue together.
+        // One statement: the record and its paired withdrawal enter the queue together.
         await query(
           `WITH a AS (UPDATE ${record._table} SET ${submitSet} WHERE trip_id=$1 AND id=$2 RETURNING id)
            UPDATE ${pair.table} SET ${submitSet} WHERE trip_id=$1 AND id=$4 AND status IN ('draft','rejected')`,
