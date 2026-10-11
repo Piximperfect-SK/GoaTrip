@@ -904,7 +904,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
         </div>
         <div class="panel item-card ic-pink" data-feature="wallet.viewParticipants" data-page="participants" onclick="goToPage('participants')">
           <span class="ic-wrap">◍</span>
-          <span><span class="it-name">Balances</span><br><span class="it-desc">Who owes what</span></span>
+          <span><span class="it-name">Balances</span><br><span class="it-desc">Who needs to pay what</span></span>
         </div>
         <div class="panel item-card ic-yellow" data-page="p2p" onclick="goToPage('p2p')">
           <span class="ic-wrap">⇌</span>
@@ -956,13 +956,13 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 
       <div class="grid lg:grid-cols-2 gap-5">
         <div class="panel p-5">
-          <h3 class="font-semibold mb-1">Paid vs owed, by person</h3>
+          <h3 class="font-semibold mb-1">Paid vs share, by person</h3>
           <p class="text-xs opacity-50 mb-3">Who has fronted the most money</p>
           <div id="chartPerson" class="chart-box" style="height:280px;"></div>
         </div>
         <div class="panel p-5">
           <h3 class="font-semibold mb-1">Net balance, by person</h3>
-          <p class="text-xs opacity-50 mb-3">Positive = gets money back · negative = owes</p>
+          <p class="text-xs opacity-50 mb-3">Positive = gets money back · negative = needs to pay</p>
           <div id="chartBalance" class="chart-box" style="height:280px;"></div>
         </div>
       </div>
@@ -1096,13 +1096,13 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
       <div class="flex items-center justify-between mb-5 on-video">
         <div>
           <h3 class="font-semibold">Settlements</h3>
-          <p class="text-xs mt-0.5">"Who owes whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
+          <p class="text-xs mt-0.5">"Who needs to pay whom" below is computed directly from expenses — recording a settlement only ever affects that one pair.</p>
         </div>
         <button class="btn-primary" data-feature="wallet.settlements" onclick="openSettlementModal()">+ Record a settlement</button>
       </div>
 
       <div class="panel p-6 mb-6">
-        <h3 class="font-semibold mb-1">Who owes whom</h3>
+        <h3 class="font-semibold mb-1">Who needs to pay whom</h3>
         <p class="text-xs opacity-50 mb-4">Direct payments, computed from actual expense splits (not a global reshuffle) — this is exactly who should pay whom to settle up.</p>
         <div id="whoOwesWhomList" class="divide-y" style="border-color:var(--line)"></div>
         <p class="text-sm opacity-50 text-center py-6" id="whoOwesWhomEmpty" style="display:none;">Everyone is settled up 🎉</p>
@@ -1378,13 +1378,13 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
       <!-- ---- Manual balance adjustment ---- -->
       <div class="panel p-5">
         <h4 class="font-semibold mb-1">Manual balance adjustment</h4>
-        <p class="text-xs opacity-50 mb-4">Nudges this person's net balance directly — up (they're owed more / owe less) or down — without touching any expense or its split. Use this to clear up a mismatch instead of re‑editing every expense. Saved on this device only, same as renaming.</p>
+        <p class="text-xs opacity-50 mb-4">Nudges this person's net balance directly — up (they receive more / need to pay less) or down — without touching any expense or its split. Use this to clear up a mismatch instead of re‑editing every expense. Saved on this device only, same as renaming.</p>
         <form id="adjustmentForm" class="grid grid-cols-2 gap-4">
           <div>
             <label>Direction</label>
             <select id="pe-adj-direction">
-              <option value="add">They're owed more (+)</option>
-              <option value="subtract">They owe more (−)</option>
+              <option value="add">They receive more (+)</option>
+              <option value="subtract">They need to pay more (−)</option>
             </select>
           </div>
           <div>
@@ -1469,7 +1469,7 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 
       <div id="equalWarning" class="banner warn mb-4" style="display:none;"></div>
 
-      <p class="text-xs opacity-45 mb-4">This gives the <i>fewest payments</i> for just the people/transactions you pick — separate from "Who owes whom" on the Settlements tab, which shows the direct, full-ledger answer for everyone.</p>
+      <p class="text-xs opacity-45 mb-4">This gives the <i>fewest payments</i> for just the people/transactions you pick — separate from "Who needs to pay whom" on the Settlements tab, which shows the direct, full-ledger answer for everyone.</p>
       <button type="button" class="btn-ghost w-full mb-4" onclick="calculateEqualSettlement()">Calculate equal split</button>
 
       <div id="equalResults"></div>
@@ -1935,7 +1935,7 @@ function goToPage(pageKey, opts){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pageKey).classList.add('active');
   const titles = {items:['Everything, in one place','Items'], overview:['Split the bill','Overview'], wallet:['Fund the pool','Wallet'], expenses:['All expenses','Expenses'],
-    participants:['Who owes what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
+    participants:['Who needs to pay what','Participants & Balances'], p2p:['Just the two of you','1:1 History'], settlements:['Square up','Settlements'],
     activity:['Everything logged','Activity Log'], mysubmissions:['Track your own submissions','My Submissions'],
     approvals:['Review & decide','Payment approvals']};
   document.getElementById('pageEyebrow').textContent = titles[pageKey][0];
@@ -2961,16 +2961,16 @@ function viewExpense(id){
         : `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${escapeHtml(s)} · ₹${per.toFixed(0)}</span>`).join('')}</div>`}
     </div>
     <div class="mb-5">
-      <p class="mono text-[11px] opacity-50 mb-1">${ex.unpaid ? 'EACH PERSON\u2019S SHARE (once paid)' : 'WHO OWES WHOM — FOR THIS EXPENSE'}</p>
+      <p class="mono text-[11px] opacity-50 mb-1">${ex.unpaid ? 'EACH PERSON\u2019S SHARE (once paid)' : 'WHO NEEDS TO PAY WHOM — FOR THIS EXPENSE'}</p>
       ${ex.unpaid
         ? `<div class="flex flex-wrap gap-2">${ex.split.map(s=>`<span class="pill">${escapeHtml(s)} · ₹${expenseShare(ex,s).toFixed(0)}</span>`).join('')}</div>`
         : oweRows.length
         ? `<div class="divide-y" style="border-color:var(--line)">${oweRows.map(r=>`
             <div class="flex items-center justify-between py-2">
-              <span class="text-sm"><b>${escapeHtml(r.name)}</b> owes <b>${escapeHtml(ex.payer)}</b></span>
+              <span class="text-sm"><b>${escapeHtml(r.name)}</b> needs to pay <b>${escapeHtml(ex.payer)}</b></span>
               <span class="mono text-sm balance-neg">₹${r.amt.toFixed(0)}</span>
             </div>`).join('')}</div>`
-        : `<p class="text-sm opacity-50">${escapeHtml(ex.payer)} paid only for themself here — nobody owes anything on this expense.</p>`}
+        : `<p class="text-sm opacity-50">${escapeHtml(ex.payer)} paid only for themself here — nobody needs to pay anything on this expense.</p>`}
     </div>
     <p class="text-xs opacity-50 mb-5">${ex.updatedBy ? `Last edited by ${escapeHtml(ex.updatedBy)}` : `Added by ${escapeHtml(ex.createdBy||'—')}`}</p>
     <div class="flex gap-3">
@@ -3090,7 +3090,7 @@ function calculateEqualSettlement(){
     </div>
     ${payments.length ? payments.map((p,idx)=>`
       <div class="owe-row mb-2" id="equalPaymentRow-${idx}">
-        <span class="font-medium text-sm">${escapeHtml(p.from)}</span><span class="opacity-50 text-sm">owes</span><span class="font-medium text-sm">${escapeHtml(p.to)}</span>
+        <span class="font-medium text-sm">${escapeHtml(p.from)}</span><span class="opacity-50 text-sm">needs to pay</span><span class="font-medium text-sm">${escapeHtml(p.to)}</span>
         <span class="mono ml-auto text-sm">₹${p.amount.toFixed(0)}</span>
         <button type="button" class="btn-ghost text-xs" style="padding:6px 10px" data-action="recordEqualSettlementAt" data-idx="${idx}">Record</button>
       </div>`).join('') : '<p class="text-sm opacity-50">Selected members are already even on these transactions.</p>'}
@@ -3535,7 +3535,7 @@ function renderP2P(){
       <div class="text-right">
         ${settled
           ? `<p class="mono text-lg balance-pos">All settled up 🎉</p>`
-          : `<p class="mono text-lg balance-neg">${escapeHtml(ower)} owes ${escapeHtml(owed)} · ₹${Math.abs(net).toFixed(0)}</p>`}
+          : `<p class="mono text-lg balance-neg">${escapeHtml(ower)} needs to pay ${escapeHtml(owed)} · ₹${Math.abs(net).toFixed(0)}</p>`}
         ${!settled ? `<button type="button" class="btn-ghost text-xs mt-2" style="padding:6px 12px" data-action="quickRecordSettlement" data-from="${escapeHtml(ower)}" data-to="${escapeHtml(owed)}" data-amount="${Math.abs(net)}">Record settlement</button>` : ''}
       </div>
     </div>`;
@@ -3547,7 +3547,7 @@ function renderP2P(){
     return `<div class="py-3 flex items-center justify-between gap-3 flex-wrap">
       <div>
         <p class="text-sm">${escapeHtml(r.title||'—')} ${tag}</p>
-        <p class="text-xs opacity-50"><b>${escapeHtml(r.from)}</b> <span class="opacity-40">owes</span> <b>${escapeHtml(r.to)}</b> · ${escapeHtml(r.date||'—')}</p>
+        <p class="text-xs opacity-50"><b>${escapeHtml(r.from)}</b> <span class="opacity-40">needs to pay</span> <b>${escapeHtml(r.to)}</b> · ${escapeHtml(r.date||'—')}</p>
       </div>
       <span class="mono text-sm">₹${Number(r.amount).toFixed(0)}</span>
     </div>`;
@@ -3701,7 +3701,7 @@ function renderChartPerson(){
     yAxis: { type:'value', axisLine:{show:false}, splitLine:{lineStyle:{color:chartInk(), opacity:.08}}, axisLabel:{color:chartInk(), fontSize:10, formatter:'₹{value}'} },
     series: [
       { name:'Paid', type:'bar', data:PARTICIPANTS.map(p=>paid[p]), itemStyle:{color:'#1E6091', borderRadius:[4,4,0,0]}, barMaxWidth:18 },
-      { name:'Share owed', type:'bar', data:PARTICIPANTS.map(p=>owed[p]), itemStyle:{color:'#D8CBAE', borderRadius:[4,4,0,0]}, barMaxWidth:18 }
+      { name:'Share amount', type:'bar', data:PARTICIPANTS.map(p=>owed[p]), itemStyle:{color:'#D8CBAE', borderRadius:[4,4,0,0]}, barMaxWidth:18 }
     ]
   }, true);
 }
@@ -3853,7 +3853,7 @@ function renderParticipants(){
         </div>
       </div>
       <p class="mono text-lg ${v>=0?'balance-pos':'balance-neg'}">${v>=0? '+₹'+v.toFixed(0) : '−₹'+Math.abs(v).toFixed(0)}</p>
-      <p class="text-xs opacity-50">${v>=0?'gets back':'owes the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
+      <p class="text-xs opacity-50">${v>=0?'gets back':'needs to pay the group'}${adjustments.some(a=>a.person===p) ? ' · adjusted' : ''}</p>
       <div class="participant-card-details" id="balanceDetails-${index}">
       ${whoHtml}
       ${whoLines.length ? `<button type="button" class="btn-ghost text-xs mt-3" style="padding:6px 12px" onclick="event.stopPropagation(); goToPage('settlements')">Settle up →</button>` : ''}
@@ -4389,7 +4389,7 @@ function viewPerson(person){
     const isPayer = ex.payer===person, isSplit = ex.split.includes(person);
     if(isPayer) paid += amt;
     if(isSplit) share += per;
-    if(isPayer || isSplit) rows.push({title:ex.title, role:isPayer?'Paid':'Owes share', amt:isPayer?amt:per, date:ex.date, sortKey:ex.date||ex.createdAt||''});
+    if(isPayer || isSplit) rows.push({title:ex.title, role:isPayer?'Paid':'Share to pay', amt:isPayer?amt:per, date:ex.date, sortKey:ex.date||ex.createdAt||''});
   });
   const personAdjustments = adjustments.filter(a=>a.person===person);
   const adjTotal = personAdjustments.reduce((s,a)=>s+Number(a.amount),0);
@@ -4430,7 +4430,7 @@ function renderSettlements(){
   const owList = document.getElementById('whoOwesWhomList');
   owList.innerHTML = pairs.map(p=>`
     <div class="py-3 flex items-center justify-between gap-3 flex-wrap">
-      <span class="text-sm"><b>${escapeHtml(p.from)}</b> <span class="opacity-50">owes</span> <b>${escapeHtml(p.to)}</b></span>
+      <span class="text-sm"><b>${escapeHtml(p.from)}</b> <span class="opacity-50">needs to pay</span> <b>${escapeHtml(p.to)}</b></span>
       <div class="flex items-center gap-3">
         <span class="mono text-sm balance-neg">₹${p.amount.toFixed(0)}</span>
         <button type="button" class="btn-ghost text-xs" style="padding:6px 12px" data-action="quickRecordSettlement" data-from="${escapeHtml(p.from)}" data-to="${escapeHtml(p.to)}" data-amount="${p.amount}">Record</button>
@@ -4444,7 +4444,7 @@ function renderSettlements(){
     const v = net[p]||0;
     return `<div class="flex items-center justify-between border rounded-xl px-4 py-3" style="border-color:var(--line)">
       <span class="text-sm font-medium">${escapeHtml(p)}</span>
-      <span class="mono text-sm ${v>=0?'balance-pos':'balance-neg'}">${v>=0? 'gets back ₹'+v.toFixed(0) : 'owes ₹'+Math.abs(v).toFixed(0)}</span>
+      <span class="mono text-sm ${v>=0?'balance-pos':'balance-neg'}">${v>=0? 'gets back ₹'+v.toFixed(0) : 'needs to pay ₹'+Math.abs(v).toFixed(0)}</span>
     </div>`;
   }).join('') : '<p class="text-sm opacity-50">Everyone is settled up 🎉</p>';
 
