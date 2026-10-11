@@ -347,6 +347,12 @@
   th{ text-align:left; font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--teal-700); opacity:.65; padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
   td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:middle; }
   tr:hover td{ background:rgba(15,38,34,.02); }
+  .expense-column-filters th{ padding:6px 8px; opacity:1; border-bottom:2px solid var(--line); }
+  .expense-column-filters th input,.expense-column-filters th select{ min-width:100px; padding:7px 8px; border-radius:8px; font-size:11px; text-transform:none; letter-spacing:normal; }
+  .expense-column-filters th:nth-child(1) input{ min-width:145px; }
+  .expense-column-filters th:nth-child(3) input{ min-width:64px; width:50%; }
+  .expense-column-filters th:nth-child(6) input{ min-width:128px; }
+  .expense-column-filters th:nth-child(8) select{ min-width:110px; }
   .pill{ font-family:'Space Mono',monospace; font-size:10.5px; padding:3px 9px; border-radius:9999px; background:var(--sand); white-space:nowrap; }
 
   /* ---------- Approval status pills (expenses/settlements/deposits + My Submissions) ---------- */
@@ -1007,41 +1013,17 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
 
     <!-- ============ EXPENSES ============ -->
     <div class="page" id="page-expenses">
-      <!-- Filters: search stays visible; the rest collapses behind a toggle
-           (collapsed by default) so the table gets the space. -->
-      <div class="panel p-4 mb-5" id="expFilterPanel">
+      <div class="panel p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs opacity-60">Filter expenses from the fields under each column heading.</p>
         <div class="flex items-center gap-3">
-          <input id="f-search" class="flex-1 min-w-0" placeholder="Search by title…" oninput="renderExpensesTable()"/>
-          <button type="button" class="btn-ghost flex items-center gap-2 whitespace-nowrap" id="expFilterToggle" aria-expanded="false" aria-controls="expFilterBody" onclick="toggleExpFilters()">
-            <span>Filters</span><span id="expFilterBadge" class="mono" style="display:none; font-size:10.5px; background:var(--mango); color:white; border-radius:9999px; padding:1px 7px;"></span>
-            <span id="expFilterChevron" style="transition:transform .2s ease; display:inline-block;">▾</span>
-          </button>
-        </div>
-        <div id="expFilterBody" style="display:none;">
-          <div class="flex flex-wrap items-end gap-4 mt-4 pt-4" style="border-top:1px solid var(--line);">
-            <div>
-              <label>Category</label>
-              <select id="f-category" onchange="renderExpensesTable()"><option value="">All</option></select>
-            </div>
-            <div>
-              <label>Paid by</label>
-              <select id="f-payer" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
-            </div>
-            <div>
-              <label>Involves</label>
-              <select id="f-involves" onchange="renderExpensesTable()"><option value="">Anyone</option></select>
-            </div>
-            <div>
-              <label>Sort</label>
-              <select id="f-sort" onchange="renderExpensesTable()">
-                <option value="date_desc">Newest first</option>
-                <option value="date_asc">Oldest first</option>
-                <option value="amt_desc">Amount: high → low</option>
-                <option value="amt_asc">Amount: low → high</option>
-              </select>
-            </div>
-            <button class="btn-ghost" onclick="clearFilters()">Clear filters</button>
-          </div>
+          <label for="f-sort" class="text-xs opacity-60" style="margin:0;">Sort</label>
+          <select id="f-sort" onchange="renderExpensesTable()" style="width:auto;">
+            <option value="date_desc">Newest first</option>
+            <option value="date_asc">Oldest first</option>
+            <option value="amt_desc">Amount: high → low</option>
+            <option value="amt_asc">Amount: low → high</option>
+          </select>
+          <button type="button" class="btn-ghost" onclick="clearFilters()">Clear filters</button>
         </div>
       </div>
 
@@ -1049,6 +1031,24 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
         <table>
           <thead><tr>
             <th>Title</th><th>Category</th><th>Amount</th><th>Paid by</th><th>Split with</th><th>Date</th><th>Logged by</th><th>Status</th><th></th>
+          </tr><tr class="expense-column-filters">
+            <th><input id="f-search" type="search" aria-label="Filter by title" placeholder="Filter title…" oninput="renderExpensesTable()"/></th>
+            <th><select id="f-category" aria-label="Filter by category" onchange="renderExpensesTable()"><option value="">All</option></select></th>
+            <th>
+              <div class="flex gap-1">
+                <input id="f-amount-min" type="number" min="0" step="0.01" aria-label="Minimum amount" placeholder="Min" oninput="renderExpensesTable()"/>
+                <input id="f-amount-max" type="number" min="0" step="0.01" aria-label="Maximum amount" placeholder="Max" oninput="renderExpensesTable()"/>
+              </div>
+            </th>
+            <th><select id="f-payer" aria-label="Filter by payer" onchange="renderExpensesTable()"><option value="">Anyone</option></select></th>
+            <th><select id="f-involves" aria-label="Filter by person in split" onchange="renderExpensesTable()"><option value="">Anyone</option></select></th>
+            <th><input id="f-date" type="date" aria-label="Filter by date" onchange="renderExpensesTable()"/></th>
+            <th><input id="f-logged-by" type="search" aria-label="Filter by logged by" placeholder="Filter name…" oninput="renderExpensesTable()"/></th>
+            <th><select id="f-status" aria-label="Filter by status" onchange="renderExpensesTable()">
+              <option value="">All</option><option value="draft">Draft</option><option value="pending_approval">Pending</option>
+              <option value="approved">Approved</option><option value="published">Published</option><option value="rejected">Rejected</option>
+            </select></th>
+            <th></th>
           </tr></thead>
           <tbody id="expenseTableBody"></tbody>
         </table>
@@ -2398,7 +2398,8 @@ function populateSelects(){
   const payerFilter = document.getElementById('f-payer');
   payerFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
   const involvesFilter = document.getElementById('f-involves');
-  involvesFilter.innerHTML = '<option value="">Anyone</option>' + PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  involvesFilter.innerHTML = '<option value="">Anyone</option><option value="__everyone__">Everyone</option>' + PARTICIPANTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+  payerFilter.insertAdjacentHTML('beforeend', '<option value="__unpaid__">Not yet paid</option>');
 
   // 1:1 History pickers — preserve whatever's currently selected (if that
   // person is still a participant) instead of resetting to defaults every
@@ -3727,43 +3728,36 @@ window.addEventListener('resize', ()=>{ Object.values(charts).forEach(c=>{ try{ 
 /* ============================================================
    RENDER: EXPENSES TABLE
 =============================================================*/
-function toggleExpFilters(force){
-  const body = document.getElementById('expFilterBody');
-  const open = typeof force === 'boolean' ? force : body.style.display === 'none';
-  body.style.display = open ? 'block' : 'none';
-  document.getElementById('expFilterToggle').setAttribute('aria-expanded', String(open));
-  document.getElementById('expFilterChevron').style.transform = open ? 'rotate(180deg)' : '';
-}
-// Badge on the Filters button = how many non-default filters are active
-// (category / paid by / involves / sort), so they stay visible while collapsed.
-function updateExpFilterBadge(){
-  const n = ['f-category','f-payer','f-involves'].filter(id=>document.getElementById(id).value).length
-    + (document.getElementById('f-sort').value !== 'date_desc' ? 1 : 0);
-  const b = document.getElementById('expFilterBadge');
-  if(!b) return;
-  b.textContent = n; b.style.display = n ? 'inline-block' : 'none';
-}
 function clearFilters(){
-  document.getElementById('f-search').value='';
-  document.getElementById('f-category').value='';
-  document.getElementById('f-payer').value='';
-  document.getElementById('f-involves').value='';
+  ['f-search','f-category','f-amount-min','f-amount-max','f-payer','f-involves','f-date','f-logged-by','f-status']
+    .forEach(id=>{ document.getElementById(id).value=''; });
   document.getElementById('f-sort').value='date_desc';
   renderExpensesTable();
 }
 function renderExpensesTable(){
-  updateExpFilterBadge();
   const q = document.getElementById('f-search').value.trim().toLowerCase();
   const cat = document.getElementById('f-category').value;
+  const minAmount = document.getElementById('f-amount-min').value;
+  const maxAmount = document.getElementById('f-amount-max').value;
   const payer = document.getElementById('f-payer').value;
   const involves = document.getElementById('f-involves').value;
+  const date = document.getElementById('f-date').value;
+  const loggedBy = document.getElementById('f-logged-by').value.trim().toLowerCase();
+  const status = document.getElementById('f-status').value;
   const sort = document.getElementById('f-sort').value;
 
   let rows = wallet.expenses.filter(ex=>{
-    if(q && !ex.title.toLowerCase().includes(q)) return false;
+    if(q && !String(ex.title || '').toLowerCase().includes(q)) return false;
     if(cat && (ex.category||'Misc') !== cat) return false;
-    if(payer && ex.payer !== payer) return false;
-    if(involves && !ex.split.includes(involves)) return false;
+    if(minAmount !== '' && Number(ex.amount) < Number(minAmount)) return false;
+    if(maxAmount !== '' && Number(ex.amount) > Number(maxAmount)) return false;
+    if(payer === '__unpaid__' && !ex.unpaid) return false;
+    if(payer && payer !== '__unpaid__' && ex.payer !== payer) return false;
+    if(involves === '__everyone__' && ex.split.length !== PARTICIPANTS.length) return false;
+    if(involves && involves !== '__everyone__' && !ex.split.includes(involves)) return false;
+    if(date && ex.date !== date) return false;
+    if(loggedBy && !String(ex.updatedBy || ex.createdBy || '').toLowerCase().includes(loggedBy)) return false;
+    if(status && (ex.status || 'approved') !== status) return false;
     return true;
   });
   rows.sort((a,b)=>{
