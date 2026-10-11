@@ -1169,15 +1169,16 @@ html[data-theme="dark"] .wallet-gate{ background:linear-gradient(-135deg, #7A2E1
         <div class="flex items-center justify-between flex-wrap gap-3 mb-1">
           <h3 class="font-semibold">Payment approvals</h3>
           <button type="button" id="enablePushBtn" class="btn-ghost" style="display:none;" onclick="togglePush()">🔔 Enable alerts on this device</button>
+          <button type="button" class="btn-ghost" id="showApprovedRecordsBtn" style="display:none;" onclick="showApprovedWalletRecords()">View approved records to revert</button>
           <select id="approvalsFilter" onchange="renderApprovals()" style="width:auto; min-width:180px;">
             <option value="pending_approval">Pending approval</option>
             <option value="">All statuses</option>
             <option value="draft">Draft (not yet submitted)</option>
-            <option value="approved">Approved</option>
+            <option value="approved">Approved / published</option>
             <option value="rejected">Rejected</option>
           </select>
         </div>
-        <p class="text-xs opacity-50 mb-4">Expenses, settlements and deposits participants have submitted. Default filter is the live pending queue — switch to Approved/Rejected for the full reviewed history.</p>
+        <p class="text-xs opacity-50 mb-4">Expenses, settlements and deposits participants have submitted. The super admin can return approved records to review from the Approved / published list.</p>
         <div id="approvalsList"></div>
         <p class="text-sm opacity-50 text-center py-8" id="approvalsEmptyState" style="display:none;">Nothing here right now.</p>
       </div>
@@ -4695,8 +4696,11 @@ function renderApprovals(){
   }
 
   const filterVal = document.getElementById('approvalsFilter') ? document.getElementById('approvalsFilter').value : 'pending_approval';
+  const approvedRecordsBtn = document.getElementById('showApprovedRecordsBtn');
+  if(approvedRecordsBtn) approvedRecordsBtn.style.display = isWalletMasterAdmin() ? '' : 'none';
   let records = all;
-  if(filterVal) records = records.filter(r => r.status === filterVal);
+  if(filterVal === 'approved') records = records.filter(r => ['approved', 'published'].includes(r.status));
+  else if(filterVal) records = records.filter(r => r.status === filterVal);
 
   if(!records.length){
     listEl.innerHTML = '';
@@ -4741,7 +4745,7 @@ function renderApprovals(){
         </div>` : ''}
       ${isWalletMasterAdmin() && ['approved', 'published'].includes(r.status) && !isSelfOnlyRecord(r.status, r.approvedBy) ? `
         <div class="mt-3">
-          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-revert-approval data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Send back to review</button>
+          <button type="button" class="btn-ghost text-xs" style="padding:6px 14px" data-revert-approval data-type="${escapeHtml(r.recordType)}" data-id="${escapeHtml(r.id)}">Revert approval · send back to review</button>
         </div>` : ''}
     </div>`;
   }).join('');
@@ -4786,6 +4790,12 @@ function renderApprovals(){
       );
     });
   });
+}
+function showApprovedWalletRecords(){
+  const filter = document.getElementById('approvalsFilter');
+  if(!filter) return;
+  filter.value = 'approved';
+  renderApprovals();
 }
 let approvalRejectTarget = null;
 function openApprovalRejectModal(recordType, id){

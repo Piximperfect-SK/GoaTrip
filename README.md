@@ -158,7 +158,7 @@ GoaTrip/
 
 **Splitting expenses:** `goa-wallet.html` pulls the full wallet snapshot from `GET /wallet?tripId=...` and pushes every add/edit/delete through `POST /wallet`. Every write is schema-validated server-side before it touches the database. Renaming or removing a participant, or applying a manual balance correction, requires being logged into `admin.html` first (verified via a real session token, not a hardcoded name list).
 
-**Reviewing wallet approvals:** admins can inspect pending records and their full expense, settlement, or deposit details in the wallet's **Payment approvals** tab. The super admin can return an approved record to pending review; linked expense/withdrawal records move together.
+**Reviewing wallet approvals:** admins can inspect pending records and their full expense, settlement, or deposit details in the wallet's **Payment approvals** tab. The super admin can use **View approved records to revert** to open the reviewed history and return approved or published records to pending review; linked expense/withdrawal records move together.
 
 **Generating a boarding pass:** passenger types their name on `boarding-pass.html` → `GET /boarding-pass?tripId=...&name=...` returns their journey legs (matched case-insensitively) → rendered as a printable pass with a QR code.
 
